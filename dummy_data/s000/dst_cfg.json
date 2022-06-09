@@ -1,0 +1,43 @@
+{
+    "nodes" : 
+        ["A6", "A17", "A20", "A34", "A22", "EA"],
+    "edges" : 
+        [
+            {
+                "from" : "A6",
+                "to" : "A17",
+                "condition" : "true",
+                "statement" : "-4(%esp) := %ebp\r\n%esp := %esp - 4\r\n\r\n%ebp := %esp\r\n\r\n%esp := %esp - 16"
+            },
+            {
+                "from" : "A17",
+                "to" : "A20",
+                "condition" : "true",
+                "statement" : "-4(%ebp) := 0"
+            },
+            {
+                "from" : "A20",
+                "to" : "A34",
+                "condition" : "true",
+                "statement" : ""
+            },
+            {
+                "from" : "A34",
+                "to" : "A22",
+                "condition" : "-4(%ebp) < 31999",
+                "statement" : ""
+            },
+            {
+                "from" : "A22",
+                "to" : "A34",
+                "condition" : "true",
+                "statement" : "%eax := -4(%ebp)\r\n%edx := (Y + 4*%eax)\r\n%eax := val\r\n%edx := %edx + %eax\r\n%eax := -4(%ebp)\r\n(X + 4*%eax) := %edx\r\n-4(%ebp) := -4(%ebp) + 1"
+            },
+            {
+                "from" : "A34",
+                "to" : "EA",
+                "condition" : "!(-4(%ebp) < 31999)",
+                "statement" : "%eax := 0\r\nleave"
+            }
+        ]
+}

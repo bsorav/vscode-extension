@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { readFileSync } from 'fs';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -17,44 +18,89 @@ export function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand('equivalence-checker.visualize', () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
-		const panel = vscode.window.createWebviewPanel(
+		const panel_prd = vscode.window.createWebviewPanel(
 			'productCFG', // Identifies the type of the webview. Used internally
 			'Product Control Flow Graph', // Title of the panel displayed to the user
 			vscode.ViewColumn.One, // Editor column to show the new webview panel in.
 			{
 				enableScripts: true
 			} // Webview options. More on these later.
-		  );
-
-		const onDiskPath_p5 = vscode.Uri.file(
-			path.join(context.extensionPath, 'node_modules/p5/lib/p5.js')
 		);
-		const p5_lib = panel.webview.asWebviewUri(onDiskPath_p5);
 
-		const onDiskPath_script = vscode.Uri.file(
-			path.join(context.extensionPath, 'src/web_view/sketch.js')
+		const panel_src = vscode.window.createWebviewPanel(
+			'srcCFG', // Identifies the type of the webview. Used internally
+			'Source Control Flow Graph', // Title of the panel displayed to the user
+			vscode.ViewColumn.Two, // Editor column to show the new webview panel in.
+			{
+				enableScripts: true
+			} // Webview options. More on these later.
 		);
-		const script = panel.webview.asWebviewUri(onDiskPath_script);
 
-		console.log(p5_lib, script);
+		const panel_dst = vscode.window.createWebviewPanel(
+			'dstCFG', // Identifies the type of the webview. Used internally
+			'Assembly Control Flow Graph', // Title of the panel displayed to the user
+			vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
+			{
+				enableScripts: true
+			} // Webview options. More on these later.
+		); 
+		// vscode.commands.executeCommand("workbench");
+		// vscode.commands.executeCommand("workbench.action.editorLayoutTwoRows");
+		vscode.commands.executeCommand("workbench.action.editorLayoutTwoColumnsBottom");
 
-		panel.webview.html = getWebviewContent(p5_lib, script);
+
+		const onDiskPath_css = vscode.Uri.file(
+			path.join(context.extensionPath, 'src/web_view/css/index.css')
+		);
+		const index_css = panel_prd.webview.asWebviewUri(onDiskPath_css);
+
+		var onDiskPath_script = vscode.Uri.file(
+			path.join(context.extensionPath, 'src/web_view/scripts/product.js')
+		);
+		const product_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+
+		onDiskPath_script = vscode.Uri.file(
+			path.join(context.extensionPath, 'src/web_view/scripts/source.js')
+		);
+		const source_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+
+		onDiskPath_script = vscode.Uri.file(
+			path.join(context.extensionPath, 'src/web_view/scripts/assembly.js')
+		);
+		const assembly_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+
+		// const onDiskPath_prod_cfg = vscode.Uri.file(
+		// 	path.join(context.extensionPath, 'dummy_data/s000/prod_cfg.json')
+		// );
+		// const prod_cfg = panel_prd.webview.asWebviewUri(onDiskPath_prod_cfg);
+
+		panel_prd.webview.html = getProductWebviewContent(context.extensionPath, product_script, index_css);
+		panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css);
+		panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css);
 	});
 
 	context.subscriptions.push(disposable);
 }
 
-function getWebviewContent(p5: vscode.Uri, sketch: vscode.Uri) {
-	return `
-	<!doctype html>
-	<html>
-	<head>
-	  <script src="${p5}"></script>
-	  <script src="${sketch}"></script>
-	</head>
-	<body>
-	</body>
-	</html>`;
+function getProductWebviewContent(context_path:string, product_script: vscode.Uri, index_css: vscode.Uri) {
+
+	const html = readFileSync(path.join(context_path, 'src/web_view/views/product.html'));
+
+	return eval('`' + html + '`');
+}
+
+function getSourceWebviewContent(context_path:string, source_script: vscode.Uri, index_css: vscode.Uri) {
+
+	const html = readFileSync(path.join(context_path, 'src/web_view/views/source.html')).toString();
+
+	return eval('`' + html + '`');
+}
+
+function getAssemblyWebviewContent(context_path:string, assembly_script:vscode.Uri, index_css: vscode.Uri) {
+
+	const html = readFileSync(path.join(context_path, 'src/web_view/views/assembly.html')).toString();
+
+	return eval('`' + html + '`');
 }
 
 // this method is called when your extension is deactivated

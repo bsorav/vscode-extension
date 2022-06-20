@@ -49,7 +49,7 @@ export class Edge {
         this.line2 = line2;
         this.back_edge = false;
         this.canvas = canvas;
-        this.pos = [];
+        this.pos = {};
     }
 
     draw() {
@@ -66,13 +66,42 @@ export class Edge {
 
         if (this.back_edge)
         {
+            if (x1 === x2 && y1 === y2)
+            {
+                var loc = 1;
+                var anticlockwise = true;
+                  
+                
+                var coord1 = coordAtDist(x1, y1, Math.tan(-Math.PI/6), loc*Node.RADIUS);
+                var coord2 = coordAtDist(x1, y1, Math.tan(Math.PI/6), -loc*Node.RADIUS);
+
+                var r1 = Node.RADIUS;
+                var r2 =  r1*Math.tan(Math.PI/3);
+                var d = r1/Math.cos(Math.PI/3);
+                
+                var c = {x:x1, y:(y1-d)};
+
+                var theta1 = Math.atan((coord1.y - c.y)/(coord1.x - c.x));
+                var theta2 = Math.atan((coord2.y - c.y)/(coord2.x - c.x));
+
+
+                this.canvas.beginPath();
+                this.canvas.arc(c.x, c.y, r2, theta1, Math.PI + theta2, anticlockwise);
+                this.canvas.stroke();
+
+                drawArrowHead(coord2.x, coord2.y, Math.tan(Math.PI/6), -1, this.canvas);
+
+                return;
+            }
             if (y1 > Node.baseLineY)
             {
                 var loc = -1;
+                var anticlockwise = true;
             }
             else
             {
-                var loc = 1;
+                var loc = -1;
+                var anticlockwise = false;
             }
             var m1 = -1*(x2-x1)/(y2-y1);
 
@@ -97,11 +126,13 @@ export class Edge {
             }
 
             this.canvas.beginPath();
-            this.canvas.arc(c2.x, c2.y, r, theta2, theta1, loc ? true : false);
+            this.canvas.arc(c2.x, c2.y, r, theta2, theta1, anticlockwise);
             this.canvas.stroke();
 
             var dir = (coord2.y - c2.y)/(coord2.x - c2.x);
             drawArrowHead(coord2.x, coord2.y, -1/dir, 1, this.canvas);
+
+            this.pos = {...coord1, ...coord2};
 
         }
         else
@@ -115,17 +146,21 @@ export class Edge {
             this.canvas.lineTo(coord2.x, coord2.y);
             this.canvas.stroke();
             drawArrowHead(coord2.x, coord2.y, m1, -1, this.canvas);
+
+            this.pos = {x1:coord1.x, y1:coord1.y, x2:coord2.x, y2:coord2.y};
         }
          
     }
 
     hovering(x, y)
     {
-        var x1 = this.pos[0];
-        var y1 = this.pos[1];
+        var x1 = this.pos.x1;
+        var y1 = this.pos.y1;
 
-        var x2 = this.pos[2];
-        var y2 = this.pos[3];
+        var x2 = this.pos.x2;
+        var y2 = this.pos.y2;
+
+
         if (x1 <= x2 && x >= x1 && x <= x2)
         {
             if (y1 <= y2 && y >= y1 && y <= y2)

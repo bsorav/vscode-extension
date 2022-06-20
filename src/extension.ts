@@ -77,6 +77,26 @@ export function activate(context: vscode.ExtensionContext) {
 		panel_prd.webview.html = getProductWebviewContent(context.extensionPath, product_script, index_css);
 		panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css);
 		panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css);
+
+
+
+		panel_prd.webview.onDidReceiveMessage(
+			message => {
+			  panel_src.webview.postMessage({
+				from:message.from[0],
+				to:message.to[0],
+				path:message.path1
+			  });
+			  panel_dst.webview.postMessage({
+				from:message.from[1],
+				to:message.to[1],
+				path:message.path2
+			  });
+			},
+			undefined,
+			context.subscriptions
+		  );
+
 	});
 
 	context.subscriptions.push(disposable);

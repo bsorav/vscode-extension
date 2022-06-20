@@ -12,7 +12,7 @@ const prod_cfg = {
                 "from" : ["C3","A6"],
                 "to" : ["C9","A34"],
                 "path1" : ["C3", "C9"],
-                "path2" : ["A6", "A34"]
+                "path2" : ["A6", "A17", "A20", "A34"]
             },
             {
                 "from" : ["C9","A34"],
@@ -28,6 +28,7 @@ const prod_cfg = {
             }
         ]
 };
+const vscode = acquireVsCodeApi();
 
 import { Node, Edge, instantiateNodes} from "./graphics.js";
 
@@ -104,7 +105,12 @@ while(queue.length !== 0)
         
         if (visited[element])
         {
-            node_to_edge[nodes_obj[node].name + "," + nodes_obj[element].name].back_edge = true;
+            var from = nodes_obj[node];
+            var to = nodes_obj[element];
+            if (from.pos[0] >= to.pos[0])
+            {
+                node_to_edge[from.name + "," + to.name].back_edge = true;
+            }
             continue;
         }
 
@@ -125,7 +131,12 @@ window.addEventListener('mousemove', e => {
         const element = edges_obj[i];
         if (element.hovering(e.offsetX, e.offsetY))
         {
-            console.log(true);
+            vscode.postMessage({
+               from:element.from.name,
+               to:element.to.name,
+               path1:element.line1,
+               path2:element.line2
+            });
         }
     }
 });

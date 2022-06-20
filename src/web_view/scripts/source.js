@@ -109,7 +109,12 @@ while(queue.length !== 0)
         
         if (visited[element])
         {
-            node_to_edge[nodes_obj[node].name + "," + nodes_obj[element].name].back_edge = true;
+            var from = nodes_obj[node];
+            var to = nodes_obj[element];
+            if (from.pos[0] >= to.pos[0])
+            {
+                node_to_edge[from.name + "," + to.name].back_edge = true;
+            }
             continue;
         }
 
@@ -121,7 +126,11 @@ for (let i = 0; i < edges_obj.length; i++) {
     edges_obj[i].draw();
 }
 
+window.addEventListener('message', event => {
 
+    const message = event.data; // The JSON data our extension sent
+    console.log(message);
+});
 
 
 

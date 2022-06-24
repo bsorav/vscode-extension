@@ -31,6 +31,7 @@ const prod_cfg = {
 const vscode = acquireVsCodeApi();
 
 import { Node, Edge, instantiateNodes} from "./graphics.js";
+import {Canvas} from "./canvas.js";
 
 
 var num_nodes = prod_cfg["nodes"].length;
@@ -67,14 +68,13 @@ for (let i = 0; i < nodes_obj.length; i++) {
     element.name = nodes[i];
 };
 
-for (let i = 0; i < nodes_obj.length; i++) {
-    nodes_obj[i].draw();
-}
 
 var edges_obj = new Array(edges.length);
 var node_to_edge = {};
 
 var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');;
+var canvas_obj = new Canvas(canvas, ctx, nodes_obj, null);
 canvas = canvas.getContext('2d');
 
 var from, to;
@@ -83,11 +83,12 @@ for (let i = 0; i < edges.length; i++) {
     const element = edges[i];
     from = nodes_obj[node_to_key[element["from"]]];
     to = nodes_obj[node_to_key[element["to"]]];
-    edges_obj[i] = new Edge(from, to, element["path1"], element["path2"], canvas);
-
+    edges_obj[i] = new Edge(from, to, element["path1"].join("-"), element["path2"].join("-"), canvas);
+    
     node_to_edge[element["from"] + "," + element["to"]] = edges_obj[i];
 }
 
+canvas_obj.edges = edges_obj;
 
 // Marking the back edges
 
@@ -99,7 +100,7 @@ while(queue.length !== 0)
     var node = queue.shift();
 
     visited[node] = 1;
-
+    
     for (let i = 0; i < adj_lis[node].length; i++) {
         const element = adj_lis[node][i];
         
@@ -107,72 +108,70 @@ while(queue.length !== 0)
         {
             var from = nodes_obj[node];
             var to = nodes_obj[element];
-            if (from.pos[0] >= to.pos[0])
+            if (from.pos[1] >= to.pos[1])
             {
                 node_to_edge[from.name + "," + to.name].back_edge = true;
             }
             continue;
         }
-
+        
         queue.push(element);
     }
 }
 
-for (let i = 0; i < edges_obj.length; i++) {
-    edges_obj[i].draw();
-}
 
-
+canvas_obj.draw();
 
 // Event Listeners
 
 window.addEventListener('mousemove', e => {
     for (let i = 0; i < edges_obj.length; i++) {
         const element = edges_obj[i];
-        if (element.hovering(e.offsetX, e.offsetY))
+
+        const rect = canvas_obj.canvas.getBoundingClientRect();
+
+        var vx = (e.clientX - canvas_obj.ox - rect.left)/canvas_obj.scale;
+        var vy = (e.clientY - canvas_obj.oy - rect.top)/canvas_obj.scale;
+
+
+        if (element.hovering(vx, vy, canvas_obj.scale))
         {
+            if(element.hovered)
+            {
+                continue;
+            }
             vscode.postMessage({
-               from:element.from.name,
-               to:element.to.name,
-               path1:element.line1,
-               path2:element.line2
+                command:"highlight",
+                from:element.from.name,
+                to:element.to.name,
+                path1:element.line1.split("-"),
+                path2:element.line2.split("-")
             });
+
+            element.hovered = true;
+        }
+        else{
+            if(element.hovered)
+            {
+                vscode.postMessage({
+                    command:"clear",
+                });
+            }
+            element.hovered = false;
         }
     }
 });
 
 
+let zoomInButton = document.getElementById("zoomin");
+let zoomOutButton = document.getElementById("zoomout");
 
-// function srcViewDisplayToggle() {
-//     // Get the checkbox
-//     var checkBox = document.getElementById("src-toggle");
-//     // Get the output text
-//     var div1 = document.getElementById("src-code-div");
-//     var div2 = document.getElementById("src-cfg-div");
-  
-//     // If the checkbox is checked, display the output text
-//     if (checkBox.checked == true){
-//         div2.style.display = "block";
-//         div1.style.display = "none";
-//     } else {
-//         div2.style.display = "none";
-//         div1.style.display = "block";
-//     }
-// }
 
-// function dstViewDisplayToggle() {
-//     // Get the checkbox
-//     var checkBox = document.getElementById("dst-toggle");
-//     // Get the output text
-//     var div1 = document.getElementById("dst-code-div");
-//     var div2 = document.getElementById("dst-cfg-div");
-  
-//     // If the checkbox is checked, display the output text
-//     if (checkBox.checked == true){
-//         div2.style.display = "block";
-//         div1.style.display = "none";
-//     } else {
-//         div2.style.display = "none";
-//         div1.style.display = "block";
-//     }
-// }
+zoomInButton.onclick = function () {
+    canvas_obj.zoomCustom(0.1);
+};
+
+zoomOutButton.onclick = function () {
+    canvas_obj.zoomCustom(-0.1);
+};
+

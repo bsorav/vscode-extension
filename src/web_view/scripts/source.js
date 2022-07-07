@@ -6,38 +6,62 @@
 
 const src_cfg = {
     "nodes" : 
-        ["C3", "C9", "C10", "EC"],
+        ["C_3_1", "C_4_20", "C_6_13", "C_8_13", "C_10_13", "C_13_1"],
     "edges" : 
         [
             {
-                "from" : "C3",
-                "to" : "C9",
+                "from" : "C_3_1",
+                "to" : "C_4_20",
                 "condition" : "true",
                 "statement" : "i := 0"
             },
             {
-                "from" : "C9",
-                "to" : "C10",
+                "from" : "C_4_20",
+                "to" : "C_6_13",
                 "condition" : "i < lll",
                 "statement" : "X[i] := Y[i] + val"
             },
             {
-                "from" : "C10",
-                "to" : "C9",
-                "condition" : "true",
-                "statement" : "i++"
+                "from" : "C_6_13",
+                "to" : "C_4_20",
+                "condition" : "i < lll",
+                "statement" : "X[i] := Y[i] + val"
             },
             {
-                "from" : "C9",
-                "to" : "EC",
-                "condition" : "!(i < lll)",
-                "statement" : ""
+                "from" : "C_4_20",
+                "to" : "C_8_13",
+                "condition" : "i < lll",
+                "statement" : "X[i] := Y[i] + val"
+            },
+            {
+                "from" : "C_8_13",
+                "to" : "C_4_20",
+                "condition" : "i < lll",
+                "statement" : "X[i] := Y[i] + val"
+            },
+            {
+                "from" : "C_4_20",
+                "to" : "C_10_13",
+                "condition" : "i < lll",
+                "statement" : "X[i] := Y[i] + val"
+            },
+            {
+                "from" : "C_10_13",
+                "to" : "C_4_20",
+                "condition" : "i < lll",
+                "statement" : "X[i] := Y[i] + val"
+            },
+            {
+                "from" : "C_4_20",
+                "to" : "C_13_1",
+                "condition" : "i < lll",
+                "statement" : "X[i] := Y[i] + val"
             }
         ]
 };
 
 import { Canvas } from "./canvas.js";
-import { Node, Edge, instantiateNodes, highlightPath, clearAndReDrawCanvas} from "./graphics.js";
+import { Node, Edge, instantiateNodes, highlightPath, deHighlight} from "./graphics.js";
 
 
 var num_nodes = src_cfg["nodes"].length;
@@ -143,7 +167,8 @@ window.addEventListener('message', event => {
             highlightPath(message.path, nodes_names, node_to_edge);
             break;
         case "clear":
-            clearAndReDrawCanvas(nodes_obj, edges_obj, canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
+            deHighlight(nodes_obj, edges_obj);
+            canvas_obj.draw();
             break;
         default:
             break;

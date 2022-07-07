@@ -333,15 +333,11 @@ export function highlightPath(path, nodes, edges) {
     }
 }
 
-export function clearAndReDrawCanvas(nodes_obj, edges_obj, canvas, w, h) {
-    canvas.clearRect(0, 0, w, h);
-
+export function deHighlight(nodes_obj, edges_obj) {
     nodes_obj.forEach(element => {
         element.highlighted = false;
-        element.draw();
     });
     edges_obj.forEach(element => {
-        element.draw();
         element.highlighted = false;
     });
 }
@@ -517,7 +513,7 @@ export function instantiateNodes(num_nodes, adj_lis, canvas) {
 
 // Helper functions
 
-function coordAtDist(x, y, slope, dist) {
+export function coordAtDist(x, y, slope, dist) {
     var theta = Math.atan(slope);
     // if (theta < 0)
     // {
@@ -533,7 +529,7 @@ function distnace(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
 
-function angleFromXAxis(x1, y1, x2, y2) {
+export function angleFromXAxis(x1, y1, x2, y2) {
 
     var theta = Math.atan((y2 - y1) / (x2 - x1));
 

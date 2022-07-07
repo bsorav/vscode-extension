@@ -5,50 +5,38 @@
 
 const dst_cfg = {
     "nodes" : 
-        ["A6", "A17", "A20", "A34", "A22", "EA"],
+        ["A_1_1", "A_3_9", "A_18_9", "A_19_5"],
     "edges" : 
         [
             {
-                "from" : "A6",
-                "to" : "A17",
+                "from" : "A_1_1",
+                "to" : "A_3_9",
                 "condition" : "true",
-                "statement" : "-4(%esp) := %ebp\r\n%esp := %esp - 4\r\n\r\n%ebp := %esp\r\n\r\n%esp := %esp - 16"
+                "statement" : "intialize"
             },
             {
-                "from" : "A17",
-                "to" : "A20",
+                "from" : "A_3_9",
+                "to" : "A_18_9",
                 "condition" : "true",
-                "statement" : "-4(%ebp) := 0"
+                "statement" : "loop body"
             },
             {
-                "from" : "A20",
-                "to" : "A34",
-                "condition" : "true",
-                "statement" : ""
+                "from" : "A_18_9",
+                "to" : "A_3_9",
+                "condition" : "loop cond",
+                "statement" : "jump to loop body"
             },
             {
-                "from" : "A34",
-                "to" : "A22",
-                "condition" : "-4(%ebp) < 31999",
-                "statement" : ""
-            },
-            {
-                "from" : "A22",
-                "to" : "A34",
-                "condition" : "true",
-                "statement" : "%eax := -4(%ebp)\r\n%edx := (Y + 4*%eax)\r\n%eax := val\r\n%edx := %edx + %eax\r\n%eax := -4(%ebp)\r\n(X + 4*%eax) := %edx\r\n-4(%ebp) := -4(%ebp) + 1"
-            },
-            {
-                "from" : "A34",
-                "to" : "EA",
-                "condition" : "!(-4(%ebp) < 31999)",
-                "statement" : "%eax := 0\r\nleave"
+                "from" : "A_18_9",
+                "to" : "A_19_5",
+                "condition" : " ! loop cond",
+                "statement" : "ret"
             }
         ]
 };
 
 import { Canvas } from "./canvas.js";
-import { Node, Edge, instantiateNodes, highlightPath, clearAndReDrawCanvas} from "./graphics.js";
+import { Node, Edge, instantiateNodes, highlightPath, deHighlight} from "./graphics.js";
 
 
 var num_nodes = dst_cfg["nodes"].length;
@@ -151,7 +139,8 @@ window.addEventListener('message', event => {
             highlightPath(message.path, nodes_names, node_to_edge);
             break;
         case "clear":
-            clearAndReDrawCanvas(nodes_obj, edges_obj, canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
+            deHighlight(nodes_obj, edges_obj);
+            canvas_obj.draw();
             break;
         default:
             break;

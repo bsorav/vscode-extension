@@ -1,5 +1,3 @@
-
-
 export class Canvas{
     static MAX_ZOOM = 5;
     static MIN_ZOOM = 0.1;

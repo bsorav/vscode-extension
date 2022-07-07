@@ -5,26 +5,26 @@
 
 const prod_cfg = {
     "nodes" : 
-        [["C3","A6"], ["C9","A34"], ["EC","EA"]],
+        [["C_3_1","A_1_1"], ["C_4_20","A_3_9"], ["C_13_1","A_19_5"]],
     "edges" : 
         [
             {
-                "from" : ["C3","A6"],
-                "to" : ["C9","A34"],
-                "path1" : ["C3", "C9"],
-                "path2" : ["A6", "A17", "A20", "A34"]
+                "from" : ["C_3_1","A_1_1"],
+                "to" : ["C_4_20","A_3_9"],
+                "path1" : "C_3_1-C_4_20",
+                "path2" : "A_1_1-A_3_9",
             },
             {
-                "from" : ["C9","A34"],
-                "to" : ["C9","A34"],
-                "path1" : ["C9", "C10", "C9"],
-                "path2" : ["A34", "A22", "A34"]
+                "from" : ["C_4_20","A_3_9"],
+                "to" : ["C_4_20","A_3_9"],
+                "path1" : "((C_4_20-C_6_13-C_4_20)+(C_4_20-C_8_13-C_4_20)+(C_4_20-C_10_13-C_4_20))^4",
+                "path2" : "A_3_9-A_18_9-A_3_9",
             },
             {
-                "from" : ["C9","A34"],
-                "to" : ["EC","EA"],
-                "path1" : ["C9", "EC"],
-                "path2" : ["A34", "EA"]
+                "from" : ["C_4_20","A_3_9"],
+                "to" : ["C_13_1","A_19_5"],
+                "path1" : "((C_4_20-C_6_13-C_4_20)+(C_4_20-C_8_13-C_4_20)+(C_4_20-C_10_13-C_4_20))^4-C_13_1",
+                "path2" : "A_3_9-A_18_9-A_19_5",
             }
         ]
 };
@@ -83,7 +83,7 @@ for (let i = 0; i < edges.length; i++) {
     const element = edges[i];
     from = nodes_obj[node_to_key[element["from"]]];
     to = nodes_obj[node_to_key[element["to"]]];
-    edges_obj[i] = new Edge(from, to, element["path1"].join("-"), element["path2"].join("-"), canvas);
+    edges_obj[i] = new Edge(from, to, element["path1"], element["path2"], canvas);
     
     node_to_edge[element["from"] + "," + element["to"]] = edges_obj[i];
 }
@@ -144,8 +144,8 @@ window.addEventListener('mousemove', e => {
                 command:"highlight",
                 from:element.from.name,
                 to:element.to.name,
-                path1:element.line1.split("-"),
-                path2:element.line2.split("-")
+                path1:element.line1,
+                path2:element.line2
             });
 
             element.hovered = true;

@@ -3,6 +3,43 @@ html{
     height: 100vh;
 }
 
+body{
+  padding:0px;
+}
+
+.header{
+  z-index: 1;
+  position:absolute;
+  width: 100%;
+  height: 30px;
+
+  color:rgb(79, 84, 87);
+  background-image: linear-gradient(rgba(158, 204, 232, 0.5), rgba(215, 235, 247, 0.5));
+
+  text-align: center;
+  vertical-align: middle;
+  font-size: 25px;
+  line-height: 25px;
+  font-weight: bold;
+
+}
+
+.zoom-buttons{
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+}
+
+.zoom-buttons input{
+  height: 20px;
+  width: 20px;
+  margin: 1px;
+
+  background-color: #e7e7e7;
+  border: none;
+  border-radius: 3px;
+}
+
 .full-view{
     width:100vw;
     height:100vh;

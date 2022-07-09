@@ -1,14 +1,25 @@
 <!doctype html>
-	<html>
-	<head>
-		<script type="module" src=${source_script}></script>
-		<link rel="stylesheet" href=${index_css}>
-	</head>
-	<body class="full-view"">
-		<div class="full-view">
-			<div id="header">Source Program</div>
-			<canvas id="canvas">
-			</canvas>
+<html>
+
+<head>
+	<script type="module" src=${source_script}></script>
+	<link rel="stylesheet" href=${index_css}>
+</head>
+
+<body class="full-view"">
+		<div class=" full-view">
+	<div class="header">Source Graph</div>
+	<canvas id="canvas">
+	</canvas>
+	<div class="zoom-buttons">
+		<div>
+			<input type="button" value="+" id="zoomin">
 		</div>
-	</body>
-	</html>
+		<div>
+			<input type="button" value="-" id="zoomout">
+		</div>
+	</div>
+	</div>
+</body>
+
+</html>

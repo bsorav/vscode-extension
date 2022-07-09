@@ -5,49 +5,39 @@
 
 const dst_cfg = {
     "nodes" : 
-        ["A6", "A17", "A20", "A34", "A22", "EA"],
+        ["A_1_1", "A_3_9", "A_18_9", "A_19_5"],
     "edges" : 
         [
             {
-                "from" : "A6",
-                "to" : "A17",
+                "from" : "A_1_1",
+                "to" : "A_3_9",
                 "condition" : "true",
-                "statement" : "-4(%esp) := %ebp\r\n%esp := %esp - 4\r\n\r\n%ebp := %esp\r\n\r\n%esp := %esp - 16"
+                "statement" : "intialize"
             },
             {
-                "from" : "A17",
-                "to" : "A20",
+                "from" : "A_3_9",
+                "to" : "A_18_9",
                 "condition" : "true",
-                "statement" : "-4(%ebp) := 0"
+                "statement" : "loop body"
             },
             {
-                "from" : "A20",
-                "to" : "A34",
-                "condition" : "true",
-                "statement" : ""
+                "from" : "A_18_9",
+                "to" : "A_3_9",
+                "condition" : "loop cond",
+                "statement" : "jump to loop body"
             },
             {
-                "from" : "A34",
-                "to" : "A22",
-                "condition" : "-4(%ebp) < 31999",
-                "statement" : ""
-            },
-            {
-                "from" : "A22",
-                "to" : "A34",
-                "condition" : "true",
-                "statement" : "%eax := -4(%ebp)\r\n%edx := (Y + 4*%eax)\r\n%eax := val\r\n%edx := %edx + %eax\r\n%eax := -4(%ebp)\r\n(X + 4*%eax) := %edx\r\n-4(%ebp) := -4(%ebp) + 1"
-            },
-            {
-                "from" : "A34",
-                "to" : "EA",
-                "condition" : "!(-4(%ebp) < 31999)",
-                "statement" : "%eax := 0\r\nleave"
+                "from" : "A_18_9",
+                "to" : "A_19_5",
+                "condition" : " ! loop cond",
+                "statement" : "ret"
             }
         ]
 };
 
-import { Node, Edge, instantiateNodes} from "./graphics.js";
+import { Canvas } from "./canvas.js";
+import { Node, Edge, instantiateNodes, deHighlight} from "./graphics.js";
+import { highlightPathInGraph } from "./utils.js";
 
 
 var num_nodes = dst_cfg["nodes"].length;
@@ -56,6 +46,7 @@ var nodes = dst_cfg["nodes"];
 
 
 var node_to_key = {};
+var nodes_names = {};
 var adj_lis = new Array(num_nodes);
 
 var key = 0;
@@ -80,16 +71,19 @@ var nodes_obj = instantiateNodes(num_nodes, adj_lis);
 for (let i = 0; i < nodes_obj.length; i++) {
     const element = nodes_obj[i];
     element.name = nodes[i];
+    nodes_names[element.name] = element;
 };
-
-for (let i = 0; i < nodes_obj.length; i++) {
-    nodes_obj[i].draw();
-}
 
 var edges_obj = new Array(edges.length);
 var node_to_edge = {};
 
 var canvas = document.getElementById('canvas');
+const CANVAS_WIDTH = canvas.width;
+const CANVAS_HEIGHT = canvas.height;
+var ctx = canvas.getContext('2d');
+
+var canvas_obj = new Canvas(canvas, ctx, nodes_obj, null);
+
 canvas = canvas.getContext('2d');
 
 var from, to;
@@ -98,11 +92,13 @@ for (let i = 0; i < edges.length; i++) {
     const element = edges[i];
     from = nodes_obj[node_to_key[element["from"]]];
     to = nodes_obj[node_to_key[element["to"]]];
-    edges_obj[i] = new Edge(from, to, element["path1"], element["path2"], canvas);
+    edges_obj[i] = new Edge(from, to, "Cond: " + element["condition"], "TF: " + element["statement"], canvas);
 
     node_to_edge[element["from"] + "," + element["to"]] = edges_obj[i];
 }
 
+
+canvas_obj.edges = edges_obj;
 
 // Marking the back edges
 
@@ -122,7 +118,7 @@ while(queue.length !== 0)
         {
             var from = nodes_obj[node];
             var to = nodes_obj[element];
-            if (from.pos[0] >= to.pos[0])
+            if (from.pos[1] >= to.pos[1])
             {
                 node_to_edge[from.name + "," + to.name].back_edge = true;
             }
@@ -133,49 +129,34 @@ while(queue.length !== 0)
     }
 }
 
-for (let i = 0; i < edges_obj.length; i++) {
-    edges_obj[i].draw();
-}
-
+canvas_obj.draw();
 
 window.addEventListener('message', event => {
 
     const message = event.data; // The JSON data our extension sent
-    console.log(message);
+
+    switch (message.command) {
+        case "highlight":
+            highlightPathInGraph(message.path, nodes_names, node_to_edge);
+            break;
+        case "clear":
+            deHighlight(nodes_obj, edges_obj);
+            canvas_obj.draw();
+            break;
+        default:
+            break;
+    }
+
 });
 
+let zoomInButton = document.getElementById("zoomin");
+let zoomOutButton = document.getElementById("zoomout");
 
 
-// function srcViewDisplayToggle() {
-//     // Get the checkbox
-//     var checkBox = document.getElementById("src-toggle");
-//     // Get the output text
-//     var div1 = document.getElementById("src-code-div");
-//     var div2 = document.getElementById("src-cfg-div");
-  
-//     // If the checkbox is checked, display the output text
-//     if (checkBox.checked == true){
-//         div2.style.display = "block";
-//         div1.style.display = "none";
-//     } else {
-//         div2.style.display = "none";
-//         div1.style.display = "block";
-//     }
-// }
+zoomInButton.onclick = function () {
+    canvas_obj.zoomCustom(0.1);
+};
 
-// function dstViewDisplayToggle() {
-//     // Get the checkbox
-//     var checkBox = document.getElementById("dst-toggle");
-//     // Get the output text
-//     var div1 = document.getElementById("dst-code-div");
-//     var div2 = document.getElementById("dst-cfg-div");
-  
-//     // If the checkbox is checked, display the output text
-//     if (checkBox.checked == true){
-//         div2.style.display = "block";
-//         div1.style.display = "none";
-//     } else {
-//         div2.style.display = "none";
-//         div1.style.display = "block";
-//     }
-// }
+zoomOutButton.onclick = function () {
+    canvas_obj.zoomCustom(-0.1);
+};

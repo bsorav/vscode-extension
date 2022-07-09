@@ -36,7 +36,8 @@ const dst_cfg = {
 };
 
 import { Canvas } from "./canvas.js";
-import { Node, Edge, instantiateNodes, highlightPath, deHighlight} from "./graphics.js";
+import { Node, Edge, instantiateNodes, deHighlight} from "./graphics.js";
+import { highlightPathInGraph } from "./utils.js";
 
 
 var num_nodes = dst_cfg["nodes"].length;
@@ -136,7 +137,7 @@ window.addEventListener('message', event => {
 
     switch (message.command) {
         case "highlight":
-            highlightPath(message.path, nodes_names, node_to_edge);
+            highlightPathInGraph(message.path, nodes_names, node_to_edge);
             break;
         case "clear":
             deHighlight(nodes_obj, edges_obj);

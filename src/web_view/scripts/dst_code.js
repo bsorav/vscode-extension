@@ -1,3 +1,5 @@
+import { highlightPathInCode, clearCanvas} from "./utils.js";
+
 let code = 
 `s441 :
     r1 = 0
@@ -18,3 +20,46 @@ let code =
         r1 += 4
         if ( r1 != LEN ) goto A3
     ret`;
+
+
+let codeEl = document.getElementById("code");
+codeEl.innerHTML = code;
+codeEl.style.fontSize = "16px";
+
+let preEl = document.getElementById("pre-code");
+preEl.classList.add("line-numbers");
+preEl.style.height = window.innerHeight;
+
+await new Promise(r => setTimeout(r, 100));
+
+codeEl = document.getElementById("code");;
+let rect = codeEl.getBoundingClientRect();
+// console.log(rect);
+
+// // // Initialize Canvas
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+
+canvas.height =  rect.height;
+canvas.width = rect.width;
+canvas.style.left = rect.left + "px";
+canvas.style.top = rect.top + "px";
+
+
+// highlightPathInCode(canvas, ctx, codeEl, "((C_4_20-C_6_13-C_4_20)+(C_4_20-C_10_13-C_4_20))^4-C_13_1");
+
+window.addEventListener('message', event => {
+    const message = event.data; // The JSON data our extension sent
+
+    switch (message.command) {
+        case "highlight":
+            highlightPathInCode(canvas, ctx, codeEl, message.path);
+            break;
+        case "clear":
+            clearCanvas(canvas, ctx);
+            break;
+        default:
+            break;
+    }
+
+});

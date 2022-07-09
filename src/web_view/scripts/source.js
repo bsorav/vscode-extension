@@ -18,50 +18,51 @@ const src_cfg = {
             {
                 "from" : "C_4_20",
                 "to" : "C_6_13",
-                "condition" : "i < lll",
-                "statement" : "X[i] := Y[i] + val"
+                "condition" : "i < len && d[i] < 0",
+                "statement" : ""
             },
             {
                 "from" : "C_6_13",
                 "to" : "C_4_20",
-                "condition" : "i < lll",
-                "statement" : "X[i] := Y[i] + val"
+                "condition" : "true",
+                "statement" : "a [i] += b [i] * c [i]"
             },
             {
                 "from" : "C_4_20",
                 "to" : "C_8_13",
-                "condition" : "i < lll",
-                "statement" : "X[i] := Y[i] + val"
+                "condition" : "i < len && d[i] == 0",
+                "statement" : ""
             },
             {
                 "from" : "C_8_13",
                 "to" : "C_4_20",
-                "condition" : "i < lll",
-                "statement" : "X[i] := Y[i] + val"
+                "condition" : "true",
+                "statement" : "a[i] += b[i] * b[i]"
             },
             {
                 "from" : "C_4_20",
                 "to" : "C_10_13",
-                "condition" : "i < lll",
-                "statement" : "X[i] := Y[i] + val"
+                "condition" : "i < len && d[i] > 0",
+                "statement" : ""
             },
             {
                 "from" : "C_10_13",
                 "to" : "C_4_20",
-                "condition" : "i < lll",
-                "statement" : "X[i] := Y[i] + val"
+                "condition" : "true",
+                "statement" : "a[i] += c[i] * c[i]"
             },
             {
                 "from" : "C_4_20",
                 "to" : "C_13_1",
-                "condition" : "i < lll",
-                "statement" : "X[i] := Y[i] + val"
+                "condition" : "!(i < len)",
+                "statement" : ""
             }
         ]
 };
 
 import { Canvas } from "./canvas.js";
-import { Node, Edge, instantiateNodes, highlightPath, deHighlight} from "./graphics.js";
+import { Node, Edge, instantiateNodes, deHighlight} from "./graphics.js";
+import { highlightPathInGraph } from "./utils.js";
 
 
 var num_nodes = src_cfg["nodes"].length;
@@ -145,7 +146,7 @@ while(queue.length !== 0)
         {
             var from = nodes_obj[node];
             var to = nodes_obj[element];
-            if (from.pos[0] >= to.pos[0])
+            if (from.pos[1] >= to.pos[1])
             {
                 node_to_edge[from.name + "," + to.name].back_edge = true;
             }
@@ -164,7 +165,7 @@ window.addEventListener('message', event => {
 
     switch (message.command) {
         case "highlight":
-            highlightPath(message.path, nodes_names, node_to_edge);
+            highlightPathInGraph(message.path, nodes_names, node_to_edge);
             break;
         case "clear":
             deHighlight(nodes_obj, edges_obj);

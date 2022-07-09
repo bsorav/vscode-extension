@@ -3,11 +3,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { readFileSync } from 'fs';
+import { parseProofFile} from './proof_parser';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	
+
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "equivalence-checker" is now active!');
@@ -36,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 			} // Webview options. More on these later.
 		);
 
-		
+
 		const panel_dst = vscode.window.createWebviewPanel(
 			'dstCFG', // Identifies the type of the webview. Used internally
 			'Assembly Control Flow Graph', // Title of the panel displayed to the user
@@ -49,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// vscode.commands.executeCommand("workbench.action.editorLayoutTwoRows");
 		// vscode.commands.executeCommand("workbench.editor.openSideBySideDirection");
 		// vscode.commands.executeCommand("workbench.action.editorLayoutTwoRowsRight");
-		
+
 		const panel_src_code = vscode.window.createWebviewPanel(
 			'src_code', // Identifies the type of the webview. Used internally
 			'Source Code', // Title of the panel displayed to the user
@@ -58,7 +59,16 @@ export function activate(context: vscode.ExtensionContext) {
 				enableScripts: true
 			} // Webview options. More on these later.
 		);
-			
+
+		const panel_dst_code = vscode.window.createWebviewPanel(
+			'dst_code', // Identifies the type of the webview. Used internally
+			'Assembly Code', // Title of the panel displayed to the user
+			vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
+			{
+				enableScripts: true
+			} // Webview options. More on these later.
+		);
+
 		const onDiskPath_css = vscode.Uri.file(
 			path.join(context.extensionPath, 'src/web_view/css/index.css')
 		);
@@ -93,7 +103,7 @@ export function activate(context: vscode.ExtensionContext) {
 			path.join(context.extensionPath, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css')
 		);
 		const prism_ln_css = panel_prd.webview.asWebviewUri(onDiskPath_prism_ln_css);
-		
+
 		const onDiskPath_prism_ln_script = vscode.Uri.file(
 			path.join(context.extensionPath, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js')
 		);
@@ -104,16 +114,21 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 		const src_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
+		onDiskPath_script = vscode.Uri.file(
+			path.join(context.extensionPath, 'src/web_view/scripts/dst_code.js')
+		);
+		const dst_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+
 
 		// Set the webview content
 
 		panel_prd.webview.html = getProductWebviewContent(context.extensionPath, product_script, index_css);
 		panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css);
 		panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css);
-		
+
 
 		panel_src_code.webview.html = getSourceCodeWebviewContent(context.extensionPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
-
+		panel_dst_code.webview.html = getAssemblyCodeWebviewContent(context.extensionPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
 		// Message passing to src and dst webview
 
 		panel_prd.webview.onDidReceiveMessage(
@@ -136,6 +151,10 @@ export function activate(context: vscode.ExtensionContext) {
 							command: "highlight",
 							path: message.path1
 						});
+						panel_dst_code.webview.postMessage({
+							command: "highlight",
+							path: message.path2
+						});
 						break;
 					case "clear":
 						panel_src.webview.postMessage({
@@ -147,6 +166,9 @@ export function activate(context: vscode.ExtensionContext) {
 						panel_src_code.webview.postMessage({
 							command: "clear"
 						});
+						panel_dst_code.webview.postMessage({
+							command: "clear"
+						});
 						break;
 					default:
 						break;
@@ -154,14 +176,18 @@ export function activate(context: vscode.ExtensionContext) {
 			},
 			undefined,
 			context.subscriptions
-		);	
+		);
 
 	});
 
 
 	// Code Text
 
-
+	// const proof_file = path.join(context.extensionPath, 'src/proof.txt');
+	// const file = readFileSync(proof_file, 'utf-8');
+	// console.log("here");
+	// console.log(parseProofFile(file));
+	// console.log("end");
 	context.subscriptions.push(disposable);
 }
 
@@ -179,7 +205,7 @@ function getSourceWebviewContent(context_path: string, source_script: vscode.Uri
 	return eval('`' + html + '`');
 }
 
-function getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script:vscode.Uri, prism_css:vscode.Uri, prism_ln_css:vscode.Uri, prism_ln_script:vscode.Uri) {
+function getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri) {
 
 	const html = readFileSync(path.join(context_path, 'src/web_view/views/src_code.html')).toString();
 
@@ -191,6 +217,13 @@ function getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, i
 function getAssemblyWebviewContent(context_path: string, assembly_script: vscode.Uri, index_css: vscode.Uri) {
 
 	const html = readFileSync(path.join(context_path, 'src/web_view/views/assembly.html')).toString();
+
+	return eval('`' + html + '`');
+}
+
+function getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri) {
+
+	const html = readFileSync(path.join(context_path, 'src/web_view/views/dst_code.html')).toString();
 
 	return eval('`' + html + '`');
 }

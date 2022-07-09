@@ -158,11 +158,11 @@ export class Edge {
             // Text Coordinates
 
             if (loc === -1) {
-                this.tcoords = {x1:c1.x, x2:c1.x, y1:(c1.y - 8), y2:(c1.y + 8)};
+                this.tcoords = {x1:c1.x, x2:c1.x, y1:(c1.y - 8), y2:(c1.y - 16)};
             }
             else {
                 var p = coordAtDist(c2.x, c2.y, m1, loc*(r+8));
-                this.tcoords = {x1:p.x, x2:p.x, y1:(p.y - 8), y2:(p.y + 8)};
+                this.tcoords = {x1:p.x, x2:p.x, y1:(p.y + 8), y2:(p.y + 16)};
             }
 
 
@@ -189,15 +189,15 @@ export class Edge {
 
             drawArrowHead(coord2.x, coord2.y, m1, -loc, this.canvas, drawOptions.strokeStyle, drawOptions.arrowLen);
 
-            var c1 = { x: (2 * coord1.x + coord2.x) / 3, y: (2 * coord1.y + coord2.y) / 3 };
-            var c2 = { x: (coord1.x + 2 * coord2.x) / 3, y: (coord1.y + 2 * coord2.y) / 3 };
+            var c1 = { x: (2 * coord1.x + 6* coord2.x) / 8, y: (2 * coord1.y + 6* coord2.y) / 8 };
+            var c2 = { x: (1 * coord1.x + 7 * coord2.x) / 8, y: (1 * coord1.y + 7 * coord2.y) / 8 };
 
 
             // Text Coordinates
             var m2 = -1 / m1;
 
-            var p1 = coordAtDist(c1.x, c1.y, m2, 4);
-            var p2 = coordAtDist(c2.x, c2.y, m2, 4);
+            var p1 = coordAtDist(c1.x, c1.y, m2, 2);
+            var p2 = coordAtDist(c2.x, c2.y, m2, 2);
 
             this.tcoords = {x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y};
 
@@ -308,30 +308,6 @@ function drawText(x, y, text, ctx, textAlign, textBaseline) {
 }
 
 
-export function highlightPath(path, nodes, edges) {
-    for (let i = 0; i < path.length; i++) {
-        const node1 = nodes[path[i]];
-        if (node1.highlighted) { continue; }
-
-
-        if (i === 0) {
-            node1.highlight('green');
-        }
-        else if (i === path.length - 1) {
-            node1.highlight('red');
-        }
-        else {
-            node1.highlight('blue');
-        }
-        node1.highlighted = true;
-        if (i < path.length - 1) {
-            const node2 = nodes[path[i + 1]];
-            if (edges[node1.name + "," + node2.name].highlighted) { continue; }
-            edges[node1.name + "," + node2.name].highlight('blue');
-            edges[node1.name + "," + node2.name].highlighted = true;
-        }
-    }
-}
 
 export function deHighlight(nodes_obj, edges_obj) {
     nodes_obj.forEach(element => {
@@ -344,8 +320,8 @@ export function deHighlight(nodes_obj, edges_obj) {
 
 export function instantiateNodes(num_nodes, adj_lis, canvas) {
 
-    const MARGIN = 50;
-    const GAP = 80;
+    const MARGIN = 20;
+    const GAP = 150;
 
 
     // BFS variables
@@ -496,7 +472,7 @@ export function instantiateNodes(num_nodes, adj_lis, canvas) {
             if (lis.includes(element)) {
                 continue;
             }
-            gap_at_level = 4 * ((CANVAS_WIDTH - 2 * MARGIN) / numNodesOnLevel[level[element]]) / 5;
+            gap_at_level = ((CANVAS_WIDTH - 2 * MARGIN) / numNodesOnLevel[level[element]]);
 
             y = baseLineY + MARGIN + RADIUS + 2 * RADIUS * (level[element]) + GAP * (level[element]);
             x = nodes_obj[node].pos[0] + nodes_offset[element] * gap_at_level;

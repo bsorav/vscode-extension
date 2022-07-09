@@ -1,4 +1,7 @@
-import {angleFromXAxis, coordAtDist} from "./graphics.js";
+import {Node, angleFromXAxis, coordAtDist} from "./graphics.js";
+
+export var EDGES = [];
+export var NODES = [];
 
 export function parseDOTString(fileString)
 {
@@ -37,81 +40,122 @@ export function parseDOTString(fileString)
     return {nodes:done, edges:edges};
 }
 
+export function highlightPathInGraph(path, nodes, edges) {
+
+    var canvas = document.getElementById("canvas");
+    var ctx = canvas.getContext('2d');
+
+    EDGES = [];
+    NODES = [];
+
+    recPath([], path, 1, false);
+
+    let colorEdges = "rgb(52, 58, 235, 0.8)";
+
+    for (var i = 0; i < EDGES.length; i++) {
+        var element = EDGES[i];
+        if (edges[element[0] + "," + element[1]].highlighted) { continue; }
+
+        if(element[2]){
+            ctx.setLineDash([2, 2]);
+        }
+
+        edges[element[0] + "," + element[1]].highlight(colorEdges);
+        edges[element[0] + "," + element[1]].highlighted = true;
+        ctx.setLineDash([]);
+    }
+
+    for(var i = 0; i < NODES.length; i++) {
+        var element = NODES[i];
+        if (nodes[element[0]].highlighted) { continue; }
+        let colorNodes = "rgb(255, 0, 0)";
+        if(element[1] > 1){
+            colorNodes = "rgb(252, 3, 219)";
+        }
+        nodes[element[0]].highlight(colorNodes);
+        nodes[element[0]].highlighted = true;
+
+        let r = Node.RADIUS;
+        let x1 = nodes[element[0]].pos[0];
+        let y1 = nodes[element[0]].pos[1];
+        if(element[1] > 1){
+            let x = x1 + 2*r*Math.cos(Math.PI/4);
+            let y = y1 - 2*r*Math.sin(Math.PI/4); 
+            ctx.lineWidth = 1;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            drawArc(ctx, x, y, 10, 0, 3*Math.PI/2, false, colorNodes, []);
+            drawArrowHead(ctx, x, y-10, 0, colorNodes);
+            drawText(ctx, x, y, "" + element[1], colorNodes);
+        }
+    }
+
+}
+
 export function highlightPathInCode(canvas, ctx, code, path){
     // canvas -> <canvas> element in HTML DOM
     // ctx -> canvas context
     // code -> <code> element in HTML DOM
     // path -> array of [row, col] in path
 
-    recPath([], path);
+    EDGES = [];
+    NODES = [];
+
+    recPath([], path, 1, false);
+
+    EDGES.forEach(element => {
+        drawEdgeBetweenPoints(element[0], element[1], element[2]);
+    });
+    
+    NODES.forEach(element => {
+        drawPointOnNode(element[0], element[1]);
+    });
+}
+
+function getWithoutBracketedPath(path){
+    let len = path.length;
+
+    // Check max bracketed path
+    let idx = 1;
+    let bracket = 0;
+    let bal = true; 
+    while(idx < len-1){
+        if(path[idx] === "("){
+            bracket++;
+        }
+        if(path[idx] === ")"){
+            if(bracket > 0){
+                bracket--;
+            }
+            else{
+                bal = false;
+                break;
+            }
+        }
+        idx++;
+    }
+    if(bal && path[0] === "(" && path[len-1] === ")"){
+        return path.substring(1, len-1);
+    }
+    else{
+        return path;
+    }
 }
 
 function splitPathString(path){
+    // Split the path into series of subpaths
+    // Example: x-(y)^4-(w+z)-(u+v)^2 => [[x, 1], [y, 4], [w+z, 1], [u+v, 2]]
+
+    path = getWithoutBracketedPath(path);
+
     let lis = [];
+
     let idx = 0;
-
-    let normal = true;
-    for (let i = 0; i < path.length; i++) {
-        if(path[i] === "+"){
-            normal = false;
-            break;
-        }
-    }
-
-    if(normal){
-        id(path[0] === "(")
-        return path.substring(1, path.length-1).split("-");
-    }
-
-    while(idx < path.length){
-        if(path[idx] === "("){
-            let depth = 0;
-            let node = "";
-            while(!(path[idx] === ")" && depth === 1)){
-                node += path[idx];
-                if(path[idx] === "("){
-                    depth++;
-                }
-                else if(path[idx] === ")"){
-                    depth--;
-                }
-                idx++;
-            }
-            node += ")";
-            idx++;
-            lis.push(node);
-        }
-        else{
-            let node = "";
-            while(idx < path.length){
-                if(path[idx] === "-"){
-                    break;
-                }
-                node += path[idx];
-                idx++;
-            }
-            lis.push(node);
-        }
-        if(idx < path.length && path[idx] === "-"){
-            idx++;
-        }
-        else{
-            while(idx < path.length && path[idx] !== "-"){ 
-                idx++;
-            }
-            idx++;
-        }
-    }
-
-    return lis;
-}
-
-function splitMultipleControlFlowPathString(path){
-    let lis = [];
-    let idx = 1;
-    let depth = 0;
+    let len = path.length;
     let node = "";
-    while(idx < path.length){
+    let depth = 0;
+
+    while(idx < len){
         if(path[idx] === "("){
             depth++;
         }
@@ -120,14 +164,67 @@ function splitMultipleControlFlowPathString(path){
         }
         node += path[idx];
         idx++;
-        if(depth === 0 && (path[idx] === "+" || path[idx] === ")")){
-            lis.push(node);
-            node = "";
-            depth = 0;
-            while(idx < path.length && path[idx] !== "+"){
+        // Split condition
+        if(depth === 0){
+            let found = false;
+            if(idx === len){
+                lis.push([getWithoutBracketedPath(node), 1]);
+                found = true;
+            }
+            else if(path[idx] === "-"){
+                lis.push([getWithoutBracketedPath(node), 1]);
+                found = true;
+            }
+            else if(path[idx] === "^"){
+                idx++;
+                let num = "";
+                while(idx<len && path[idx] !== "-"){
+                    num += path[idx];
+                    idx++;
+                }
+                lis.push([getWithoutBracketedPath(node), num * 1]);
+                found = true;
+            }
+
+            if(found){
+                node = "";
                 idx++;
             }
-            idx++;
+        }
+    }
+    return lis;
+}
+
+function splitMultipleControlFlowPathString(path){
+    let lis = [];
+    let idx = 0;
+    let depth = 0;
+    let node = "";
+    let len = path.length;
+    while(idx < len){
+        if(path[idx] === "("){
+            depth++;
+        }
+        else if(path[idx] === ")"){
+            depth--;
+        }
+        node += path[idx];
+        idx++;
+        if(depth === 0){
+            let found = false;
+            if(idx === len){
+                lis.push([getWithoutBracketedPath(node), 1]);
+                found = true;
+            }
+            else if(path[idx] === "+"){
+                lis.push([getWithoutBracketedPath(node), 1]);
+                found = true;
+            }
+
+            if(found){
+                node = "";
+                idx++;
+            }
         }
     }
 
@@ -135,91 +232,107 @@ function splitMultipleControlFlowPathString(path){
 
 }
 
-function recPath(parent, path){
+export function recPath(predecessors, path, unroll, dashed){
     // parent is list of predecessors
     // path is series-parallel diagraph of following nodes in parent
+    // appends the edges and nodes to `edges` and `nodes` global lists
+    // returns lis of last nodes in path
 
+    // console.log(path, unroll, dashed);
 
-    if(path ===  ""){
-        return [];
+    // BASE CASE: path is empty
+    if(path.length === 0){
+        return;
     }
 
-    let lis = splitPathString(path);
-    // console.log(lis);
+    // BASE CASE: path is single node
+    if(isStandAloneNode(path)){
+        // console.log(path);
+        predecessors.forEach(element => {
+            EDGES.push([element, path, dashed]);
+        });
 
-    if(lis.length === 1 && !isStandAloneNode(lis[0])){
-        lis = splitMultipleControlFlowPathString(path);
-        // console.log(lis);
-        // console.log("FFFF");
-        let successors = [];
-
-        if(parent.length === 0){
-            for (let i = 0; i < lis.length; i++) {
-                const element = lis[i];
-                if(isStandAloneNode(element)){
-                    successors = [...new Set([...successors, element])];
-                }
-                else{
-                    successors = [...new Set([...successors, ...recPath([], element)])];
-                }
-            }
-        }
-        else{
-            for (let i = 0; i < parent.length; i++) {
-                const p = parent[i];
-                for (let j = 0; j < lis.length; j++) {
-                    const element = lis[j];
-                    if(isStandAloneNode(element)){
-                        // Draw edge between p and element
-                        drawEdgeBetweenPoints(p, element);
-                        successors = [...new Set([...successors, element])];
-                    }
-                    else{
-                        successors =  [...new Set([...successors, ...recPath([p], element)])];
-                    }
-                }
-            }
-        }
-        // console.log(lis, successors);
-        return successors;
+        NODES.push([path, unroll]);
+        
+        return [path];
     }
-    let nextParents = parent;
-
-
-
     
-    for (let i = 0; i < lis.length; i++) {
-        const element = lis[i];
-        for (let j = 0; j < nextParents.length; j++) {
-            const p = nextParents[j];
-            if(isStandAloneNode(element)){
-                // Draw Edge between p and element (p is predecessor)
-                drawEdgeBetweenPoints(p, element);
-                nextParents = [element];
-            }
-            else{
-                nextParents = recPath(nextParents, element);
-                break;
-            }
-        }
-        if(nextParents.length === 0){
-            if(isStandAloneNode(element)){
-                nextParents = [element];
-            }
-            else{
-                nextParents = recPath(nextParents, element);
-            }
-        }
-    }   
-    // console.log(lis, nextParents);
-    return nextParents;
+    
+    if(unroll > 1){
+        dashed = true;
+    }
+    // RECURSIVE CASE: path is multiple subpaths(series or parallel)
 
+    // If multiple control flow -> split path into parallel subpaths
+    let subpaths = splitMultipleControlFlowPathString(path);
+
+    if(subpaths.length !== 1){
+        // console.log(subpaths);
+        let successors = [];
+        subpaths.forEach(sp => {
+            successors = [...new Set([...successors, ...recPath(predecessors, sp[0], unroll, dashed)])];
+        });
+        // console.log(successors, path);
+        return successors;
+    }  
+
+    // Else
+    // Split the path into series of subpaths and also specify unroll of each subpath
+    subpaths = splitPathString(path);
+    // console.log(subpaths);
+    // return;
+
+
+    for (let i = 0; i < subpaths.length; i++) {
+        const sp = subpaths[i];
+
+        predecessors = recPath(predecessors, sp[0], i === 0 ? Math.max(unroll, sp[1]) : sp[1], (sp[1] > 1 || unroll > 1) ? true : dashed);
+    }
+    // console.log(predecessors, path);
+    return predecessors;
 }
 
-function drawEdgeBetweenPoints(node1, node2){
+function drawPointOnNode(node, unroll){
+    node = node.split("_");
+
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+
+    let styles = window.getComputedStyle(document.getElementById("code"));
+
+    let deltaY = styles.lineHeight.replace("px", "") * 1;
+    let deltaX = document.getElementById("code").children[0].getBoundingClientRect().width/document.getElementById("code").children[0].textContent.length;
+
+    let x1 = (node[2]-1) * 1 * deltaX;
+    let y1 = node[1] * 1 * deltaY - deltaY/4;
+
+    let color;
+    if(unroll > 1){
+        let r = 10;
+        color = "rgb(252, 3, 219)";
+        drawCircle(ctx, x1, y1, 2, color);
+        ctx.lineWidth = 1;
+        drawArc(ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
+        drawArrowHead(ctx, x1, y1-r, 0, color);
+        let x = x1 + r*Math.cos(Math.PI/4);
+        let y = y1 - r*Math.sin(Math.PI/4); 
+        drawText(ctx, x, y, "" + unroll, color);
+    }
+    else{
+        color = "rgb(255, 0, 0)";
+        drawCircle(ctx, x1, y1, 2, color);
+    }
+}
+
+function drawEdgeBetweenPoints(node1, node2, dashed){
     // node1 is predecessor
     // node2 is successor
     // Draw edge between node1 and node2
+
+    let pattern = [];
+    if(dashed){
+        pattern = [2, 2];
+    }
 
 
     node1 = node1.split("_");
@@ -244,10 +357,10 @@ function drawEdgeBetweenPoints(node1, node2){
     
     if(x1 === x2 && y1 === y2){
         let radius = deltaX*3;
-        drawCircle(x1, y1, 2, color1);
-        drawArc(ctx, x1 + radius, y1, radius, 0, 2*Math.PI, false, color2);
+        // drawCircle(x1, y1, 2, color1);
+        drawArc(ctx, x1 + radius, y1, radius, 0, 2*Math.PI, false, color2, pattern);
         drawArrowHead(ctx, x1 + radius, y1, 3*Math.PI/2, color1);
-        drawCircle(x2, y2, 2, color1);
+        // drawCircle(x2, y2, 2, color1);
         return;
     }
 
@@ -288,22 +401,28 @@ function drawEdgeBetweenPoints(node1, node2){
             ntheta = Math.PI/2 + ntheta;
         }
         else{
-            ntheta = 3*Math.PI/2 + ntheta;
+            ntheta = ntheta - Math.PI/2;
         }
 
-        drawCircle(ctx, x1, y1, 2, color1);
-        drawArc(ctx, c2.x, c2.y, r, theta1, theta2, anticlockwise, color2);
+        // drawCircle(ctx, x1, y1, 2, color1);
+        drawArc(ctx, c2.x, c2.y, r, theta1, theta2, anticlockwise, color2, pattern);
         drawArrowHead(ctx, p.x, p.y, ntheta, color1);
-        drawCircle(ctx, x2, y2, 2, color1);
+        // drawCircle(ctx, x2, y2, 2, color1);
 
     }
     else if(y1 < y2){
-        drawCircle(ctx, x1, y1, 2, color1);
-        drawLine(ctx, x1, y1, x2, y2, color2);
+        // drawCircle(ctx, x1, y1, 2, color1);
+        drawLine(ctx, x1, y1, x2, y2, color2, pattern);
         drawArrowHead(ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
-        drawCircle(ctx, x2, y2, 2, color1);
+        // drawCircle(ctx, x2, y2, 2, color1);
     }
     
+}
+
+function drawText(ctx, x, y, text, color){
+    ctx.fillStyle = color;
+    ctx.font = "16px Arial";
+    ctx.fillText(text, x, y);
 }
 
 function drawCircle(ctx, x, y, radius, color) {
@@ -313,17 +432,19 @@ function drawCircle(ctx, x, y, radius, color) {
     ctx.fill();
 }
 
-function drawLine(ctx, x1, y1, x2, y2, color) {
+function drawLine(ctx, x1, y1, x2, y2, color, pattern) {
     ctx.lineWidth = 2;
     ctx.beginPath();
+    ctx.setLineDash(pattern);
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.strokeStyle = color;
     ctx.stroke();
 }
 
-function drawArc(ctx, cx, cy, radius, theta1, theta2, anticlockwise, color) {
+function drawArc(ctx, cx, cy, radius, theta1, theta2, anticlockwise, color, pattern) {
     ctx.beginPath();
+    ctx.setLineDash(pattern);
     ctx.arc(cx, cy, radius, theta1, theta2, anticlockwise);
     ctx.strokeStyle = color;
     ctx.stroke();
@@ -338,7 +459,7 @@ function drawArrowHead(ctx, x, y, theta, color) {
     let dir = Math.tan(theta);
     let normal = -1 / dir;
 
-    if(theta < Math.PI/2 || theta > Math.PI * 3/2){
+    if(theta <= Math.PI/2 || theta > Math.PI * 3/2){
         var back = -1;
     }
     else{
@@ -366,7 +487,8 @@ export function clearCanvas(canvas, ctx){
 
 
 function isStandAloneNode(node){
-    return node[0] !== "(" && node[node.length-1] !== ")";
+    let lis = node.split("-");
+    return lis.length === 1;
 }
 
 function getNextNode(path){

@@ -39,7 +39,7 @@ canvas.style.left = rect.left + "px";
 canvas.style.top = rect.top + "px";
 
 
-// highlightPathInCode(canvas, ctx, codeEl, "((C_4_20-C_6_13-C_4_20)+(C_4_20-C_10_13-C_4_20))^4-C_13_1");
+// highlightPathInCode(canvas, ctx, codeEl, "((C_4_20-C_6_13-C_4_20)+(C_4_20-C_10_13-C_4_20))^4-(C_1_1-C_2_5-C_4_2-C_1_1)^8");
 
 window.addEventListener('message', event => {
     const message = event.data; // The JSON data our extension sent

@@ -74,7 +74,13 @@ function getSrcNodesMap(file : string){
         let node = fileLines[idx + 1];
         let rc = fileLines[idx + 3].substring(1, fileLines[idx + 3].length - 1).split(" ");
         let line = parseInt(rc[1], 10);
-        let col = parseInt(rc[4], 10);
+        let col = 0;
+        if(rc.length >= 4){
+            col = parseInt(rc[4], 10);
+        }
+        else{
+            col = 1;
+        }
 
         srcNodeMap[node] = "C_" + line + "_" + col;
         idx += 4;
@@ -229,15 +235,16 @@ function simplifyPathString(path : string){
 
 function formatPathString(path : string, nodeMap : any){
     // Map nodes in path to nodeMap values
-    
+
     let newPath = "";
 
     let idx = 0;
 
-    while(true){
+    while(idx < path.length){
         let res = getNextNode(path.substring(idx));
-
+  
         if(res === null){
+            newPath += path.substring(idx);
             break;
         }
 
@@ -246,16 +253,20 @@ function formatPathString(path : string, nodeMap : any){
         let nodeLen = node.length;
 
         let newNodeName = "";
-
-        if(node.endsWith("%0")){
+        if(node.startsWith("L0")){
+            newNodeName = "start";
+        }
+        else if(node.startsWith("L")){
+            newNodeName = "End";
+        }
+        else if(node.endsWith("%0")){
             newNodeName = "Z" + nodeMap[node.substring(0, node.length - 2) + "%1"];
         }
         else{
             newNodeName = nodeMap[node];
         }
-
         newPath += path.substring(idx, nodeIdx) + newNodeName;
-        idx += nodeLen;
+        idx = nodeIdx + nodeLen;
     }
 
     return newPath;
@@ -346,7 +357,7 @@ function splitPath(path : string){
 }
 
 function notClonedNode(node : string){
-    return !node.toLowerCase().includes("cloned");
+    return !node.toLowerCase().includes("cloned") && !node.toLowerCase().includes("clone");
 }
 
 function applicableNode(node : string){
@@ -374,4 +385,4 @@ function getNextNode(path : string): any{
     return {node: res[0], idx: res['index'] };
 }
 
-export {parseProofFile};
+export {parseProofFile, simplifyPathString};

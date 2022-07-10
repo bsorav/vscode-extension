@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { readFileSync } from 'fs';
-import { parseProofFile} from './proof_parser';
+import {productGraph, srcCode, dstCode} from './strlen32';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -28,28 +28,25 @@ export function activate(context: vscode.ExtensionContext) {
 			} // Webview options. More on these later.
 		);
 
-		const panel_src = vscode.window.createWebviewPanel(
-			'srcCFG', // Identifies the type of the webview. Used internally
-			'Source Control Flow Graph', // Title of the panel displayed to the user
-			vscode.ViewColumn.One, // Editor column to show the new webview panel in.
-			{
-				enableScripts: true
-			} // Webview options. More on these later.
-		);
+		// const panel_src = vscode.window.createWebviewPanel(
+		// 	'srcCFG', // Identifies the type of the webview. Used internally
+		// 	'Source Control Flow Graph', // Title of the panel displayed to the user
+		// 	vscode.ViewColumn.One, // Editor column to show the new webview panel in.
+		// 	{
+		// 		enableScripts: true
+		// 	} // Webview options. More on these later.
+		// );
 
 
-		const panel_dst = vscode.window.createWebviewPanel(
-			'dstCFG', // Identifies the type of the webview. Used internally
-			'Assembly Control Flow Graph', // Title of the panel displayed to the user
-			vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
-			{
-				enableScripts: true
-			} // Webview options. More on these later.
-		);
-		// vscode.commands.executeCommand("workbench");
-		// vscode.commands.executeCommand("workbench.action.editorLayoutTwoRows");
-		// vscode.commands.executeCommand("workbench.editor.openSideBySideDirection");
-		// vscode.commands.executeCommand("workbench.action.editorLayoutTwoRowsRight");
+		// const panel_dst = vscode.window.createWebviewPanel(
+		// 	'dstCFG', // Identifies the type of the webview. Used internally
+		// 	'Destination Control Flow Graph', // Title of the panel displayed to the user
+		// 	vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
+		// 	{
+		// 		enableScripts: true
+		// 	} // Webview options. More on these later.
+		// );
+		// vscode.comman("workbench.action.editorLayoutTwoRowsRight");
 
 		const panel_src_code = vscode.window.createWebviewPanel(
 			'src_code', // Identifies the type of the webview. Used internally
@@ -62,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		const panel_dst_code = vscode.window.createWebviewPanel(
 			'dst_code', // Identifies the type of the webview. Used internally
-			'Assembly Code', // Title of the panel displayed to the user
+			'Destination Code', // Title of the panel displayed to the user
 			vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
 			{
 				enableScripts: true
@@ -79,15 +76,15 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 		const product_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
-		onDiskPath_script = vscode.Uri.file(
-			path.join(context.extensionPath, 'src/web_view/scripts/source.js')
-		);
-		const source_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+		// onDiskPath_script = vscode.Uri.file(
+		// 	path.join(context.extensionPath, 'src/web_view/scripts/source.js')
+		// );
+		// const source_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
-		onDiskPath_script = vscode.Uri.file(
-			path.join(context.extensionPath, 'src/web_view/scripts/assembly.js')
-		);
-		const assembly_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+		// onDiskPath_script = vscode.Uri.file(
+		// 	path.join(context.extensionPath, 'src/web_view/scripts/assembly.js')
+		// );
+		// const assembly_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
 		const onDiskPath_prism = vscode.Uri.file(
 			path.join(context.extensionPath, 'node_modules/prismjs/prism.js')
@@ -120,33 +117,38 @@ export function activate(context: vscode.ExtensionContext) {
 		const dst_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
 
+		
 		// Set the webview content
-
+		
 		panel_prd.webview.html = getProductWebviewContent(context.extensionPath, product_script, index_css);
-		panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css);
-		panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css);
-
-
+		// panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css);
+		// panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css);
+		
+		
 		panel_src_code.webview.html = getSourceCodeWebviewContent(context.extensionPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
 		panel_dst_code.webview.html = getAssemblyCodeWebviewContent(context.extensionPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
 		// Message passing to src and dst webview
+		
+		panel_prd.webview.postMessage(productGraph);
+		panel_src_code.webview.postMessage({code:srcCode});
+		panel_dst_code.webview.postMessage({code:dstCode});
 
 		panel_prd.webview.onDidReceiveMessage(
 			message => {
 				switch (message.command) {
 					case "highlight":
-						panel_src.webview.postMessage({
-							command: "highlight",
-							from: message.from[0],
-							to: message.to[0],
-							path: message.path1
-						});
-						panel_dst.webview.postMessage({
-							command: "highlight",
-							from: message.from[1],
-							to: message.to[1],
-							path: message.path2
-						});
+						// panel_src.webview.postMessage({
+						// 	command: "highlight",
+						// 	from: message.from[0],
+						// 	to: message.to[0],
+						// 	path: message.path1
+						// });
+						// panel_dst.webview.postMessage({
+						// 	command: "highlight",
+						// 	from: message.from[1],
+						// 	to: message.to[1],
+						// 	path: message.path2
+						// });
 						panel_src_code.webview.postMessage({
 							command: "highlight",
 							path: message.path1
@@ -157,12 +159,12 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 						break;
 					case "clear":
-						panel_src.webview.postMessage({
-							command: "clear"
-						});
-						panel_dst.webview.postMessage({
-							command: "clear"
-						});
+						// panel_src.webview.postMessage({
+						// 	command: "clear"
+						// });
+						// panel_dst.webview.postMessage({
+						// 	command: "clear"
+						// });
 						panel_src_code.webview.postMessage({
 							command: "clear"
 						});
@@ -181,13 +183,10 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 
+
 	// Code Text
 
-	// const proof_file = path.join(context.extensionPath, 'src/proof.txt');
-	// const file = readFileSync(proof_file, 'utf-8');
-	// console.log("here");
-	// console.log(parseProofFile(file));
-	// console.log("end");
+
 	context.subscriptions.push(disposable);
 }
 

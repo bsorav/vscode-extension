@@ -107,9 +107,18 @@ export function highlightPathInCode(canvas, ctx, code, path){
         drawEdgeBetweenPoints(element[0], element[1], element[2]);
     });
     
+    let minHeight = canvas.offsetTop;
+    let styles = window.getComputedStyle(code);
+    let deltaY = parseInt(styles.getPropertyValue("line-height"));
+
+    let scrollHeight = window.innerHeight;
+
     NODES.forEach(element => {
         drawPointOnNode(element[0], element[1]);
+        scrollHeight = Math.min(scrollHeight, minHeight + deltaY*element[0].split('_')[1]);
     });
+
+    window.scroll({left:window.scrollWidth, top:scrollHeight, behavior:'smooth'});
 }
 
 function getWithoutBracketedPath(path){
@@ -270,7 +279,7 @@ export function recPath(predecessors, path, unroll, dashed){
         // console.log(subpaths);
         let successors = [];
         subpaths.forEach(sp => {
-            successors = [...new Set([...successors, ...recPath(predecessors, sp[0], unroll, dashed)])];
+            successors = [...new Set([...successors, ...recPath(predecessors, sp[0], unroll, true)])];
         });
         // console.log(successors, path);
         return successors;
@@ -301,8 +310,8 @@ function drawPointOnNode(node, unroll){
     let styles = window.getComputedStyle(document.getElementById("code"));
 
     let deltaY = styles.lineHeight.replace("px", "") * 1;
-    let deltaX = document.getElementById("code").children[0].getBoundingClientRect().width/document.getElementById("code").children[0].textContent.length;
-
+    let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7; 
+    
     let x1 = (node[2]-1) * 1 * deltaX;
     let y1 = node[1] * 1 * deltaY - deltaY/4;
 
@@ -310,7 +319,7 @@ function drawPointOnNode(node, unroll){
     if(unroll > 1){
         let r = 10;
         color = "rgb(252, 3, 219)";
-        drawCircle(ctx, x1, y1, 2, color);
+        drawCircle(ctx, x1, y1, 3, color);
         ctx.lineWidth = 1;
         drawArc(ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
         drawArrowHead(ctx, x1, y1-r, 0, color);
@@ -320,7 +329,7 @@ function drawPointOnNode(node, unroll){
     }
     else{
         color = "rgb(255, 0, 0)";
-        drawCircle(ctx, x1, y1, 2, color);
+        drawCircle(ctx, x1, y1, 3, color);
     }
 }
 
@@ -331,7 +340,7 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
 
     let pattern = [];
     if(dashed){
-        pattern = [2, 2];
+        pattern = [4, 2];
     }
 
 
@@ -344,7 +353,7 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
     let styles = window.getComputedStyle(document.getElementById("code"));
 
     let deltaY = styles.lineHeight.replace("px", "") * 1;
-    let deltaX = document.getElementById("code").children[0].getBoundingClientRect().width/document.getElementById("code").children[0].textContent.length;
+    let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
 
     let x1 = (node1[2]-1) * 1 * deltaX;
     let y1 = node1[1] * 1 * deltaY - deltaY/4;
@@ -359,13 +368,13 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
         let radius = deltaX*3;
         // drawCircle(x1, y1, 2, color1);
         drawArc(ctx, x1 + radius, y1, radius, 0, 2*Math.PI, false, color2, pattern);
-        drawArrowHead(ctx, x1 + radius, y1, 3*Math.PI/2, color1);
+        drawArrowHead(ctx, x1 + 2*radius, y1, 3*Math.PI/2, color1);
         // drawCircle(x2, y2, 2, color1);
         return;
     }
 
-    if(y1 > y2){
-        if (x1 > x2) {
+    if(y1 > y2 || (y1 === y2 && x1 > x2)){
+        if (x1 >= x2) {
             var loc = 1;
             var anticlockwise = true;
         }
@@ -379,11 +388,20 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
         var coord2 = {x:x2, y:y2};
 
         var dist = Math.sqrt((coord1.x - coord2.x) ** 2 + (coord1.y - coord2.y) ** 2);
-        dist = Math.tan(1.309) * dist / 2;
+        if(dist < 30){
+            dist = 0;
+        }
+        else{
+            dist = Math.tan(1.309) * dist / 2;
+        }
         var c1 = { x: (coord1.x + coord2.x) / 2, y: (coord1.y + coord2.y) / 2 };
 
 
         var c2 = coordAtDist(c1.x, c1.y, m1, -1 * loc * dist);
+
+        if(y1 === y2){
+            c2 = {x: c1.x, y: c1.y + loc*dist};
+        }
 
         var theta1 = Math.atan((coord1.y - c2.y) / (coord1.x - c2.x));
         var theta2 = Math.atan((coord2.y - c2.y) / (coord2.x - c2.x));
@@ -393,8 +411,14 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
             theta1 = Math.PI + theta1;
             theta2 = Math.PI + theta2;
         }
+        theta1 = angleFromXAxis(c2.x, c2.y, coord1.x, coord1.y);
+        theta2 = angleFromXAxis(c2.x, c2.y, coord2.x, coord2.y);
 
         var p = coordAtDist(c1.x, c1.y, m1, loc * (r - dist));
+
+        if(y1 === y2){
+            p = {x:c1.x, y:(c1.y - r)};
+        }
 
         var ntheta = angleFromXAxis(c2.x, c2.y, p.x, p.y);
         if(loc === -1){
@@ -410,10 +434,12 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
         // drawCircle(ctx, x2, y2, 2, color1);
 
     }
-    else if(y1 < y2){
+    else if(y1 <= y2){
         // drawCircle(ctx, x1, y1, 2, color1);
         drawLine(ctx, x1, y1, x2, y2, color2, pattern);
         drawArrowHead(ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
+        // drawArrowHead(ctx, x1, y1, theta, color1);
+        // drawArrowHead(ctx, x2, y2, theta, color1);
         // drawCircle(ctx, x2, y2, 2, color1);
     }
     
@@ -453,8 +479,8 @@ function drawArc(ctx, cx, cy, radius, theta1, theta2, anticlockwise, color, patt
 
 function drawArrowHead(ctx, x, y, theta, color) {
 
-    let len = 8;
-    let baseHalf = len * Math.sin(Math.PI / 4);
+    let h = 10;
+    let w = 8;
     
     let dir = Math.tan(theta);
     let normal = -1 / dir;
@@ -466,17 +492,19 @@ function drawArrowHead(ctx, x, y, theta, color) {
         var back = 1;
     }
 
-    let baseCen = coordAtDist(x, y, dir, back * baseHalf);
 
-    let coord1 = coordAtDist(baseCen.x, baseCen.y, normal, baseHalf);
-    let coord2 = coordAtDist(baseCen.x, baseCen.y, normal, -1 * baseHalf);
+    let baseCen = coordAtDist(x, y, dir, back * h/2);
+    let baseStart = coordAtDist(x, y, dir, -1 * back * h/2);
+
+    let coord1 = coordAtDist(baseCen.x, baseCen.y, normal, w/2);
+    let coord2 = coordAtDist(baseCen.x, baseCen.y, normal, -1 * w/2);
 
 
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(coord1.x, coord1.y);
     ctx.lineTo(coord2.x, coord2.y);
-    ctx.lineTo(x, y);
+    ctx.lineTo(baseStart.x, baseStart.y);
     ctx.fill();
     ctx.closePath();
 }

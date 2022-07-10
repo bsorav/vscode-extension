@@ -118,7 +118,7 @@ export class Edge {
 
                 return;
             }
-            if (x1 > Node.baseLineX) {
+            if (x1 > x2) {
                 var loc = 1;
                 var anticlockwise = true;
             }
@@ -171,7 +171,7 @@ export class Edge {
 
         }
         else {
-            if (x2 >= Node.baseLineX) {
+            if (x2 >= x1) {
                 var loc = 1;
             }
             else {
@@ -217,8 +217,8 @@ export class Edge {
 
         if (this.back_edge) {
             var dist = distnace(x, y, this.pos.cx, this.pos.cy);
-
-            if (dist <= this.pos.r + 6 && dist >= this.pos.r - 6) {
+            var delta = 6;
+            if (dist <= this.pos.r + delta && dist >= this.pos.r - delta) {
                 var theta = angleFromXAxis(this.pos.cx, this.pos.cy, x, y);
                 var theta1 = this.pos.theta1;
                 var theta2 = this.pos.theta2;
@@ -247,23 +247,19 @@ export class Edge {
             var x2 = this.pos.x2;
             var y2 = this.pos.y2;
 
-            var delta = 6;
+            var delta = 4;
 
-            if (x1 <= x2 && x >= x1 - delta && x <= x2 + delta) {
-                if (y1 <= y2 && y >= y1 - delta && y <= y2 + delta) {
+            if(x1 === x2) {
+                if( y >= Math.min(y1, y2) && y <= Math.max(y1, y2) && x >= x1 - delta && x <= x1 + delta) {
                     return true;
                 }
-                if (y1 >= y2 && y >= y2 - delta && y <= y1 + delta) {
-                    return true;
+                else{
+                    return false;
                 }
             }
-            if (x1 >= x2 && x >= x2 - delta && x <= x1 + delta) {
-                if (y1 <= y2 && y >= y1 - delta && y <= y2 + delta) {
-                    return true;
-                }
-                if (y1 >= y2 && y >= y2 - delta && y <= y1 + delta) {
-                    return true;
-                }
+
+            if(distFromLine(x, y, x1, y1, x2, y2) <= delta) {
+                return true;
             }
         }
         return false;
@@ -272,6 +268,13 @@ export class Edge {
     highlight(color) {
         this.draw({ strokeStyle: color, lineWidth: 4, arrowLen: 12 });
     }
+}
+
+function distFromLine(x, y, x1, y1, x2, y2) {
+    var m = (y2 - y1) / (x2 - x1);
+    var b = y1 - m * x1;
+    var dist = Math.abs(m * x - y + b) / Math.sqrt(m * m + 1);
+    return dist;
 }
 
 
@@ -472,7 +475,7 @@ export function instantiateNodes(num_nodes, adj_lis, canvas) {
             if (lis.includes(element)) {
                 continue;
             }
-            gap_at_level = ((CANVAS_WIDTH - 2 * MARGIN) / numNodesOnLevel[level[element]]);
+            gap_at_level = (1*(CANVAS_WIDTH - 2 * MARGIN -2*RADIUS*numNodesOnLevel[level[element]]) / numNodesOnLevel[level[element]])/3;
 
             y = baseLineY + MARGIN + RADIUS + 2 * RADIUS * (level[element]) + GAP * (level[element]);
             x = nodes_obj[node].pos[0] + nodes_offset[element] * gap_at_level;

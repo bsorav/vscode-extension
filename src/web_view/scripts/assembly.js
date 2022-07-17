@@ -5,30 +5,30 @@
 
 const dst_cfg = {
     "nodes" : 
-        ["A_1_1", "A_3_9", "A_18_9", "A_19_5"],
+        ["D_37_1", "D_49_5", "D_106_5", "D_107_5"],
     "edges" : 
         [
             {
-                "from" : "A_1_1",
-                "to" : "A_3_9",
+                "from" : "D_37_1",
+                "to" : "D_49_5",
                 "condition" : "true",
                 "statement" : "intialize"
             },
             {
-                "from" : "A_3_9",
-                "to" : "A_18_9",
+                "from" : "D_49_5",
+                "to" : "D_106_5",
                 "condition" : "true",
                 "statement" : "loop body"
             },
             {
-                "from" : "A_18_9",
-                "to" : "A_3_9",
+                "from" : "D_106_5",
+                "to" : "D_49_5",
                 "condition" : "loop cond",
                 "statement" : "jump to loop body"
             },
             {
-                "from" : "A_18_9",
-                "to" : "A_19_5",
+                "from" : "D_106_5",
+                "to" : "D_107_5",
                 "condition" : " ! loop cond",
                 "statement" : "ret"
             }

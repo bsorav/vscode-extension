@@ -1,3 +1,234 @@
+class pathNode{
+    left: any;
+    right: any;
+    // Path nodes types -> series, parallel, and leaf
+
+    constructor(public type:string, public parent:pathNode, public name:string){
+        this.type = type;
+        this.parent = parent;
+        this.left = null;
+        this.right = null;
+        this.name = name;
+    }
+
+    mergePathNodes(){
+        if(this.type === "series"){
+            this.name = this.left.name + "-" + this.right.name;
+            this.type = "leaf";
+        }
+        else if(this.type === "parallel"){
+            this.name = "(" + this.left.name + ")" + "+" +  "(" + this.right.name + ")";
+            this.type = "leaf";
+        }
+    }
+    static createPathNodeTree(path : string, parent:pathNode){
+        // console.log(path);
+        let newNode = null;
+
+        let subPaths = splitMultiControlPath("(" + path + ")");
+        // console.log(subPaths);
+        if(subPaths.length !== 1){
+            newNode = new pathNode("parallel", parent, "");
+            let leftPath = subPaths[0];
+            let rightPath = "(";
+            for(let i = 1; i < subPaths.length; i++){
+                rightPath += subPaths[i] + "+";
+            }
+            rightPath = rightPath.substring(0, rightPath.length - 1) + ")";
+
+            newNode.left = pathNode.createPathNodeTree(leftPath, newNode);
+            newNode.right = pathNode.createPathNodeTree(rightPath, newNode);
+        }
+
+        subPaths = splitPath("(" + path + ")");
+        // console.log(subPaths);
+        if(subPaths.length !== 1){
+            newNode = new pathNode("series", parent, "");
+            let leftPath = subPaths[0];
+            let rightPath = "";
+            for(let i = 1; i < subPaths.length; i++){
+                rightPath += subPaths[i] + "-";
+            }
+            rightPath = rightPath.substring(0, rightPath.length - 1);
+
+            newNode.left = pathNode.createPathNodeTree(leftPath, newNode);
+            newNode.right = pathNode.createPathNodeTree(rightPath, newNode);
+        }
+        else{
+            // console.log("leaf", subPaths[0]);
+            newNode = new pathNode("leaf", parent, subPaths[0]);
+        }
+
+        return newNode;
+    }
+
+    static getSimplifiedPath(root:pathNode) : any{
+
+        if(root.type === "leaf"){
+            return root.name;
+        }
+        else if(root.type === "series"){
+            let left = root.left;
+            let right = root.right;
+
+            root.name = seriesCombinationOfPath(pathNode.getSimplifiedPath(left), pathNode.getSimplifiedPath(right));
+            root.type = "leaf";
+            root.left = null;
+            root.right = null;
+            // console.log(root.name);
+            return root.name;
+
+        }
+        else if(root.type === "parallel"){
+            let left = root.left;
+            let right = root.right;
+            root.name = "(" + pathNode.getSimplifiedPath(left) + ")" + "+" + "(" + pathNode.getSimplifiedPath(right) + ")";
+            root.type = "leaf";
+            root.left = null;
+            root.right = null;
+
+            return root.name;
+        }
+
+    }
+}
+
+function seriesCombinationOfPath(path1 : string, path2 : string){
+    // console.log(path1, path2);
+
+    let pathArray1 = splitSeriesPathWithUnroll(path1);
+    let pathArray2 = splitSeriesPathWithUnroll(path2);
+
+    // console.log(pathArray1, pathArray2);
+
+    let pathArray = pathArray1.concat(pathArray2);
+    let i = pathArray1.length;
+    let unroll = 1;
+    for(i = pathArray1.length; i<pathArray.length; i++){
+        if(pathArray[i][1] > 1){
+            unroll = pathArray[i][1];
+            // console.log(unroll);
+            break;
+        }
+    }
+    
+    if(i === pathArray.length){
+        // console.log("F");
+        return combineSuffixPrefix(pathArray1, pathArray2);
+    }
+
+    let first = getNextNode(pathArray[i][0]);
+
+    let path = first.node;
+    let j;
+    let matched = false;
+    for(j = i-1; j >=0; j--){
+        path = pathArray[j][0] + "-" + path;
+        // console.log(path, pathArray[i][0]);
+        if(path === pathArray[i][0]){
+            unroll++;
+            matched = true;
+            break;
+        }
+    }
+    if(!matched){
+        return combineSuffixPrefix(pathArray1, pathArray2);
+    }
+    let temp = path;
+    path = "";
+    for(let k = 0; k < j; k++){
+        if(pathArray[k][1] > 1){
+            path += "-(" + pathArray[k][0] + ")^" + pathArray[k][1];
+        }
+        else{
+            path = path + "-" + pathArray[k][0];
+        }
+    }
+    path += "-(" + temp + ")^" + unroll;
+
+    for(let k = i+1; k < pathArray.length; k++){
+        if(pathArray[k][1] > 1){
+            path += "-(" + pathArray[k][0] + ")^" + pathArray[k][1];
+        }
+        else{
+            path = path + "-" + pathArray[k][0];
+        }
+    }
+
+    return path.substring(1);
+}
+
+function combineSuffixPrefix(pathArray1: any[], pathArray2: any[]){
+    let i = pathArray1.length;
+    let pathArray = pathArray1.concat(pathArray2).map((path) => {return  path[1] === 1 ? path[0] : "(" + path[0] + ")^" + path[1];});
+    // console.log(pathArray);
+    for(i = 0; i<pathArray.length; i++){
+        for(let j = pathArray.length-1; j > i; j--){
+            let len = j-i;
+            if(len > i) {continue;}
+            // console.log(i, len);
+            let preffix = pathArray.slice(i, j+1).join("-");
+            let suffix = pathArray.slice(i-len, i+1).join("-");
+
+            // console.log(suffix, preffix, len);
+            if(preffix === suffix){
+                let path = pathArray.slice(0, i-len).join("-") + "-(" + preffix + ")^2-" + pathArray.slice(j+1).join("-");    
+                if(path[0] === "-"){
+                    path = path.substring(1);
+                }
+                if(path[path.length-1] === "-"){
+                    path = path.substring(0, path.length-1);
+                }
+                return path;
+            }
+        }
+    }
+
+
+    return pathArray.join("-");
+}
+
+function splitSeriesPathWithUnroll(path : string){
+    let lis: any[] = [];
+
+    let len = path.length;
+    // path = path.substring(1, len - 1);
+    // len -= 2;
+
+    let i = 0;
+    let depth = 0;
+    let p = "";
+    // let unroll = 0;
+    while(i < len){
+        if(path[i] === "("){
+            depth++;
+        }
+        else if(path[i] === ")"){
+            depth--;
+        }
+        p += path[i];
+        i++;
+        
+        if(depth === 0 && (i === len || path[i] === "-" || path[i] === "^")){
+            let unroll = 1;
+            if(path[i] === "^"){
+                let j = i+1;
+                while(j < len && path[j] !== "-"){
+                    j++;
+                }
+                unroll = parseInt(path.substring(i + 1, j));
+                p = p.substring(1, p.length - 1);
+                i = j;
+            }
+            lis.push([p, unroll]);
+            p = "";
+            i++;
+        }
+    }
+
+    return lis;    
+}
+
 function parseProofFile(file : string){
     let parsedOutput = {};
 
@@ -346,7 +577,7 @@ function splitPath(path : string){
         p += path[i];
         i++;
     
-        if(depth === 0 && (i === len || path[i] === "*")){
+        if(depth === 0 && (i === len || path[i] === "*" || path[i] === "-")){
             lis.push(p);
             p = "";
             i++;
@@ -385,4 +616,4 @@ function getNextNode(path : string): any{
     return {node: res[0], idx: res['index'] };
 }
 
-export {parseProofFile, simplifyPathString};
+export {parseProofFile, simplifyPathString, seriesCombinationOfPath, pathNode};

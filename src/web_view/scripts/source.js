@@ -6,54 +6,54 @@
 
 const src_cfg = {
     "nodes" : 
-        ["C_3_1", "C_4_20", "C_6_13", "C_8_13", "C_10_13", "C_13_1"],
+        ["S_3_1", "S_4_20", "S_6_13", "S_8_13", "S_10_13", "S_13_1"],
     "edges" : 
         [
             {
-                "from" : "C_3_1",
-                "to" : "C_4_20",
+                "from" : "S_3_1",
+                "to" : "S_4_20",
                 "condition" : "true",
                 "statement" : "i := 0"
             },
             {
-                "from" : "C_4_20",
-                "to" : "C_6_13",
+                "from" : "S_4_20",
+                "to" : "S_6_13",
                 "condition" : "i < len && d[i] < 0",
                 "statement" : ""
             },
             {
-                "from" : "C_6_13",
-                "to" : "C_4_20",
+                "from" : "S_6_13",
+                "to" : "S_4_20",
                 "condition" : "true",
                 "statement" : "a [i] += b [i] * c [i]"
             },
             {
-                "from" : "C_4_20",
-                "to" : "C_8_13",
+                "from" : "S_4_20",
+                "to" : "S_8_13",
                 "condition" : "i < len && d[i] == 0",
                 "statement" : ""
             },
             {
-                "from" : "C_8_13",
-                "to" : "C_4_20",
+                "from" : "S_8_13",
+                "to" : "S_4_20",
                 "condition" : "true",
                 "statement" : "a[i] += b[i] * b[i]"
             },
             {
-                "from" : "C_4_20",
-                "to" : "C_10_13",
+                "from" : "S_4_20",
+                "to" : "S_10_13",
                 "condition" : "i < len && d[i] > 0",
                 "statement" : ""
             },
             {
-                "from" : "C_10_13",
-                "to" : "C_4_20",
+                "from" : "S_10_13",
+                "to" : "S_4_20",
                 "condition" : "true",
                 "statement" : "a[i] += c[i] * c[i]"
             },
             {
-                "from" : "C_4_20",
-                "to" : "C_13_1",
+                "from" : "S_4_20",
+                "to" : "S_13_1",
                 "condition" : "!(i < len)",
                 "statement" : ""
             }

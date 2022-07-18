@@ -1,13 +1,18 @@
 import { highlightPathInCode, clearCanvas} from "./utils.js";
 
 var code = 
-`#include <stddef.h>
-
-size_t strlen(char *s)
-{
-  char *p ;
-  for (p = s; *p; ++p);
-  return p-s ;
+`int LEN , a [ LEN ] , b [ LEN ];
+int c [ LEN ] , d [ LEN ];
+void s441 () {
+	for (int i = 0; i < LEN ; i ++) {
+		if ( d [ i ] < 0) {
+			a [ i ] += b [ i ] * c [ i ];
+		} else if ( d [ i ] == 0) {
+			a [ i ] += b [ i ] * b [ i ];
+		} else {
+			a [ i ] += c [ i ] * c [ i ];
+		}
+	}
 }
 `;
 

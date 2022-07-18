@@ -475,7 +475,7 @@ export function instantiateNodes(num_nodes, adj_lis, canvas) {
             if (lis.includes(element)) {
                 continue;
             }
-            gap_at_level = (1*(CANVAS_WIDTH - 2 * MARGIN -2*RADIUS*numNodesOnLevel[level[element]]) / numNodesOnLevel[level[element]])/3;
+            gap_at_level = (1*(CANVAS_WIDTH - 2 * MARGIN -2*RADIUS*numNodesOnLevel[level[element]]) / numNodesOnLevel[level[element]])/1;
 
             y = baseLineY + MARGIN + RADIUS + 2 * RADIUS * (level[element]) + GAP * (level[element]);
             x = nodes_obj[node].pos[0] + nodes_offset[element] * gap_at_level;

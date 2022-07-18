@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { readFileSync } from 'fs';
 import {productGraph, srcCode, dstCode} from './strlen32';
+import { pathNode, seriesCombinationOfPath, simplifyPathString } from './proof_parser';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -28,24 +29,24 @@ export function activate(context: vscode.ExtensionContext) {
 			} // Webview options. More on these later.
 		);
 
-		// const panel_src = vscode.window.createWebviewPanel(
-		// 	'srcCFG', // Identifies the type of the webview. Used internally
-		// 	'Source Control Flow Graph', // Title of the panel displayed to the user
-		// 	vscode.ViewColumn.One, // Editor column to show the new webview panel in.
-		// 	{
-		// 		enableScripts: true
-		// 	} // Webview options. More on these later.
-		// );
+		const panel_src = vscode.window.createWebviewPanel(
+			'srcCFG', // Identifies the type of the webview. Used internally
+			'Source Control Flow Graph', // Title of the panel displayed to the user
+			vscode.ViewColumn.One, // Editor column to show the new webview panel in.
+			{
+				enableScripts: true
+			} // Webview options. More on these later.
+		);
 
 
-		// const panel_dst = vscode.window.createWebviewPanel(
-		// 	'dstCFG', // Identifies the type of the webview. Used internally
-		// 	'Destination Control Flow Graph', // Title of the panel displayed to the user
-		// 	vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
-		// 	{
-		// 		enableScripts: true
-		// 	} // Webview options. More on these later.
-		// );
+		const panel_dst = vscode.window.createWebviewPanel(
+			'dstCFG', // Identifies the type of the webview. Used internally
+			'Destination Control Flow Graph', // Title of the panel displayed to the user
+			vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
+			{
+				enableScripts: true
+			} // Webview options. More on these later.
+		);
 		// vscode.comman("workbench.action.editorLayoutTwoRowsRight");
 
 		const panel_src_code = vscode.window.createWebviewPanel(
@@ -76,15 +77,15 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 		const product_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
-		// onDiskPath_script = vscode.Uri.file(
-		// 	path.join(context.extensionPath, 'src/web_view/scripts/source.js')
-		// );
-		// const source_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+		onDiskPath_script = vscode.Uri.file(
+			path.join(context.extensionPath, 'src/web_view/scripts/source.js')
+		);
+		const source_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
-		// onDiskPath_script = vscode.Uri.file(
-		// 	path.join(context.extensionPath, 'src/web_view/scripts/assembly.js')
-		// );
-		// const assembly_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+		onDiskPath_script = vscode.Uri.file(
+			path.join(context.extensionPath, 'src/web_view/scripts/assembly.js')
+		);
+		const assembly_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
 		const onDiskPath_prism = vscode.Uri.file(
 			path.join(context.extensionPath, 'node_modules/prismjs/prism.js')
@@ -121,8 +122,8 @@ export function activate(context: vscode.ExtensionContext) {
 		// Set the webview content
 		
 		panel_prd.webview.html = getProductWebviewContent(context.extensionPath, product_script, index_css);
-		// panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css);
-		// panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css);
+		panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css);
+		panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css);
 		
 		
 		panel_src_code.webview.html = getSourceCodeWebviewContent(context.extensionPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
@@ -137,18 +138,18 @@ export function activate(context: vscode.ExtensionContext) {
 			message => {
 				switch (message.command) {
 					case "highlight":
-						// panel_src.webview.postMessage({
-						// 	command: "highlight",
-						// 	from: message.from[0],
-						// 	to: message.to[0],
-						// 	path: message.path1
-						// });
-						// panel_dst.webview.postMessage({
-						// 	command: "highlight",
-						// 	from: message.from[1],
-						// 	to: message.to[1],
-						// 	path: message.path2
-						// });
+						panel_src.webview.postMessage({
+							command: "highlight",
+							from: message.from[0],
+							to: message.to[0],
+							path: message.path1
+						});
+						panel_dst.webview.postMessage({
+							command: "highlight",
+							from: message.from[1],
+							to: message.to[1],
+							path: message.path2
+						});
 						panel_src_code.webview.postMessage({
 							command: "highlight",
 							path: message.path1
@@ -159,12 +160,12 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 						break;
 					case "clear":
-						// panel_src.webview.postMessage({
-						// 	command: "clear"
-						// });
-						// panel_dst.webview.postMessage({
-						// 	command: "clear"
-						// });
+						panel_src.webview.postMessage({
+							command: "clear"
+						});
+						panel_dst.webview.postMessage({
+							command: "clear"
+						});
 						panel_src_code.webview.postMessage({
 							command: "clear"
 						});
@@ -182,8 +183,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 	});
 
+	let p = simplifyPathString("((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*((Lcloned1.for.cond%1%602212=>Lfor.cond%1%0)*((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*((Lcloned1.for.cond%1%602212=>Lfor.cond%1%0)*((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*((Lcloned1.for.cond%1%602212=>Lfor.cond%1%0)*((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*(Lcloned1.for.cond%1%602212=>Lfor.cond%1%0))))))))))))))))");
+	console.log(p);
 
+	let root = pathNode.createPathNodeTree("(a+b)", null);
 
+	console.log(pathNode.getSimplifiedPath(root));
 	// Code Text
 
 

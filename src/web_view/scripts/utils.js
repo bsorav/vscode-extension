@@ -107,18 +107,17 @@ export function highlightPathInCode(canvas, ctx, code, path){
         drawEdgeBetweenPoints(element[0], element[1], element[2]);
     });
     
-    let minHeight = canvas.offsetTop;
+    let scrollHeight = window.scrollHeight;
     let styles = window.getComputedStyle(code);
     let deltaY = parseInt(styles.getPropertyValue("line-height"));
-
-    let scrollHeight = window.innerHeight;
+    let topNode = canvas.height*1;
 
     NODES.forEach(element => {
         drawPointOnNode(element[0], element[1]);
-        scrollHeight = Math.min(scrollHeight, minHeight + deltaY*element[0].split('_')[1]);
+        topNode = Math.min(topNode, element[0].split("_")[1]*1*deltaY);
     });
 
-    window.scroll({left:window.scrollWidth, top:scrollHeight, behavior:'smooth'});
+    window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
 }
 
 function getWithoutBracketedPath(path){

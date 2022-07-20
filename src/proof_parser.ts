@@ -1,3 +1,5 @@
+import { ConsoleReporter } from "@vscode/test-electron";
+
 class pathNode{
     left: any;
     right: any;
@@ -24,8 +26,13 @@ class pathNode{
     static createPathNodeTree(path : string, parent:pathNode){
         // console.log(path);
         let newNode = null;
+        let subPaths = [];
 
-        let subPaths = splitMultiControlPath("(" + path + ")");
+        if(path === ""){
+            return new pathNode("leaf", parent, "");
+        }
+
+        subPaths = splitMultiControlPath("(" + path + ")");
         // console.log(subPaths);
         if(subPaths.length !== 1){
             newNode = new pathNode("parallel", parent, "");
@@ -41,7 +48,6 @@ class pathNode{
         }
 
         subPaths = splitPath("(" + path + ")");
-        // console.log(subPaths);
         if(subPaths.length !== 1){
             newNode = new pathNode("series", parent, "");
             let leftPath = subPaths[0];
@@ -54,8 +60,11 @@ class pathNode{
             newNode.left = pathNode.createPathNodeTree(leftPath, newNode);
             newNode.right = pathNode.createPathNodeTree(rightPath, newNode);
         }
-        else{
-            // console.log("leaf", subPaths[0]);
+        else{ 
+            if(subPaths.length < 1 || subPaths[0] === undefined){
+                newNode = new pathNode("leaf", parent, "");
+                return newNode;
+            }
             newNode = new pathNode("leaf", parent, subPaths[0]);
         }
 
@@ -249,28 +258,40 @@ function parseProofFile(file : string){
     productGraphNodes = getGraphNodes("product", file);
     productGraphEdges = getGraphEdges("product", file);
 
+    
     productGraph = {"nodes": productGraphNodes, "edges": productGraphEdges};
+    // console.log("Product Graph Nodes and Edges parsed(wihtout formatting)");
+    // console.log(productGraph);
+
 
     srcGraphNodesMap = getSrcNodesMap(file);
+    dstGraphNodesMap = getDstNodesMapFromFile(file);
 
-    let res = formatProductGraphEdges(productGraph, srcGraphNodesMap);
+    let res = formatProductGraphEdges(productGraph, srcGraphNodesMap, dstGraphNodesMap);
+
+    // console.log("Product Graph Nodes and Edges formatted");
 
     productGraph = res["productGraph"];
-    dstGraphNodesMap = res["dstGraphNodesMap"];
-
+    if(dstGraphNodesMap === null){
+        dstGraphNodesMap = res["dstGraphNodesMap"];
+    }
     return productGraph;
 }
 
 function getGraphNodes(graph : string, file : string){
-    let nodes: string[][] = [];
+    let nodes: any = [];
     let fileLines = file.split('\n');
-    
+    let res = [];
     if(graph === "product"){
         let idx = fileLines.indexOf("=graph_with_guessing") + 1;
-        nodes = fileLines[idx].substring(8).split(' ').map((node) => {return node.split("_");});
+        nodes = fileLines[idx].substring(8).split(' ');
+
+        for(let i = 0; i < nodes.length; i++){
+            res.push(nodes[i].split("_"));
+        }
     }
 
-    return nodes;
+    return res;
 }
 
 function getGraphEdges(graph : string, file : string){
@@ -314,23 +335,66 @@ function getSrcNodesMap(file : string){
         }
 
         srcNodeMap[node] = "C_" + line + "_" + col;
+        if(node.endsWith("%1")){
+            srcNodeMap[node.substring(0, node.length - 2) + "%0"] = "C_" + line + "_" + col;
+        }
         idx += 4;
     }
     return srcNodeMap;
 }
 
+function getDstNodesMapFromFile(file: string){
+    let dstNodeMap :{ [id: string] : string; }  = {};
+
+    let fileLines = file.split('\n');
+    let idx = fileLines.indexOf("=PC_to_line_and_column:") + 1;
+
+    idx = fileLines.slice(idx+1).indexOf("=PC_to_line_and_column:") + idx + 1 + 1;
+
+    let end = fileLines.slice(idx).indexOf("=PC_to_line_and_column done") + idx;
+
+    if(idx === -1 || end === -1){
+        return null;
+    }
+
+    while(idx < end){
+        let node = fileLines[idx + 1];
+        let rc = fileLines[idx + 3].substring(1, fileLines[idx + 3].length - 1).split(" ");
+        let line = parseInt(rc[1], 10);
+        let col = 0;
+        if(rc.length >= 4){
+            col = parseInt(rc[4], 10);
+        }
+        else{
+            col = 1;
+        }
+
+        dstNodeMap[node] = "C_" + line + "_" + col;
+        if(node.endsWith("%1")){
+            dstNodeMap[node.substring(0, node.length - 2) + "%0"] = "C_" + line + "_" + col;
+        }
+        idx += 4;
+    }
+    console.log(dstNodeMap);
+    return dstNodeMap;
+}
+
 function getDstNodesMap(nodesSet : Set<string>){
     let dstNodeMap : {[id : string] : string}= {};
+
+
 
     for(let node of nodesSet){
         let line = parseInt(node.substring(1).split("%")[0]);
         dstNodeMap[node] = "A_" + line;
+        // if(node.endsWith("%1")){
+        //     dstNodeMap[node.substring(0, node.length - 2) + "%0"] = "A_" + line;
+        // }
     }
-
     return dstNodeMap;
 }
 
-function formatProductGraphEdges(productGraph : any, srcGraphNodesMap : any){
+function formatProductGraphEdges(productGraph : any, srcGraphNodesMap : any, dstGraphNodesMap : any){
     // Formats the correlated path string in edges
     // Formats all nodes in product graph
     // Also returns the set of node in the dst graph
@@ -345,19 +409,32 @@ function formatProductGraphEdges(productGraph : any, srcGraphNodesMap : any){
         // console.log(edge);
         let path1 = edge["path1"];
         let path2 = edge["path2"];
+
+        // console.log(path1);
+        // console.log(path2);
         
         let res1 = simplifyPathString(path1);
+        // console.log("Path 1 simplified", res1);
         let res2 = simplifyPathString(path2);
+        // console.log("Path 2 simplified", res2);
 
+        let root1 = pathNode.createPathNodeTree(res1.path, null);
+        let root2 = pathNode.createPathNodeTree(res2.path, null);
 
-        edge["path1"] = res1.path;
-        edge["path2"] = res2.path;
+        edge["path1"] = pathNode.getSimplifiedPath(root1);
+        // console.log("Path 1 simplified By PathNode");
+        edge["path2"] = pathNode.getSimplifiedPath(root2);
+        // console.log("Path 2 simplified By PathNode");
 
         res2.nodes.forEach((node) => {dstGraphNodesSet.add(node);});
+        // console.log("\n");
     }
 
+    // console.log("Edge Siplification Done");
 
-    let dstGraphNodesMap = getDstNodesMap(dstGraphNodesSet);
+    if(dstGraphNodesMap === null){
+        dstGraphNodesMap = getDstNodesMap(dstGraphNodesSet);
+    }
 
     for(let edge of productGraphEdges){
         let path1 = edge["path1"];
@@ -366,19 +443,53 @@ function formatProductGraphEdges(productGraph : any, srcGraphNodesMap : any){
         let res1 = formatPathString(path1, srcGraphNodesMap);
         let res2 = formatPathString(path2, dstGraphNodesMap);
 
+
         edge["path1"] = res1;
         edge["path2"] = res2;
+
     }
 
+    // console.log("Path Formatting Done");
+
     for(let node of productGraphNodes){
-        node[0] = srcGraphNodesMap[node[0]];
-        node[1] = dstGraphNodesMap[node[1]];
+        node[0] = mapNodes(node[0], srcGraphNodesMap);
+        node[1] = mapNodes(node[1], dstGraphNodesMap);
     }
+
+    for(let edge of productGraphEdges){
+        let from = edge["from"].split("_");
+        let to = edge["to"].split("_");
+
+        from = [mapNodes(from[0], srcGraphNodesMap), mapNodes(from[1], dstGraphNodesMap)];
+        to = [mapNodes(to[0], srcGraphNodesMap), mapNodes(to[1], dstGraphNodesMap)];
+
+        edge["from"] = from;
+        edge["to"] = to;
+    }
+
+    // console.log("Node Formatting Done");
 
     productGraph = {"nodes": productGraphNodes, "edges": productGraphEdges};
     let res = {"productGraph": productGraph, "dstGraphNodesMap": dstGraphNodesMap};
 
     return res;
+}
+
+function mapNodes(node:string, nodeMap:any){
+    let newNodeName = "";
+    if(node.startsWith("L0")){
+        newNodeName = "start";
+    }
+    else if(node.startsWith("E")){
+        newNodeName = "End";
+    }
+    else if(!isNaN(parseInt(node))){
+        newNodeName = node;
+    }
+    else{
+        newNodeName = nodeMap[node];
+    }
+    return newNodeName;
 }
 
 function simplifyPathString(path : string){
@@ -480,23 +591,39 @@ function formatPathString(path : string, nodeMap : any){
         }
 
         let node = res.node;
-        let nodeIdx = res.nodeIdx;
+        let nodeIdx = idx + res.idx;
         let nodeLen = node.length;
 
         let newNodeName = "";
         if(node.startsWith("L0")){
             newNodeName = "start";
         }
-        else if(node.startsWith("L")){
+        else if(node.startsWith("E")){
             newNodeName = "End";
         }
-        else if(node.endsWith("%0")){
-            newNodeName = "Z" + nodeMap[node.substring(0, node.length - 2) + "%1"];
+        else if(!isNaN(node)){
+            newNodeName = node;
         }
         else{
             newNodeName = nodeMap[node];
         }
+
+        if(newNodeName === undefined){
+            newNodeName = "";
+            newPath += path.substring(idx, nodeIdx);
+
+            idx = nodeIdx + nodeLen;
+            if(newPath[newPath.length - 1] === "-"){
+                newPath = newPath.substring(0, newPath.length - 1);
+            }
+            else if(newPath[newPath.length - 1] === "(" && path[idx] === "-"){
+                idx ++;
+            }
+            continue;
+        }
+
         newPath += path.substring(idx, nodeIdx) + newNodeName;
+
         idx = nodeIdx + nodeLen;
     }
 
@@ -598,7 +725,11 @@ function applicableNode(node : string){
         num = node[idx] + num;
         idx--;
     }
-    return notClonedNode(node) && (parseInt(num, 10) === 1 || parseInt(num, 10) === 0);
+    return notEpsilon(node) &&  notClonedNode(node) && (parseInt(num, 10) === 1 || parseInt(num, 10) === 0);
+}
+
+function notEpsilon(path : string){
+    return path !== "epsilon";
 }
 
 function getNextNode(path : string): any{

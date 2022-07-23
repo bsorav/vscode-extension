@@ -3,6 +3,8 @@
     PRODUCT CFG 
 */
 
+import { highlightPathInGraph, deHighlightGraph} from "./utils.js";
+
 const dst_cfg = {
     "nodes" : 
         ["D_37_1", "D_49_5", "D_106_5", "D_107_5"],
@@ -35,128 +37,104 @@ const dst_cfg = {
         ]
 };
 
-import { Canvas } from "./canvas.js";
-import { Node, Edge, instantiateNodes, deHighlight} from "./graphics.js";
-import { highlightPathInGraph } from "./utils.js";
-
-
-var num_nodes = dst_cfg["nodes"].length;
-var edges = dst_cfg["edges"];
-var nodes = dst_cfg["nodes"];
-
-
-var node_to_key = {};
-var nodes_names = {};
-var adj_lis = new Array(num_nodes);
-
-var key = 0;
-
-for (let i = 0; i < adj_lis.length; i++) {
-    adj_lis[i] = [];
-    
+function initializeContainer(){
+    let container = document.getElementById('cfg');
+    container.style.width = window.innerWidth + 'px';
+    container.style.height = window.innerHeight + 'px';
 }
 
-nodes.forEach(element => {
-    node_to_key[element] = key;
-    key++;
-});
+function drawNetwork(cfg) {
 
+    var nodeMap = {};
+    var idx = 0;
+    cfg["nodes"].forEach(element => {
+        nodeMap[element] = idx;
+        idx++;
+    });
 
-edges.forEach(element => {
-    adj_lis[node_to_key[element["from"]]].push(node_to_key[element["to"]]); 
-});
+    var nodes = new vis.DataSet(cfg["nodes"].map(function(node, idx) {return {id:idx, label:node};}));
+    var edges = new vis.DataSet(cfg["edges"].map(function(edge) {return {from:nodeMap[edge.from], to:nodeMap[edge.to], label:"Conditon: " + edge.condition + '\n' + "TF: " + edge.statement};}));
 
-
-var nodes_obj = instantiateNodes(num_nodes, adj_lis);
-for (let i = 0; i < nodes_obj.length; i++) {
-    const element = nodes_obj[i];
-    element.name = nodes[i];
-    nodes_names[element.name] = element;
-};
-
-var edges_obj = new Array(edges.length);
-var node_to_edge = {};
-
-var canvas = document.getElementById('canvas');
-const CANVAS_WIDTH = canvas.width;
-const CANVAS_HEIGHT = canvas.height;
-var ctx = canvas.getContext('2d');
-
-var canvas_obj = new Canvas(canvas, ctx, nodes_obj, null);
-
-canvas = canvas.getContext('2d');
-
-var from, to;
-
-for (let i = 0; i < edges.length; i++) {
-    const element = edges[i];
-    from = nodes_obj[node_to_key[element["from"]]];
-    to = nodes_obj[node_to_key[element["to"]]];
-    edges_obj[i] = new Edge(from, to, "Cond: " + element["condition"], "TF: " + element["statement"], canvas);
-
-    node_to_edge[element["from"] + "," + element["to"]] = edges_obj[i];
-}
-
-
-canvas_obj.edges = edges_obj;
-
-// Marking the back edges
-
-var queue = [0];
-var visited = new Array(num_nodes).fill(0);
-
-while(queue.length !== 0)
-{
-    var node = queue.shift();
-
-    visited[node] = 1;
-
-    for (let i = 0; i < adj_lis[node].length; i++) {
-        const element = adj_lis[node][i];
-        
-        if (visited[element])
-        {
-            var from = nodes_obj[node];
-            var to = nodes_obj[element];
-            if (from.pos[1] >= to.pos[1])
-            {
-                node_to_edge[from.name + "," + to.name].back_edge = true;
+    var network = new vis.Network(document.getElementById('cfg'), {
+        nodes: nodes,
+        edges: edges
+    }, {
+        nodes: {
+            shape: 'ellipse',
+            scaling: {
+                label: {
+                    enabled: true
+                }
             }
-            continue;
+        },
+        edges: {
+            arrows: {
+                to: {
+                    enabled: true,
+                },
+            },
+            smooth: {
+                enabled: true,
+                type: "continuous",
+                roundness: 0.5,
+                forceDirection: "vertical"
+            },
+            font: {
+                align: 'horizontal',
+            },
+        },
+        layout: {
+            improvedLayout: true,
+            hierarchical: {
+                direction: "UD",
+                enabled: true,
+                levelSeparation: 300,
+                nodeSpacing: 200,
+                shakeTowards: "leaves"
+            }
+        },
+        physics: {
+            enabled: false,
         }
+    });
 
-        queue.push(element);
-    }
+    var edgeMap = {};
+    edges = network.body.data.edges.get().map(function(edge) {edgeMap[edge.from + "," + edge.to] = edge.id; return edge.from + "," + edge.to;});
+    var s = new Set([]);
+    
+    edges.forEach(function(edge) {
+        var nodes = edge.split(",");
+        var rev = [nodes[1], nodes[0]].join(",");
+
+        if(!s.has(rev) && !s.has(edge)){
+            s.add(rev);
+            s.add(edge);
+            network.body.data.edges.update({id:edgeMap[rev], smooth: {enabled: true, type: "curvedCW", roundness: 0.5, forceDirection: "vertical"}});
+        }
+    });
+    return {network:network, nodeMap:nodeMap};
 }
 
-canvas_obj.draw();
+initializeContainer();
+var res = drawNetwork(dst_cfg);
 
-window.addEventListener('message', event => {
+var network = res.network;
+var nodeMap = res.nodeMap;
 
-    const message = event.data; // The JSON data our extension sent
+window.addEventListener('message', function(event) {
+    let message = event.data;
+    let edgeMap = {};
+    let edges = network.body.data.edges.get().map(function(edge) {edgeMap[edge.from + "," + edge.to] = edge.id; return edge;});
+
 
     switch (message.command) {
         case "highlight":
-            highlightPathInGraph(message.path, nodes_names, node_to_edge);
+            highlightPathInGraph(message.path, dst_cfg.nodes, edgeMap, nodeMap, network);
             break;
         case "clear":
-            deHighlight(nodes_obj, edges_obj);
-            canvas_obj.draw();
+            deHighlightGraph(network);
             break;
         default:
             break;
     }
-
 });
-
-let zoomInButton = document.getElementById("zoomin");
-let zoomOutButton = document.getElementById("zoomout");
-
-
-zoomInButton.onclick = function () {
-    canvas_obj.zoomCustom(0.1);
-};
-
-zoomOutButton.onclick = function () {
-    canvas_obj.zoomCustom(-0.1);
-};

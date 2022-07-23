@@ -40,56 +40,88 @@ export function parseDOTString(fileString)
     return {nodes:done, edges:edges};
 }
 
-export function highlightPathInGraph(path, nodes, edges) {
+export function highlightPathInGraph(path, nodes, edgeMap, nodeMap, network) {
 
-    var canvas = document.getElementById("canvas");
-    var ctx = canvas.getContext('2d');
+    // var canvas = document.getElementById("canvas");
+    // var ctx = canvas.getContext('2d');
 
     EDGES = [];
     NODES = [];
 
     recPath([], path, 1, false);
 
-    let colorEdges = "rgb(52, 58, 235, 0.8)";
+    // console.log(EDGES);
+
+    let colorEdges = "rgb(255, 0, 0)";
+    let edgeIds = [];
 
     for (var i = 0; i < EDGES.length; i++) {
-        var element = EDGES[i];
-        if (edges[element[0] + "," + element[1]].highlighted) { continue; }
+        let edge = EDGES[i];
+        let from = nodeMap[edge[0]];
+        let to = nodeMap[edge[1]];
+        let dashed = edge[2];
 
-        if(element[2]){
-            ctx.setLineDash([2, 2]);
+        // console.log(edge, from , to);
+
+        let edgeIdInNetwork = edgeMap[from + "," + to];
+        edgeIds.push(edgeIdInNetwork);
+
+        if(dashed){
+            network.body.data.edges.update({id: edgeIdInNetwork, color: {highlight: colorEdges}, dashes: true});
         }
-
-        edges[element[0] + "," + element[1]].highlight(colorEdges);
-        edges[element[0] + "," + element[1]].highlighted = true;
-        ctx.setLineDash([]);
+        else{
+            network.body.data.edges.update({id: edgeIdInNetwork, color: {highlight: colorEdges}, dashes: false});
+        }
     }
-
+    
+    var nodeIds = new Set([]);
+    
     for(var i = 0; i < NODES.length; i++) {
         var element = NODES[i];
-        if (nodes[element[0]].highlighted) { continue; }
+        var nodeName = element[0];
+        var unroll = element[1];
+        var nodeId = nodeMap[nodeName];
+        
+        nodeIds.add(nodeId);
+        
         let colorNodes = "rgb(255, 0, 0)";
         if(element[1] > 1){
             colorNodes = "rgb(252, 3, 219)";
         }
-        nodes[element[0]].highlight(colorNodes);
-        nodes[element[0]].highlighted = true;
 
-        let r = Node.RADIUS;
-        let x1 = nodes[element[0]].pos[0];
-        let y1 = nodes[element[0]].pos[1];
-        if(element[1] > 1){
-            let x = x1 + 2*r*Math.cos(Math.PI/4);
-            let y = y1 - 2*r*Math.sin(Math.PI/4); 
-            ctx.lineWidth = 1;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            drawArc(ctx, x, y, 10, 0, 3*Math.PI/2, false, colorNodes, []);
-            drawArrowHead(ctx, x, y-10, 0, colorNodes);
-            drawText(ctx, x, y, "" + element[1], colorNodes);
-        }
+        network.body.data.nodes.update({id: nodeId, color: {highlight: {border: colorNodes}}});
+
+        // Draw Unroll factor on canvas
+        
+
     }
 
+    nodeIds = Array.from(nodeIds);
+
+    network.setSelection({nodes:nodeIds, edges:edgeIds}, {
+        unselectAll: false,
+    });
+
+    network.redraw();
+}
+
+export function deHighlightGraph(network){
+    
+    let nodeIds = network.getSelectedNodes();
+    let edgeIds = network.getSelectedEdges();
+
+    for(var i = 0; i < nodeIds.length; i++){
+        let nodeId = nodeIds[i];
+        network.body.data.nodes.update({id: nodeId, color: null});
+    }
+
+    for(var i = 0; i < edgeIds.length; i++){
+        let edgeId = edgeIds[i];
+        network.body.data.edges.update({id: edgeId, color: null, dashes: false});
+    }
+
+    network.unselectAll();
+    network.redraw();
 }
 
 export function highlightPathInCode(canvas, ctx, code, path){

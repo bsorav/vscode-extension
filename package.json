@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "p5": "^1.4.1",
-    "prismjs": "^1.28.0"
+    "prismjs": "^1.28.0",
+    "vis-network": "^9.1.2"
   }
 }

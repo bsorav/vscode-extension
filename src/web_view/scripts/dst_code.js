@@ -1,4 +1,5 @@
 import { highlightPathInCode, clearCanvas} from "./utils.js";
+/*
 
 var code = 
 `i386.s
@@ -1469,53 +1470,41 @@ s441:
 .section	.note.GNU-stack,"",@progbits
 
 `; 
+*/
 
 
-// window.addEventListener('message', async event => {
-//     const messgae = event.data;
-//     code = messgae.code;
-//     // console.log(prod_cfg);
-// });
+var code = null;
 
-
-// async function waitForMessage(){
-//     // console.log(prod_cfg);
-//     while(code === null){
-//         await new Promise(r => window.setTimeout(r, 100));
-//     }
-// }
-
-// await waitForMessage();
-
-
-let codeEl = document.getElementById("code");
-codeEl.innerHTML = code;
+var codeEl = document.getElementById("code");
+codeEl.innerHTML = "";
 codeEl.style.fontSize = "16px";
 
 let preEl = document.getElementById("pre-code");
-preEl.classList.add("line-numbers");
 preEl.style.minWidth = "100%";
 
-await new Promise(r => setTimeout(r, 100));
 
-codeEl = document.getElementById("code");;
-let rect = codeEl.getBoundingClientRect();
-// console.log(rect);
+function setupCanvas(){
+    codeEl = document.getElementById("code");;
+    let rect = codeEl.getBoundingClientRect();
+    
+    // Initialize Canvas
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    
+    canvas.height =  rect.height;
+    canvas.width = rect.width;
+    canvas.style.left = rect.left + "px";
+    canvas.style.top = rect.top + "px";
+}
 
-// // // Initialize Canvas
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-
-canvas.height =  rect.height;
-canvas.width = rect.width;
-canvas.style.left = rect.left + "px";
-canvas.style.top = rect.top + "px";
 
 
-// highlightPathInCode(canvas, ctx, codeEl, "((C_4_20-C_6_13-C_4_20)+(C_4_20-C_10_13-C_4_20))^4-C_13_1");
-
+// Event listener for message from product graph webview
 window.addEventListener('message', event => {
     const message = event.data; // The JSON data our extension sent
+
+	var canvas = document.getElementById("canvas");
+	var ctx = canvas.getContext("2d");
 
     switch (message.command) {
         case "highlight":
@@ -1524,6 +1513,11 @@ window.addEventListener('message', event => {
         case "clear":
             clearCanvas(canvas, ctx);
             break;
+        case "data":
+            code = message.code;
+            codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+            setupCanvas();
+			break;
         default:
             break;
     }

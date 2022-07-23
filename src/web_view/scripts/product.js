@@ -45,195 +45,157 @@
 //     ]
 // };;
 
-const prod_cfg = {
-    "nodes" : 
-        [["S_3_1","D_37_1"], ["S_4_20","D_49_5"], ["S_13_1","D_107_5"]],
-    "edges" : 
-        [
-            {
-                "from" : ["S_3_1","D_37_1"],
-                "to" : ["S_4_20","D_49_5"],
-                "path1" : "S_3_1-S_4_20",
-                "path2" : "D_37_1-D_49_5",
-            },
-            {
-                "from" : ["S_4_20","D_49_5"],
-                "to" : ["S_4_20","D_49_5"],
-                "path1" : "((S_4_20-S_6_13-S_4_20)+(S_4_20-S_8_13-S_4_20)+(S_4_20-S_10_13-S_4_20))^4",
-                "path2" : "D_49_5-D_106_5-D_49_5",
-            },
-            {
-                "from" : ["S_4_20","D_49_5"],
-                "to" : ["S_13_1","D_107_5"],
-                "path1" : "((S_4_20-S_6_13-S_4_20)+(S_4_20-S_8_13-S_4_20)+(S_4_20-S_10_13-S_4_20))^4-S_13_1",
-                "path2" : "D_49_5-D_106_5-D_107_5",
-            }
-        ]
-};
+// import {Network} from '../../../node_modules/vis-network/standalone/umd/vis-network.min.js';
 
-// window.addEventListener('message', async event => {
-//     const messgae = event.data;
-//     prod_cfg = messgae;
-//     console.log(prod_cfg);
-// });
+var vscode = acquireVsCodeApi();
 
+// const prod_cfg = {
+//     "nodes" : 
+//         [["S_3_1","D_37_1"], ["S_4_20","D_49_5"], ["S_13_1","D_107_5"]],
+//     "edges" : 
+//         [
+//             {
+//                 "from" : ["S_3_1","D_37_1"],
+//                 "to" : ["S_4_20","D_49_5"],
+//                 "path1" : "S_3_1-S_4_20",
+//                 "path2" : "D_37_1-D_49_5",
+//             },
+//             {
+//                 "from" : ["S_4_20","D_49_5"],
+//                 "to" : ["S_4_20","D_49_5"],
+//                 "path1" : "((S_4_20-S_6_13-S_4_20)+(S_4_20-S_8_13-S_4_20)+(S_4_20-S_10_13-S_4_20))^4",
+//                 "path2" : "D_49_5-D_106_5-D_49_5",
+//             },
+//             {
+//                 "from" : ["S_4_20","D_49_5"],
+//                 "to" : ["S_13_1","D_107_5"],
+//                 "path1" : "((S_4_20-S_6_13-S_4_20)+(S_4_20-S_8_13-S_4_20)+(S_4_20-S_10_13-S_4_20))^4-S_13_1",
+//                 "path2" : "D_49_5-D_106_5-D_107_5",
+//             }
+//         ]
+// };
 
-// async function waitForMessage(){
-//     // console.log(prod_cfg);
-//     while(prod_cfg === null){
-//         await new Promise(r => window.setTimeout(r, 100));
-//     }
-// }
+var prod_cfg = null;
 
-// await waitForMessage();
-
-
-const vscode = acquireVsCodeApi();
-
-await vscode.onR
-
-import { Node, Edge, instantiateNodes} from "./graphics.js";
-import {Canvas} from "./canvas.js";
-
-
-var num_nodes = prod_cfg["nodes"].length;
-var edges = prod_cfg["edges"];
-var nodes = prod_cfg["nodes"];
-
-
-var node_to_key = {};
-var adj_lis = new Array(num_nodes);
-
-var key = 0;
-
-for (let i = 0; i < adj_lis.length; i++) {
-    adj_lis[i] = [];
-    
-}
-
-nodes.forEach(element => {
-    node_to_key[element] = key;
-    key++;
+window.addEventListener('message', async event => {
+    const messgae = event.data;
+    prod_cfg = messgae;
+    console.log(prod_cfg);
 });
 
 
-edges.forEach(element => {
-    adj_lis[node_to_key[element["from"]]].push(node_to_key[element["to"]]); 
-});
-
-
-
-
-var nodes_obj = instantiateNodes(num_nodes, adj_lis);
-for (let i = 0; i < nodes_obj.length; i++) {
-    const element = nodes_obj[i];
-    element.name = nodes[i];
-};
-
-
-var edges_obj = new Array(edges.length);
-var node_to_edge = {};
-
-var canvas = document.getElementById('canvas');
-var ctx = canvas.getContext('2d');;
-var canvas_obj = new Canvas(canvas, ctx, nodes_obj, null);
-canvas = canvas.getContext('2d');
-
-var from, to;
-
-for (let i = 0; i < edges.length; i++) {
-    const element = edges[i];
-    from = nodes_obj[node_to_key[element["from"]]];
-    to = nodes_obj[node_to_key[element["to"]]];
-    edges_obj[i] = new Edge(from, to, element["path1"], element["path2"], canvas);
-    
-    node_to_edge[element["from"] + "," + element["to"]] = edges_obj[i];
-}
-
-canvas_obj.edges = edges_obj;
-
-// Marking the back edges
-
-var queue = [0];
-var visited = new Array(num_nodes).fill(0);
-
-while(queue.length !== 0)
-{
-    var node = queue.shift();
-
-    visited[node] = 1;
-    
-    for (let i = 0; i < adj_lis[node].length; i++) {
-        const element = adj_lis[node][i];
-        
-        if (visited[element])
-        {
-            var from = nodes_obj[node];
-            var to = nodes_obj[element];
-            if (from.pos[1] >= to.pos[1])
-            {
-                node_to_edge[from.name + "," + to.name].back_edge = true;
-            }
-            continue;
-        }
-        
-        queue.push(element);
+async function waitForMessage(){
+    // console.log(prod_cfg);
+    while(prod_cfg === null){
+        await new Promise(r => window.setTimeout(r, 100));
     }
 }
 
-
-canvas_obj.draw();
-
-// Event Listeners
-
-window.addEventListener('mousemove', e => {
-    for (let i = 0; i < edges_obj.length; i++) {
-        const element = edges_obj[i];
-
-        const rect = canvas_obj.canvas.getBoundingClientRect();
-
-        var vx = (e.clientX - canvas_obj.ox - rect.left)/canvas_obj.scale;
-        var vy = (e.clientY - canvas_obj.oy - rect.top)/canvas_obj.scale;
+await waitForMessage();
 
 
-        if (element.hovering(vx, vy, canvas_obj.scale))
-        {
-            if(element.hovered)
-            {
-                continue;
+function initializeContainer(){
+    let container = document.getElementById('cfg');
+    container.style.width = window.innerWidth + 'px';
+    container.style.height = window.innerHeight + 'px';
+}
+
+function drawNetwork(cfg) {
+
+    var nodeMap = {};
+    var idx = 0;
+    cfg["nodes"].forEach(element => {
+        nodeMap[element] = idx;
+        idx++;
+    });
+
+    var nodes = new vis.DataSet(cfg["nodes"].map(function(node, idx) {return {id:idx, label:node[0] + "," + node[1]};}));
+    var edges = new vis.DataSet(cfg["edges"].map(function(edge) {return {from:nodeMap[edge.from], to:nodeMap[edge.to], label:edge.path1 + '\n' +edge.path2};}));
+
+    var network = new vis.Network(document.getElementById('cfg'), {
+        nodes: nodes,
+        edges: edges
+    }, {
+        nodes: {
+            shape: 'ellipse',
+            scaling: {
+                label: {
+                    enabled: true
+                }
             }
-            vscode.postMessage({
-                command:"highlight",
-                from:element.from.name,
-                to:element.to.name,
-                path1:element.line1,
-                path2:element.line2
-            });
-
-            element.hovered = true;
-        }
-        else{
-            if(element.hovered)
-            {
-                vscode.postMessage({
-                    command:"clear",
-                });
+        },
+        edges: {
+            arrows: {
+                to: {
+                    enabled: true,
+                },
+            },
+            smooth: {
+                enabled: true,
+                type: "continuous",
+                roundness: 0.5,
+                forceDirection: "vertical"
+            },
+            font: {
+                align: 'horizontal',
+            },
+            chosen: {
+                edge:   function(values, id, selected, hovering) {
+                    if(selected){
+                        values.color = 'rgb(255, 0, 0)';
+                    }
+                  }
+            },
+            width: 3,
+            widthConstraint: {
+                maximum: 300,
             }
-            element.hovered = false;
+        },
+        layout: {
+            hierarchical: {
+                direction: "UD",
+                enabled: true,
+                levelSeparation: 300,
+                nodeSpacing: 200,
+                shakeTowards: "leaves"
+            }
+        },
+        physics: {
+            enabled: false,
+            solver: "hierarchicalRepulsion"
         }
-    }
+    });
+
+    return {network:network, nodeMap:nodeMap};
+}
+
+initializeContainer();
+var res = drawNetwork(prod_cfg);
+
+var network = res.network;
+var nodeMap = res.nodeMap;
+
+network.on('selectEdge', function(properties) {
+    let edgeId = properties.edges[0];
+    let edge = network.body.data.edges.get(edgeId);
+
+    var from = prod_cfg["nodes"][edge.from];
+    var to = prod_cfg["nodes"][edge.to];
+    var path1 = edge.label.split('\n')[0];
+    var path2 = edge.label.split('\n')[1];
+
+    vscode.postMessage({
+        command:"highlight",
+        from: from,
+        to: to,
+        path1: path1,
+        path2: path2
+    });
 });
 
-
-let zoomInButton = document.getElementById("zoomin");
-let zoomOutButton = document.getElementById("zoomout");
-
-
-zoomInButton.onclick = function () {
-    canvas_obj.zoomCustom(0.1);
-};
-
-zoomOutButton.onclick = function () {
-    canvas_obj.zoomCustom(-0.1);
-};
+network.on('deselectEdge', function(properties) {
+    vscode.postMessage({
+        command:"clear"
+    });
+});
 

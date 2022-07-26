@@ -3,8 +3,20 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { readFileSync } from 'fs';
-import {srcCode, dstCode} from './strlen32';
-import { parseProofFile, pathNode, seriesCombinationOfPath, simplifyPathString } from './proof_parser';
+import {srcCode, dstCode, productGraph} from './strlen32';
+import { parseProofFile, pathNode, seriesCombinationOfPath, simplifyPathString, splitMultiControlPath } from './proof_parser';
+
+import * as cp from "child_process";
+
+const execShell = (cmd: string) =>
+    new Promise<string>((resolve, reject) => {
+        cp.exec(cmd, (err, out) => {
+            if (err) {
+                return reject(err);
+            }
+            return resolve(out);
+        });
+    });
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -21,7 +33,12 @@ export function activate(context: vscode.ExtensionContext) {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
 
-
+		// const currentDir = await execShell('cd /home/himanshi/\'Himanshi Ghai\'/CP/ && make');
+		// await execShell('make');
+		// await execShell('cd ' + '/\'Himanshi Ghai\'/CP');
+		// await execShell('make');
+		const items = await execShell('ls');
+		console.log(items);
 		let proof_file_path;
 		await vscode.window.showOpenDialog().then(result => {proof_file_path = result[0].path;});
 
@@ -202,14 +219,6 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 	});
-
-	// let p = simplifyPathString("((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*((Lcloned1.for.cond%1%602212=>Lfor.cond%1%0)*((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*((Lcloned1.for.cond%1%602212=>Lfor.cond%1%0)*((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*((Lcloned1.for.cond%1%602212=>Lfor.cond%1%0)*((Lfor.cond%1%0=>Lcloned1.for.inc%1%602211)*((Lcloned1.for.inc%1%602211=>Lfor.inc%1%1)*((Lfor.inc%1%1=>Lcloned1.for.cond%1%602212)*(Lcloned1.for.cond%1%602212=>Lfor.cond%1%0))))))))))))))))");
-	// console.log(p);
-
-	// let root = pathNode.createPathNodeTree("(a+b)", null);
-
-	// console.log(pathNode.getSimplifiedPath(root));
-	// Code Text
 
 
 	context.subscriptions.push(disposable);

@@ -32,39 +32,44 @@ class pathNode{
             return new pathNode("leaf", parent, "");
         }
 
-        subPaths = splitMultiControlPath("(" + path + ")");
-        // console.log(subPaths);
+        subPaths = splitMultiControlPath(path);
         if(subPaths.length !== 1){
+            // console.log(subPaths);
             newNode = new pathNode("parallel", parent, "");
             let leftPath = subPaths[0];
-            let rightPath = "(";
-            for(let i = 1; i < subPaths.length; i++){
-                rightPath += subPaths[i] + "+";
-            }
-            rightPath = rightPath.substring(0, rightPath.length - 1) + ")";
+            let rightPath = subPaths[1];
+            // let rightPath = "(";
+            // for(let i = 1; i < subPaths.length; i++){
+            //     rightPath += subPaths[i] + "+";
+            // }
+            // rightPath = rightPath.substring(0, rightPath.length - 1) + ")";
 
             newNode.left = pathNode.createPathNodeTree(leftPath, newNode);
             newNode.right = pathNode.createPathNodeTree(rightPath, newNode);
+            return newNode;
         }
 
-        subPaths = splitPath("(" + path + ")");
+        subPaths = splitPath(path);
         if(subPaths.length !== 1){
+            // console.log(subPaths);
             newNode = new pathNode("series", parent, "");
             let leftPath = subPaths[0];
-            let rightPath = "";
-            for(let i = 1; i < subPaths.length; i++){
-                rightPath += subPaths[i] + "-";
-            }
-            rightPath = rightPath.substring(0, rightPath.length - 1);
+            let rightPath = subPaths[1];
+            // for(let i = 1; i < subPaths.length; i++){
+            //     rightPath += subPaths[i] + "*";
+            // }
+            // rightPath = rightPath.substring(0, rightPath.length - 1);
 
             newNode.left = pathNode.createPathNodeTree(leftPath, newNode);
             newNode.right = pathNode.createPathNodeTree(rightPath, newNode);
+            return newNode;
         }
         else{ 
             if(subPaths.length < 1 || subPaths[0] === undefined){
                 newNode = new pathNode("leaf", parent, "");
                 return newNode;
             }
+            // console.log(subPaths[0]);
             newNode = new pathNode("leaf", parent, subPaths[0]);
         }
 
@@ -74,7 +79,7 @@ class pathNode{
     static getSimplifiedPath(root:pathNode) : any{
 
         if(root.type === "leaf"){
-            return root.name;
+            return "(" + root.name + ")";
         }
         else if(root.type === "series"){
             let left = root.left;
@@ -91,7 +96,7 @@ class pathNode{
         else if(root.type === "parallel"){
             let left = root.left;
             let right = root.right;
-            root.name = "(" + pathNode.getSimplifiedPath(left) + ")" + "+" + "(" + pathNode.getSimplifiedPath(right) + ")";
+            root.name = "(" + "(" + pathNode.getSimplifiedPath(left) + ")" + "+" + "(" + pathNode.getSimplifiedPath(right) + ")" + ")";
             root.type = "leaf";
             root.left = null;
             root.right = null;
@@ -109,7 +114,7 @@ function seriesCombinationOfPath(path1 : string, path2 : string){
     let pathArray2 = splitSeriesPathWithUnroll(path2);
 
     // console.log(pathArray1, pathArray2);
-
+    // return ;
     let pathArray = pathArray1.concat(pathArray2);
     let i = pathArray1.length;
     let unroll = 1;
@@ -126,14 +131,17 @@ function seriesCombinationOfPath(path1 : string, path2 : string){
         return combineSuffixPrefix(pathArray1, pathArray2);
     }
 
-    let first = getNextNode(pathArray[i][0]);
+    // let first = getNextNode(pathArray[i][0]);
 
-    let path = first.node;
+    let path = "";
     let j;
     let matched = false;
     for(j = i-1; j >=0; j--){
-        path = pathArray[j][0] + "-" + path;
-        // console.log(path, pathArray[i][0]);
+        path = pathArray[j][0] + "*" + path;
+        if(j === i-1){
+            path = path.substring(0, path.length - 1);
+        }
+        // console.log(path, pathArray[i][0], "\n");
         if(path === pathArray[i][0]){
             unroll++;
             matched = true;
@@ -147,20 +155,20 @@ function seriesCombinationOfPath(path1 : string, path2 : string){
     path = "";
     for(let k = 0; k < j; k++){
         if(pathArray[k][1] > 1){
-            path += "-(" + pathArray[k][0] + ")^" + pathArray[k][1];
+            path += "*(" + pathArray[k][0] + ")^" + pathArray[k][1];
         }
         else{
-            path = path + "-" + pathArray[k][0];
+            path = path + "*" + pathArray[k][0];
         }
     }
-    path += "-(" + temp + ")^" + unroll;
+    path += "*(" + temp + ")^" + unroll;
 
     for(let k = i+1; k < pathArray.length; k++){
         if(pathArray[k][1] > 1){
-            path += "-(" + pathArray[k][0] + ")^" + pathArray[k][1];
+            path += "*(" + pathArray[k][0] + ")^" + pathArray[k][1];
         }
         else{
-            path = path + "-" + pathArray[k][0];
+            path = path + "*" + pathArray[k][0];
         }
     }
 
@@ -172,20 +180,15 @@ function combineSuffixPrefix(pathArray1: any[], pathArray2: any[]){
     let pathArray = pathArray1.concat(pathArray2).map((path) => {return  path[1] === 1 ? path[0] : "(" + path[0] + ")^" + path[1];});
     // console.log(pathArray);
     for(i = 0; i<pathArray.length; i++){
-        for(let j = pathArray.length-1; j > i; j--){
-            let len = j-i;
-            if(len > i) {continue;}
-            // console.log(i, len);
-            let preffix = pathArray.slice(i, j+1).join("-");
-            let suffix = pathArray.slice(i-len, i+1).join("-");
-
-            // console.log(suffix, preffix, len);
+        for(let len = 1; len <= i; len++){
+            let preffix = pathArray.slice(i, i+len).join("*");
+            let suffix = pathArray.slice(i-len, i).join("*");
             if(preffix === suffix){
-                let path = pathArray.slice(0, i-len).join("-") + "-(" + preffix + ")^2-" + pathArray.slice(j+1).join("-");    
-                if(path[0] === "-"){
+                let path = pathArray.slice(0, i-len).join("*") + "*(" + preffix + ")^2*" + pathArray.slice(i+len).join("*");    
+                if(path[0] === "*"){
                     path = path.substring(1);
                 }
-                if(path[path.length-1] === "-"){
+                if(path[path.length-1] === "*"){
                     path = path.substring(0, path.length-1);
                 }
                 return path;
@@ -193,11 +196,11 @@ function combineSuffixPrefix(pathArray1: any[], pathArray2: any[]){
         }
     }
 
-
-    return pathArray.join("-");
+    return pathArray.join("*");
 }
 
 function splitSeriesPathWithUnroll(path : string){
+    // console.log(path);
     let lis: any[] = [];
 
     let len = path.length;
@@ -217,9 +220,9 @@ function splitSeriesPathWithUnroll(path : string){
         }
         p += path[i];
         i++;
-        
-        if(depth === 0 && (i === len || path[i] === "-" || path[i] === "^")){
+        if(depth === 0 && (i === len || path[i] === "*" || path[i] === "^")){
             let unroll = 1;
+            // console.log(p);
             if(path[i] === "^"){
                 let j = i+1;
                 while(j < len && path[j] !== "-"){
@@ -275,8 +278,13 @@ function parseProofFile(file : string){
     if(dstGraphNodesMap === null){
         dstGraphNodesMap = res["dstGraphNodesMap"];
     }
+
+
+    
     return productGraph;
 }
+
+
 
 function getGraphNodes(graph : string, file : string){
     let nodes: any = [];
@@ -288,6 +296,22 @@ function getGraphNodes(graph : string, file : string){
 
         for(let i = 0; i < nodes.length; i++){
             res.push(nodes[i].split("_"));
+        }
+    }
+    else if(graph === "src"){
+        let idx = fileLines.indexOf("=src_tfg") + 4;
+        nodes = fileLines[idx].substring(8).split(' ');
+
+        for(let i = 0; i < nodes.length; i++){
+            res.push(nodes[i]);
+        }
+    }
+    else if(graph === "dst"){
+        let idx = fileLines.indexOf("=dst_tfg") + 4;
+        nodes = fileLines[idx].substring(8).split(' ');
+
+        for(let i = 0; i < nodes.length; i++){
+            res.push(nodes[i]);
         }
     }
 
@@ -310,6 +334,7 @@ function getGraphEdges(graph : string, file : string){
             idx++;
         }
     }
+
 
     return edges;
 }
@@ -334,9 +359,9 @@ function getSrcNodesMap(file : string){
             col = 1;
         }
 
-        srcNodeMap[node] = "C_" + line + "_" + col;
+        srcNodeMap[node] = "S_" + line + "_" + col;
         if(node.endsWith("%1")){
-            srcNodeMap[node.substring(0, node.length - 2) + "%0"] = "C_" + line + "_" + col;
+            srcNodeMap[node.substring(0, node.length - 2) + "%0"] = "S_" + line + "_" + col;
         }
         idx += 4;
     }
@@ -369,13 +394,13 @@ function getDstNodesMapFromFile(file: string){
             col = 1;
         }
 
-        dstNodeMap[node] = "C_" + line + "_" + col;
+        dstNodeMap[node] = "D_" + line + "_" + col;
         if(node.endsWith("%1")){
-            dstNodeMap[node.substring(0, node.length - 2) + "%0"] = "C_" + line + "_" + col;
+            dstNodeMap[node.substring(0, node.length - 2) + "%0"] = "D_" + line + "_" + col;
         }
         idx += 4;
     }
-    console.log(dstNodeMap);
+    // console.log(dstNodeMap);
     return dstNodeMap;
 }
 
@@ -413,18 +438,25 @@ function formatProductGraphEdges(productGraph : any, srcGraphNodesMap : any, dst
         // console.log(path1);
         // console.log(path2);
         
+        
+        let root1 = pathNode.createPathNodeTree(path1, null);
+        let root2 = pathNode.createPathNodeTree(path2, null);
+        
+        path1 = pathNode.getSimplifiedPath(root1);
+        // console.log("Path 1 simplified By PathNode");
+        path2 = pathNode.getSimplifiedPath(root2);
+        // console.log("Path 2 simplified By PathNode");
+
         let res1 = simplifyPathString(path1);
         // console.log("Path 1 simplified", res1);
         let res2 = simplifyPathString(path2);
         // console.log("Path 2 simplified", res2);
 
-        let root1 = pathNode.createPathNodeTree(res1.path, null);
-        let root2 = pathNode.createPathNodeTree(res2.path, null);
+        // console.log(path1);
+        // console.log(res1.path, "\n");
 
-        edge["path1"] = pathNode.getSimplifiedPath(root1);
-        // console.log("Path 1 simplified By PathNode");
-        edge["path2"] = pathNode.getSimplifiedPath(root2);
-        // console.log("Path 2 simplified By PathNode");
+        edge["path1"] = res1.path;
+        edge["path2"] = res2.path;
 
         res2.nodes.forEach((node) => {dstGraphNodesSet.add(node);});
         // console.log("\n");
@@ -481,7 +513,7 @@ function mapNodes(node:string, nodeMap:any){
         newNodeName = "start";
     }
     else if(node.startsWith("E")){
-        newNodeName = "End";
+        newNodeName = "end";
     }
     else if(!isNaN(parseInt(node))){
         newNodeName = node;
@@ -501,6 +533,31 @@ function simplifyPathString(path : string){
 
     let newPath = "";
     let nodesSet = new Set<string>();
+
+    let idx = 0;
+    let depth = 0;
+    let maxDepth = 0;
+    if(path[idx] === "("){
+        while(idx < path.length){
+            if(path[idx] === "("){
+                depth++;
+            }
+            else if(path[idx] === ")"){
+                depth--;
+            }
+
+            maxDepth = Math.max(maxDepth, depth);
+
+            if(depth === 0){
+                break;
+            }
+            idx++;
+        }
+        // console.log(maxDepth, idx);
+        if(idx < path.length-1){
+            path = "(" + path + ")";
+        }
+    }
 
     let subPaths = splitMultiControlPath(path);
 
@@ -522,27 +579,59 @@ function simplifyPathString(path : string){
         return {path: newPath, nodes: nodesSet};
     }
 
-    subPaths = splitPath(path);
+    idx = 0;
+    depth = 0;
+    maxDepth = 0;
+    if(path[idx] === "("){
+        while(idx < path.length){
+            if(path[idx] === "("){
+                depth++;
+            }
+            else if(path[idx] === ")"){
+                depth--;
+            }
 
+            maxDepth = Math.max(maxDepth, depth);
+
+            if(depth === 0){
+                break;
+            }
+            idx++;
+        }
+        // console.log(maxDepth, idx);
+        if(idx === path.length-1 && maxDepth > 1){
+            path = path.substring(1, path.length - 1);
+        }
+    }
+    // console.log(path);
+    subPaths = splitSeriesPathWithUnroll(path);
     if(subPaths.length !== 1){
-        let last = subPaths[subPaths.length - 1];
+        // console.log(subPaths);
+        let last = subPaths[subPaths.length - 1][0];
+        let unroll = subPaths[subPaths.length - 1][1];
 
-        if(splitMultiControlPath(last).length === 1 && splitPath(last).length === 1){
+        if(unroll === 1 && splitMultiControlPath(last).length === 1 && splitSeriesPathWithUnroll(last).length === 1){
             
             let lastNodes = last.substring(1, last.length - 1).split("=>");
 
             // return;
             if(applicableNode(lastNodes[1])){
-                subPaths.push("(" + lastNodes[1] + "=>cloned" + ")");
+                subPaths.push(["(" + lastNodes[1] + "=>cloned" + ")", unroll]);
             }
         }
     }
     if(subPaths.length !== 1){
         // console.log(subPaths);
         for(let i = 0; i < subPaths.length; i++){
-            const subPath = subPaths[i];
+            const subPath = subPaths[i][0];
+            const unroll = subPaths[i][1];
+
             let res = simplifyPathString(subPath);
             
+            if(unroll > 1){
+                res.path += "^" + unroll;
+            }
+
             if(res.path === ""){
                 continue;
             }
@@ -551,6 +640,12 @@ function simplifyPathString(path : string){
             nodesSet = new Set<string>([...nodesSet, ...res.nodes]);
         }
         newPath = newPath.substring(0, newPath.length - 1);
+    }
+    else if(subPaths[0][1] > 1){
+        let res = simplifyPathString(subPaths[0][0]);
+        res.path = "(" + res.path + ")^" + subPaths[0][1];
+        newPath = res.path;
+        nodesSet = new Set<string>([...res.nodes]);
     }
     else{
         // console.log(path);
@@ -571,9 +666,11 @@ function simplifyPathString(path : string){
         }
             
     }
-
+    // console.log(newPath);
     return {path: newPath, nodes: nodesSet};
 }
+
+
 
 function formatPathString(path : string, nodeMap : any){
     // Map nodes in path to nodeMap values
@@ -599,7 +696,7 @@ function formatPathString(path : string, nodeMap : any){
             newNodeName = "start";
         }
         else if(node.startsWith("E")){
-            newNodeName = "End";
+            newNodeName = "end";
         }
         else if(!isNaN(node)){
             newNodeName = node;
@@ -646,7 +743,7 @@ function isBalanced(s : string){
     return depth === 0;
 }
 
-function splitMultiControlPath(path : string){
+export function splitMultiControlPath(path : string){
     // Split the multi control path into multiple paths
     // Returns an array of paths
 
@@ -675,6 +772,9 @@ function splitMultiControlPath(path : string){
             p = "";
             i++;
         }
+    }
+    if(lis.length === 0){
+        lis.push(p);
     }
     return lis;
 }

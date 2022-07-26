@@ -375,16 +375,34 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
     }
 
 
+
     node1 = node1.split("_");
     node2 = node2.split("_");
 
+    
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
-
+    
     let styles = window.getComputedStyle(document.getElementById("code"));
-
+    
     let deltaY = styles.lineHeight.replace("px", "") * 1;
     let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
+    
+    // console.log(node2);
+    if(node1[0] === "start"){
+        node1 = ["start", 1, 1];
+    }
+    else if(node1[0] === "end"){
+        node1 = ["end", canvas.height/deltaY, 1];
+    }
+
+    if(node2[0] === "start"){
+        node2 = ["start", 1, 1];
+    }
+    else if(node2[0] === "end"){
+        node2 = ["end", canvas.height/deltaY, 1];
+    }
+
 
     let x1 = (node1[2]-1) * 1 * deltaX;
     let y1 = node1[1] * 1 * deltaY - deltaY/4;

@@ -110,7 +110,7 @@ function drawNetwork(cfg) {
     });
 
     var nodes = new vis.DataSet(cfg["nodes"].map(function(node, idx) {return {id:idx, label:node[0] + "," + node[1]};}));
-    var edges = new vis.DataSet(cfg["edges"].map(function(edge) {return {from:nodeMap[edge.from], to:nodeMap[edge.to], label:edge.path1 + '\n' +edge.path2};}));
+    var edges = new vis.DataSet(cfg["edges"].map(function(edge) {return {from:nodeMap[edge.from], to:nodeMap[edge.to], label:edge.path1 + '\n\n' +edge.path2};}));
 
     var network = new vis.Network(document.getElementById('cfg'), {
         nodes: nodes,
@@ -157,12 +157,12 @@ function drawNetwork(cfg) {
                 enabled: true,
                 levelSeparation: 300,
                 nodeSpacing: 200,
-                shakeTowards: "leaves"
+                // shakeTowards: "leaves"
             }
         },
         physics: {
             enabled: false,
-            solver: "hierarchicalRepulsion"
+            // solver: "hierarchicalRepulsion"
         }
     });
 
@@ -181,8 +181,8 @@ network.on('selectEdge', function(properties) {
 
     var from = prod_cfg["nodes"][edge.from];
     var to = prod_cfg["nodes"][edge.to];
-    var path1 = edge.label.split('\n')[0];
-    var path2 = edge.label.split('\n')[1];
+    var path1 = edge.label.split('\n\n')[0];
+    var path2 = edge.label.split('\n\n')[1];
 
     vscode.postMessage({
         command:"highlight",

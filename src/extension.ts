@@ -33,12 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
 
-		// const currentDir = await execShell('cd /home/himanshi/\'Himanshi Ghai\'/CP/ && make');
-		// await execShell('make');
-		// await execShell('cd ' + '/\'Himanshi Ghai\'/CP');
-		// await execShell('make');
-		const items = await execShell('ls');
-		console.log(items);
+
 		let proof_file_path;
 		await vscode.window.showOpenDialog().then(result => {proof_file_path = result[0].path;});
 
@@ -150,7 +145,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const dst_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 		
 		onDiskPath_script = vscode.Uri.file(
-			path.join(context.extensionPath, 'node_modules/vis-network/standalone/umd/vis-network.min.js')
+			path.join(context.extensionPath, 'node_modules/vis-network/standalone/umd/vis-network.js')
 		);
 
 		const vis_network = panel_prd.webview.asWebviewUri(onDiskPath_script);

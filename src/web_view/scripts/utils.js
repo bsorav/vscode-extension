@@ -466,7 +466,7 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
         var p = coordAtDist(c1.x, c1.y, m1, loc * (r - dist));
 
         if(y1 === y2){
-            p = {x:c1.x, y:(c1.y - r)};
+            p = {x:c2.x, y:(c2.y - r)};
         }
 
         var ntheta = angleFromXAxis(c2.x, c2.y, p.x, p.y);

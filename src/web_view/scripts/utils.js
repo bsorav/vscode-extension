@@ -403,6 +403,12 @@ function drawEdgeBetweenPoints(node1, node2, dashed){
         node2 = ["end", canvas.height/deltaY, 1];
     }
 
+    if(node1.length === 2){
+        node1.push(2);
+    }
+    if(node2.length === 2){
+        node2.push(2);
+    }
 
     let x1 = (node1[2]-1) * 1 * deltaX;
     let y1 = node1[1] * 1 * deltaY - deltaY/4;

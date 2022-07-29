@@ -3,10 +3,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { readFileSync } from 'fs';
-import {srcCode, dstCode, productGraph} from './strlen32';
-import { parseProofFile, pathNode, seriesCombinationOfPath, simplifyPathString, splitMultiControlPath } from './proof_parser';
+import { newSimplify, parseProofFile, pathNode, seriesCombinationOfPath, simplifyPathString, splitMultiControlPath } from './proof_parser';
 
 import * as cp from "child_process";
+import { Console } from 'console';
 
 const execShell = (cmd: string) =>
     new Promise<string>((resolve, reject) => {
@@ -29,16 +29,25 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('equivalence-checker.visualize', async () => {
+	
+	
+	// PROOF VISUALIZE COMMAND
+	let visualize = vscode.commands.registerCommand('equivalence-checker.visualize', async () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
 
-
-		let proof_file_path;
-		await vscode.window.showOpenDialog().then(result => {proof_file_path = result[0].path;});
+	
+		let proof_file_path = path.join(context.extensionPath, 'eq_check_out/proof.txt');
+		let src_code_path = path.join(context.extensionPath, 'eq_check_out/src.txt');
+		let dst_code_path = path.join(context.extensionPath, 'eq_check_out/dst.txt');
+		// await vscode.window.showOpenDialog().then(result => {proof_file_path = result[0].path;});
 
 		let file = readFileSync(proof_file_path, 'utf8');
 		let parsedResult = parseProofFile(file);
+
+		let src_code = readFileSync(src_code_path, 'utf8');
+
+		let dst_code = readFileSync(dst_code_path, 'utf8');
 
 		console.log(parsedResult);
 		
@@ -52,26 +61,26 @@ export function activate(context: vscode.ExtensionContext) {
 			} // Webview options. More on these later.
 		);
 
-		const panel_src = vscode.window.createWebviewPanel(
-			'srcCFG', // Identifies the type of the webview. Used internally
-			'Source Control Flow Graph', // Title of the panel displayed to the user
-			vscode.ViewColumn.One, // Editor column to show the new webview panel in.
-			{
-				enableScripts: true,
-				retainContextWhenHidden: true,
-			} // Webview options. More on these later.
-		);
+		// const panel_src = vscode.window.createWebviewPanel(
+		// 	'srcCFG', // Identifies the type of the webview. Used internally
+		// 	'Source Control Flow Graph', // Title of the panel displayed to the user
+		// 	vscode.ViewColumn.One, // Editor column to show the new webview panel in.
+		// 	{
+		// 		enableScripts: true,
+		// 		retainContextWhenHidden: true,
+		// 	} // Webview options. More on these later.
+		// );
 
 
-		const panel_dst = vscode.window.createWebviewPanel(
-			'dstCFG', // Identifies the type of the webview. Used internally
-			'Destination Control Flow Graph', // Title of the panel displayed to the user
-			vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
-			{
-				enableScripts: true,
-				retainContextWhenHidden: true,
-			} // Webview options. More on these later.
-		);
+		// const panel_dst = vscode.window.createWebviewPanel(
+		// 	'dstCFG', // Identifies the type of the webview. Used internally
+		// 	'Destination Control Flow Graph', // Title of the panel displayed to the user
+		// 	vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
+		// 	{
+		// 		enableScripts: true,
+		// 		retainContextWhenHidden: true,
+		// 	} // Webview options. More on these later.
+		// );
 		// vscode.comman("workbench.action.editorLayoutTwoRowsRight");
 
 		const panel_src_code = vscode.window.createWebviewPanel(
@@ -104,16 +113,6 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 		const product_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 
-		onDiskPath_script = vscode.Uri.file(
-			path.join(context.extensionPath, 'src/web_view/scripts/source.js')
-		);
-		const source_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
-
-		onDiskPath_script = vscode.Uri.file(
-			path.join(context.extensionPath, 'src/web_view/scripts/assembly.js')
-		);
-		const assembly_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
-
 		const onDiskPath_prism = vscode.Uri.file(
 			path.join(context.extensionPath, 'node_modules/prismjs/prism.js')
 		);
@@ -133,6 +132,12 @@ export function activate(context: vscode.ExtensionContext) {
 			path.join(context.extensionPath, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js')
 		);
 		const prism_ln_script = panel_prd.webview.asWebviewUri(onDiskPath_prism_ln_script);
+		
+		const vis_network_script = vscode.Uri.file(
+			path.join(context.extensionPath, 'node_modules/vis-network/standalone/umd/vis-network.min.js')
+		);
+
+		const vis_network = panel_prd.webview.asWebviewUri(vis_network_script);
 
 		onDiskPath_script = vscode.Uri.file(
 			path.join(context.extensionPath, 'src/web_view/scripts/src_code.js')
@@ -144,44 +149,38 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 		const dst_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
 		
-		onDiskPath_script = vscode.Uri.file(
-			path.join(context.extensionPath, 'node_modules/vis-network/standalone/umd/vis-network.js')
-		);
 
-		const vis_network = panel_prd.webview.asWebviewUri(onDiskPath_script);
-
-		
 		// Set the webview content
 		
 		panel_prd.webview.html = getProductWebviewContent(context.extensionPath, product_script, index_css, vis_network);
-		panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css, vis_network);
-		panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css, vis_network);
+		// panel_src.webview.html = getSourceWebviewContent(context.extensionPath, source_script, index_css, vis_network);
+		// panel_dst.webview.html = getAssemblyWebviewContent(context.extensionPath, assembly_script, index_css, vis_network);
 		
 		
 		panel_src_code.webview.html = getSourceCodeWebviewContent(context.extensionPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
 		panel_dst_code.webview.html = getAssemblyCodeWebviewContent(context.extensionPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
 		// Message passing to src and dst webview
 		
-		panel_prd.webview.postMessage(parsedResult);
-		panel_src_code.webview.postMessage({command: "data", code:srcCode});
-		panel_dst_code.webview.postMessage({command: "data", code:dstCode});
+		panel_prd.webview.postMessage(parsedResult).then((res) => {console.log(res);});
+		panel_src_code.webview.postMessage({command: "data", code:src_code});
+		panel_dst_code.webview.postMessage({command: "data", code:dst_code});
 
 		panel_prd.webview.onDidReceiveMessage(
 			message => {
 				switch (message.command) {
 					case "highlight":
-						panel_src.webview.postMessage({
-							command: "highlight",
-							from: message.from[0],
-							to: message.to[0],
-							path: message.path1
-						});
-						panel_dst.webview.postMessage({
-							command: "highlight",
-							from: message.from[1],
-							to: message.to[1],
-							path: message.path2
-						});
+						// panel_src.webview.postMessage({
+						// 	command: "highlight",
+						// 	from: message.from[0],
+						// 	to: message.to[0],
+						// 	path: message.path1
+						// });
+						// panel_dst.webview.postMessage({
+						// 	command: "highlight",
+						// 	from: message.from[1],
+						// 	to: message.to[1],
+						// 	path: message.path2
+						// });
 						panel_src_code.webview.postMessage({
 							command: "highlight",
 							path: message.path1
@@ -192,12 +191,12 @@ export function activate(context: vscode.ExtensionContext) {
 						});
 						break;
 					case "clear":
-						panel_src.webview.postMessage({
-							command: "clear"
-						});
-						panel_dst.webview.postMessage({
-							command: "clear"
-						});
+						// panel_src.webview.postMessage({
+						// 	command: "clear"
+						// });
+						// panel_dst.webview.postMessage({
+						// 	command: "clear"
+						// });
 						panel_src_code.webview.postMessage({
 							command: "clear"
 						});
@@ -216,7 +215,72 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 
-	context.subscriptions.push(disposable);
+	// EQUIVALENCE CHECK COMMAND
+	let equivalence = vscode.commands.registerCommand('equivalence-checker.equivalence', async () => {
+
+		await execShell('rm ~/equivalence-checker/eq_check_out/*');
+		await execShell('echo > ~/equivalence-checker/eq_check_out/logs.txt');
+
+		// Select src Code
+		let srcCodePath;
+		await vscode.window.showOpenDialog().then(result => {srcCodePath = result[0].path;});
+
+		await execShell('cp ' + srcCodePath + ' ~/equivalence-checker/eq_check_out/');
+		await execShell('cp ' + srcCodePath + ' ~/equivalence-checker/eq_check_out/src.txt')
+
+
+		var openPath = vscode.Uri.parse("file://" + srcCodePath); //A request file path
+		vscode.workspace.openTextDocument(openPath).then(doc => {
+			vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+		});
+
+		var openPath = vscode.Uri.parse(path.join(context.extensionPath, 'eq_check_out/logs.txt')); //A request file path
+		vscode.workspace.openTextDocument(openPath).then(doc => {
+			vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+		});
+
+		let dstCodePath = "";
+		await vscode.window.showOpenDialog().then(result => {dstCodePath = result[0].path;});
+
+		await execShell('cp ' + dstCodePath + ' ~/equivalence-checker/eq_check_out/');
+		// console.log(dstCodePath);
+		if(dstCodePath.endsWith(".s")){
+			let temp = dstCodePath;
+			dstCodePath += ".o.harvest";
+			let dstCodeText = readFileSync(dstCodePath).toString();;
+
+			let idx1 = dstCodeText.indexOf('=iseq\n') + 6;
+			let idx2 = dstCodeText.substring(idx1).indexOf('--') + idx1;
+
+			dstCodeText = dstCodeText.substring(idx1, idx2);
+			await execShell('echo \"' + dstCodeText + '\" > ~/equivalence-checker/eq_check_out/dst.txt');
+			dstCodePath = temp;
+		}
+		else{
+			await execShell('cp ' + dstCodePath + ' ~/equivalence-checker/eq_check_out/dst.txt');
+		}
+
+
+		var openPath = vscode.Uri.parse("file://" + dstCodePath); //A request file path
+		vscode.workspace.openTextDocument(openPath).then(doc => {
+			vscode.window.showTextDocument(doc, vscode.ViewColumn.Three);
+		});
+
+
+		const dir = await execShell('pwd');
+		const res = await execShell('eq32 --unroll-factor 64 ' + srcCodePath + ' ' + dstCodePath + ' --proof ~/equivalence-checker/eq_check_out/proof.txt > ~/equivalence-checker/eq_check_out/logs.txt');
+		
+		var openPath = vscode.Uri.parse(path.join(context.extensionPath, 'eq_check_out/proof.txt')); //A request file path
+		vscode.workspace.openTextDocument(openPath).then(doc => {
+			vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+		});
+		vscode.window.showInformationMessage("Equivalence Proof Generated");
+
+	});
+
+
+	context.subscriptions.push(visualize);
+	context.subscriptions.push(equivalence);
 }
 
 function getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri) {
@@ -258,4 +322,5 @@ function getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri,
 
 // this method is called when your extension is deactivated
 export function deactivate() { }
+
 

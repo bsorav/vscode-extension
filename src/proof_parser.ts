@@ -356,6 +356,8 @@ function getSrcNodesMap(file : string){
             col = parseInt(rc[4], 10);
         }
         else{
+            rc = fileLines[idx + 3].split(" ");
+            line = parseInt(rc[1], 10);
             col = 1;
         }
 
@@ -373,14 +375,15 @@ function getDstNodesMapFromFile(file: string){
 
     let fileLines = file.split('\n');
     let idx = fileLines.indexOf("=PC_to_line_and_column:") + 1;
+    let temp = idx;
+    idx = fileLines.slice(idx+1).indexOf("=PC_to_line_and_column:");
 
-    idx = fileLines.slice(idx+1).indexOf("=PC_to_line_and_column:") + idx + 1 + 1;
-
-    let end = fileLines.slice(idx).indexOf("=PC_to_line_and_column done") + idx;
-
-    if(idx === -1 || end === -1){
+    if(idx === -1){
         return null;
     }
+    idx = idx + temp + 1 + 1;
+    let end = fileLines.slice(idx).indexOf("=PC_to_line_and_column done") + idx;
+
 
     while(idx < end){
         let node = fileLines[idx + 1];
@@ -391,6 +394,8 @@ function getDstNodesMapFromFile(file: string){
             col = parseInt(rc[4], 10);
         }
         else{
+            rc = fileLines[idx + 3].split(" ");
+            line = parseInt(rc[1], 10);
             col = 1;
         }
 
@@ -410,7 +415,7 @@ function getDstNodesMap(nodesSet : Set<string>){
 
 
     for(let node of nodesSet){
-        let line = parseInt(node.substring(1).split("%")[0]);
+        let line = parseInt(node.substring(1).split("%")[0]) + 1;
         dstNodeMap[node] = "A_" + line;
         // if(node.endsWith("%1")){
         //     dstNodeMap[node.substring(0, node.length - 2) + "%0"] = "A_" + line;
@@ -447,10 +452,10 @@ function formatProductGraphEdges(productGraph : any, srcGraphNodesMap : any, dst
         path2 = pathNode.getSimplifiedPath(root2);
         // console.log("Path 2 simplified By PathNode");
 
-        let res1 = simplifyPathString(path1);
-        // console.log("Path 1 simplified", res1);
-        let res2 = simplifyPathString(path2);
-        // console.log("Path 2 simplified", res2);
+        let res1 = newSimplify(path1);
+        console.log("Path 1 simplified", res1);
+        let res2 = newSimplify(path2);
+        console.log("Path 2 simplified", res2);
 
         // console.log(path1);
         // console.log(res1.path, "\n");
@@ -524,6 +529,72 @@ function mapNodes(node:string, nodeMap:any){
     return newNodeName;
 }
 
+export function newSimplify(path:string){
+
+    let nextEdge = getNextEdge(path);
+    let nextIdx = 0;
+    let prevIdx = 0;
+    let newPath = "";
+
+    let nodes = new Set();
+
+    while(nextEdge !== null){
+        // console.log(nextEdge);
+        let edge = nextEdge.edge;
+        let idx = nextEdge.idx + nextIdx;
+        prevIdx = nextIdx;
+        // if(nextEdge != null)
+        nextIdx = idx + edge.length;
+
+        let sp = path.substring(nextIdx);
+
+        nextEdge = getNextEdge(sp);
+
+        if(nextEdge === null){
+            newPath += path.substring(prevIdx, idx);
+            let nn = edge.substring(1, edge.length-1).split('=>');
+            if(applicableNode(nn[0]) && applicableNode(nn[1])){
+                newPath += nn[0] + "*" + nn[1];
+                nodes.add(nn[0]);
+                nodes.add(nn[1]);
+            }
+            else if(applicableNode(nn[0])){
+                newPath += nn[0];
+                nodes.add(nn[0]);
+            }
+            else if(applicableNode(nn[1])){
+                newPath += nn[1];
+                nodes.add(nn[1]);
+            }
+            else{
+                if (newPath[newPath.length-1] === "*"){
+                    newPath = newPath.substring(0, newPath.length-1);
+                }
+            }
+            // console.log(newPath, nextIdx, newPath.length);
+            newPath += sp;
+            // console.log(sp);
+
+        }
+        else{
+            newPath += path.substring(prevIdx, idx);
+
+            let nn = edge.split('=>')[0].substring(1);
+            if(applicableNode(nn)){
+                newPath += nn;
+                nodes.add(nn);
+            }
+            else{
+                if (newPath[newPath.length-1] === "*"){
+                    newPath = newPath.substring(0, newPath.length-1);
+                }
+            }
+        }
+        // console.log(newPath);
+    }
+    return {path:newPath.split('*').join('-'), nodes:nodes};
+}
+/*
 function simplifyPathString(path : string){
     // Simplify the path string to remove unnecessary nodes
     // Convert to required format
@@ -576,7 +647,7 @@ function simplifyPathString(path : string){
         };
         newPath = "(" + newPath.substring(0, newPath.length - 1) + ")";
 
-        return {path: newPath, nodes: nodesSet};
+        return {path: newPath, nodes: nodesSet, multiple:true};
     }
 
     idx = 0;
@@ -622,11 +693,13 @@ function simplifyPathString(path : string){
     }
     if(subPaths.length !== 1){
         // console.log(subPaths);
+
         for(let i = 0; i < subPaths.length; i++){
             const subPath = subPaths[i][0];
             const unroll = subPaths[i][1];
 
             let res = simplifyPathString(subPath);
+
             
             if(unroll > 1){
                 res.path += "^" + unroll;
@@ -670,7 +743,7 @@ function simplifyPathString(path : string){
     return {path: newPath, nodes: nodesSet};
 }
 
-
+*/
 
 function formatPathString(path : string, nodeMap : any){
     // Map nodes in path to nodeMap values
@@ -845,6 +918,20 @@ function getNextNode(path : string): any{
     }
 
     return {node: res[0], idx: res['index'] };
+}
+
+function getNextEdge(path:string): any{
+    if(path === "" || path === null){
+        return null;
+    }
+
+    let res = path.match(/\([a-z0-9%.]+=>[a-z0-9%.]+\)/i);
+
+    if(res === null){
+        return null;
+    }
+
+    return {edge: res[0], idx: res['index'] };
 }
 
 export {parseProofFile, simplifyPathString, seriesCombinationOfPath, pathNode};

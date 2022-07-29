@@ -10,7 +10,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:equivalence-checker.visualize"
+    "onCommand:equivalence-checker.visualize",
+    "onCommand:equivalence-checker.equivalence"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -18,6 +19,10 @@
       {
         "command": "equivalence-checker.visualize",
         "title": "Visualize Proof"
+      },
+      {
+        "command": "equivalence-checker.equivalence",
+        "title": "Check equivalence"
       }
     ]
   },

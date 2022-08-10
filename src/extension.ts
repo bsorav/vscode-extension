@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "equivalence-checker" is now active!');
+	console.log('Congratulations, your extension "vscode-extension for the equivalence checker" is now active!');
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -218,15 +218,15 @@ export function activate(context: vscode.ExtensionContext) {
 	// EQUIVALENCE CHECK COMMAND
 	let equivalence = vscode.commands.registerCommand('equivalence-checker.equivalence', async () => {
 
-		await execShell('rm ~/equivalence-checker/eq_check_out/*');
-		await execShell('echo > ~/equivalence-checker/eq_check_out/logs.txt');
+		await execShell('rm ~/vscode-extension/eq_check_out/*');
+		await execShell('echo > ~/vscode-extension/eq_check_out/logs.txt');
 
 		// Select src Code
 		let srcCodePath;
 		await vscode.window.showOpenDialog().then(result => {srcCodePath = result[0].path;});
 
-		await execShell('cp ' + srcCodePath + ' ~/equivalence-checker/eq_check_out/');
-		await execShell('cp ' + srcCodePath + ' ~/equivalence-checker/eq_check_out/src.txt')
+		await execShell('cp ' + srcCodePath + ' ~/vscode-extension/eq_check_out/');
+		await execShell('cp ' + srcCodePath + ' ~/vscode-extension/eq_check_out/src.txt')
 
 
 		var openPath = vscode.Uri.parse("file://" + srcCodePath); //A request file path
@@ -242,8 +242,18 @@ export function activate(context: vscode.ExtensionContext) {
 		let dstCodePath = "";
 		await vscode.window.showOpenDialog().then(result => {dstCodePath = result[0].path;});
 
-		await execShell('cp ' + dstCodePath + ' ~/equivalence-checker/eq_check_out/');
+		await execShell('cp ' + dstCodePath + ' ~/vscode-extension/eq_check_out/');
 		// console.log(dstCodePath);
+
+		var openPath = vscode.Uri.parse("file://" + dstCodePath); //A request file path
+		vscode.workspace.openTextDocument(openPath).then(doc => {
+			vscode.window.showTextDocument(doc, vscode.ViewColumn.Three);
+		});
+
+
+		const dir = await execShell('pwd');
+		const res = await execShell('eq32 --unroll-factor 64 ' + srcCodePath + ' ' + dstCodePath + ' --proof ~/vscode-extension/eq_check_out/proof.txt > ~/vscode-extension/eq_check_out/logs.txt');
+
 		if(dstCodePath.endsWith(".s")){
 			let temp = dstCodePath;
 			dstCodePath += ".o.harvest";
@@ -253,23 +263,13 @@ export function activate(context: vscode.ExtensionContext) {
 			let idx2 = dstCodeText.substring(idx1).indexOf('--') + idx1;
 
 			dstCodeText = dstCodeText.substring(idx1, idx2);
-			await execShell('echo \"' + dstCodeText + '\" > ~/equivalence-checker/eq_check_out/dst.txt');
+			await execShell('echo \"' + dstCodeText + '\" > ~/vscode-extension/eq_check_out/dst.txt');
 			dstCodePath = temp;
 		}
 		else{
-			await execShell('cp ' + dstCodePath + ' ~/equivalence-checker/eq_check_out/dst.txt');
+			await execShell('cp ' + dstCodePath + ' ~/vscode-extension/eq_check_out/dst.txt');
 		}
 
-
-		var openPath = vscode.Uri.parse("file://" + dstCodePath); //A request file path
-		vscode.workspace.openTextDocument(openPath).then(doc => {
-			vscode.window.showTextDocument(doc, vscode.ViewColumn.Three);
-		});
-
-
-		const dir = await execShell('pwd');
-		const res = await execShell('eq32 --unroll-factor 64 ' + srcCodePath + ' ' + dstCodePath + ' --proof ~/equivalence-checker/eq_check_out/proof.txt > ~/equivalence-checker/eq_check_out/logs.txt');
-		
 		var openPath = vscode.Uri.parse(path.join(context.extensionPath, 'eq_check_out/proof.txt')); //A request file path
 		vscode.workspace.openTextDocument(openPath).then(doc => {
 			vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);

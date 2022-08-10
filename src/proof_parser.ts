@@ -1,4 +1,5 @@
 import { ConsoleReporter } from "@vscode/test-electron";
+import { DebugConsoleMode } from "vscode";
 
 class pathNode{
     left: any;
@@ -259,12 +260,17 @@ function parseProofFile(file : string){
     let dstGraphNodesMap = {};
 
     productGraphNodes = getGraphNodes("product", file);
+    //console.log("productGraphNodes = ");
+    //for (let node of productGraphNodes) {
+    //    console.log(node[0] + ", " + node[1]);
+    //}
+    //console.log(productGraphNodes);
     productGraphEdges = getGraphEdges("product", file);
 
     
     productGraph = {"nodes": productGraphNodes, "edges": productGraphEdges};
-    // console.log("Product Graph Nodes and Edges parsed(wihtout formatting)");
-    // console.log(productGraph);
+    //console.log("Product Graph Nodes and Edges parsed(wihtout formatting)");
+    //console.log(productGraph);
 
 
     srcGraphNodesMap = getSrcNodesMap(file);
@@ -362,11 +368,12 @@ function getSrcNodesMap(file : string){
         }
 
         srcNodeMap[node] = "S_" + line + "_" + col;
-        if(node.endsWith("%1")){
-            srcNodeMap[node.substring(0, node.length - 2) + "%0"] = "S_" + line + "_" + col;
+        if(node.endsWith("%d")){
+            srcNodeMap[node.substring(0, node.length - 2) + "%bbentry"] = "S_" + line + "_" + col;
         }
         idx += 4;
     }
+    //console.log(srcNodeMap);
     return srcNodeMap;
 }
 
@@ -400,12 +407,12 @@ function getDstNodesMapFromFile(file: string){
         }
 
         dstNodeMap[node] = "D_" + line + "_" + col;
-        if(node.endsWith("%1")){
-            dstNodeMap[node.substring(0, node.length - 2) + "%0"] = "D_" + line + "_" + col;
+        if(node.endsWith("%d")){
+            dstNodeMap[node.substring(0, node.length - 2) + "%bbentry"] = "D_" + line + "_" + col;
         }
         idx += 4;
     }
-    // console.log(dstNodeMap);
+    //console.log(dstNodeMap);
     return dstNodeMap;
 }
 
@@ -898,7 +905,7 @@ function applicableNode(node : string){
         num = node[idx] + num;
         idx--;
     }
-    return notEpsilon(node) &&  notClonedNode(node) && (parseInt(num, 10) === 1 || parseInt(num, 10) === 0);
+    return notEpsilon(node) &&  notClonedNode(node) && (num === "d" || num === "bbentry");
 }
 
 function notEpsilon(path : string){

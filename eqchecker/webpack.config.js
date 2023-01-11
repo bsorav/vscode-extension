@@ -31,6 +31,7 @@ const webExtensionConfig = {
 		extensions: ['.ts', '.js'], // support ts-files and js-files
 		alias: {
 			// provides alternate implementation for node module and source files
+			path: require.resolve('path-browserify')
 		},
 		fallback: {
 			// Webpack 5 no longer polyfills Node.js core modules automatically.

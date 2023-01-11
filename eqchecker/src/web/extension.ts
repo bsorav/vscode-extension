@@ -14,11 +14,36 @@ export function activate(context: vscode.ExtensionContext) {
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
-		// The code you place here will be executed every time your command is executed
-		let url = "http://localhost:3000";
-		fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
+		// Get labels of opened files in all groups
+        let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
+	    //console.log("tabs size = ");
+		//console.log(tabs.length);
+		let cSources : (typeof tabs) = [];
+		let asmSources : (typeof tabs) = [];
+		tabs.forEach(function(entry) {
+			//console.log('label = ' + entry.label);
+			//console.log('isActive = ' + entry.isActive);
+			//console.log('isDirty = ' + entry.isDirty);
+			//console.log('isPinned = ' + entry.isPinned);
+			//console.log('isPreview = ' + entry.isPreview);
+			//console.log('groupViewColumn = ' + entry.group.viewColumn);
+			//console.log('\n');
+			if (entry.label.endsWith(".c")) {
+			  cSources.push(entry);
+			} else if (entry.label.endsWith(".s")) {
+	          asmSources.push(entry);
+			}
+			//c_sources.push(tab);
+		});
+		console.log("Printing C sources:");
+		cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
+		console.log("Printing ASM sources:");
+		asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
+	    //console.log(tabs);
+		//let url = "http://localhost:3000";
+		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
 		// Display a message box to the user
-		vscode.window.showInformationMessage("done");
+		//vscode.window.showInformationMessage("hello");
 	});
 
 	context.subscriptions.push(disposable);

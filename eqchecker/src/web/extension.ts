@@ -3,17 +3,17 @@
 import * as vscode from 'vscode';
 //import * as path from 'path'; 
 
-//struct eqcheckMenuEntry {
-//  source1Path: string;
-//  source1Name: string;
-//  source2Path: string;
-//  source2Name: string;
-//  functionName: string;
-//}
+interface eqcheckMenuEntry {
+  source1Uri: string;
+  source1Name: string;
+  source2Uri: string;
+  source2Name: string;
+  functionName: string;
+}
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
@@ -23,13 +23,22 @@ export function activate(context: vscode.ExtensionContext) {
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
+    checkEq();
+  });
+	context.subscriptions.push(disposable);
+}
+// This method is called when your extension is deactivated
+export function deactivate() {}
+
+async function checkEq()
+{
 		// Get labels of opened files in all groups
         let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
 	    //console.log("tabs size = ");
 		//console.log(tabs.length);
 		let cSources : (typeof tabs) = [];
 		let asmSources : (typeof tabs) = [];
-		tabs.forEach(function(entry) {
+		tabs.forEach(async function(entry) {
 			//console.log('label = ' + entry.label);
 			//console.log('isActive = ' + entry.isActive);
 			//console.log('isDirty = ' + entry.isDirty);
@@ -48,45 +57,50 @@ export function activate(context: vscode.ExtensionContext) {
 		cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
 		console.log("Printing ASM sources:");
 		asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
-    //let cSourceNames = cSources.map(getNameForTab);
-    //let asmSourceNames = asmSources.map(getNameForTab);
     let eqcheckPairs = genLikelyEqcheckPairs(cSources, asmSources);
-    let result = showQuickPick(eqcheckPairs);
-    vscode.window.showInformationMessage(`Got: ${result}`);
+    let result = await showEqcheckFileOptions(eqcheckPairs);
+    vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
 	    //console.log(tabs);
 		//let url = "http://localhost:3000";
 		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
 		// Display a message box to the user
 		//vscode.window.showInformationMessage("hello");
-	});
-
-	context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
-
-function getNameForTab(t : vscode.Tab) : string {
-  return t.label;
-}
-
-function genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[])
+function genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[]) : eqcheckMenuEntry[]
 {
-  let ret : string[] = [];
+  let ret : eqcheckMenuEntry[] = [];
   let i = 0;
   cSources.forEach(function (cSource1 : vscode.Tab) {
+    console.log("cSource1Label = " + cSource1.label);
     if (cSource1.input instanceof vscode.TabInputText) {
+      let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
+      console.log("cSource1Uri = " + cSource1Uri);
       asmSources.forEach(function (asmSource) {
+        console.log("asmSourceLabel = " + asmSource.label);
         if (asmSource.input instanceof vscode.TabInputText) {
-          let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
-          ret.push(pr);
+          let asmSourceUri = uri2str((asmSource.input as vscode.TabInputText).uri);
+          console.log("asmSource1Uri = " + asmSourceUri);
+          ret.push({ source1Uri: cSource1Uri,
+                     source1Name: cSource1.label,
+                     source2Uri: asmSourceUri,
+                     source2Name: asmSource.label,
+                     functionName: "*"});
+          //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
+          //ret.push(pr);
         }
       });
       cSources.forEach(function (cSource2) {
         if (cSource2.input instanceof vscode.TabInputText) {
+          let cSource2Uri = uri2str((cSource2.input as vscode.TabInputText).uri);
           if (!(cSource1 === cSource2)) {
-            let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
-            ret.push(pr);
+            ret.push({ source1Uri: cSource1Uri,
+                       source1Name: cSource1.label,
+                       source2Uri: cSource2Uri,
+                       source2Name: cSource2.label,
+                       functionName: "*"});
+            //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
+            //ret.push(pr);
           }
         }
       });
@@ -95,17 +109,37 @@ function genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[
   return ret;
 }
 
+function uri2str(uri : vscode.Uri) : string {
+  return uri.fsPath;
+}
+
 /**
  * Shows a pick list using window.showQuickPick().
  */
-export async function showQuickPick(items : string[]) {
+async function showEqcheckFileOptions(menuItems : eqcheckMenuEntry[]) : Promise<number> {
   let i = 0;
+  console.log("before getQuickPickItems..() call: menuItems length = " + menuItems.length.toString());
+  let items = getQuickPickItemsFromEqcheckMenuEntries(menuItems);
+  console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
   const result = await vscode.window.showQuickPick(items, {
-    placeHolder: items[0],
+    placeHolder: items?.[0],
     //onDidSelectItem: item => window.showInformationMessage(`Focus ${++i}: ${item}`)
   });
+  //console.log("before findIndex call");
   //vscode.window.showInformationMessage(`Got: ${result}`);
-  return result;
+  let resultIndex = items.findIndex(function (v : string, _ : number, o : object) { return (v === result); });
+  //console.log("resultIndex = " + resultIndex.toString());
+
+  return resultIndex;
+}
+
+function getQuickPickItemsFromEqcheckMenuEntries(menuItems : eqcheckMenuEntry[]) : string[] {
+  //console.log("calling menuItems.map(). menuItems.length = " + menuItems.length.toString());
+  let ret = menuItems.map(function (menuItem) {
+              return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
+            });
+  //console.log("returned from menuItems.map(). ret.length = " + ret.length.toString());
+  return ret;
 }
 
 function assertPath(path) {

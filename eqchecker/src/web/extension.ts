@@ -1,7 +1,15 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-//import * as path from 'path';
+//import * as path from 'path'; 
+
+//struct eqcheckMenuEntry {
+//  source1Path: string;
+//  source1Name: string;
+//  source2Path: string;
+//  source2Name: string;
+//  functionName: string;
+//}
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -9,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "eqchecker" is now active in the web extension host!');
+	//console.log('Congratulations, your extension "eqchecker" is now active in the web extension host!');
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -40,6 +48,11 @@ export function activate(context: vscode.ExtensionContext) {
 		cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
 		console.log("Printing ASM sources:");
 		asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
+    //let cSourceNames = cSources.map(getNameForTab);
+    //let asmSourceNames = asmSources.map(getNameForTab);
+    let eqcheckPairs = genLikelyEqcheckPairs(cSources, asmSources);
+    let result = showQuickPick(eqcheckPairs);
+    vscode.window.showInformationMessage(`Got: ${result}`);
 	    //console.log(tabs);
 		//let url = "http://localhost:3000";
 		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
@@ -52,6 +65,48 @@ export function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
+
+function getNameForTab(t : vscode.Tab) : string {
+  return t.label;
+}
+
+function genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[])
+{
+  let ret : string[] = [];
+  let i = 0;
+  cSources.forEach(function (cSource1 : vscode.Tab) {
+    if (cSource1.input instanceof vscode.TabInputText) {
+      asmSources.forEach(function (asmSource) {
+        if (asmSource.input instanceof vscode.TabInputText) {
+          let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
+          ret.push(pr);
+        }
+      });
+      cSources.forEach(function (cSource2) {
+        if (cSource2.input instanceof vscode.TabInputText) {
+          if (!(cSource1 === cSource2)) {
+            let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
+            ret.push(pr);
+          }
+        }
+      });
+    }
+  });
+  return ret;
+}
+
+/**
+ * Shows a pick list using window.showQuickPick().
+ */
+export async function showQuickPick(items : string[]) {
+  let i = 0;
+  const result = await vscode.window.showQuickPick(items, {
+    placeHolder: items[0],
+    //onDidSelectItem: item => window.showInformationMessage(`Focus ${++i}: ${item}`)
+  });
+  //vscode.window.showInformationMessage(`Got: ${result}`);
+  return result;
+}
 
 function assertPath(path) {
   if (typeof path !== 'string') {

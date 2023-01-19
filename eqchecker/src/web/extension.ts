@@ -18,6 +18,21 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	//console.log('Congratulations, your extension "eqchecker" is now active in the web extension host!');
+	//const cprovider = new ColorsViewProvider(context.extensionUri);
+
+	//context.subscriptions.push(
+	//	vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
+
+
+
+  console.log("creating EqcheckViewProvider object\n");
+	const provider = new EqcheckViewProvider(context.extensionUri);
+  console.log("done creating EqcheckViewProvider object\n");
+
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, provider)
+  );
+  console.log("done registering EqcheckViewProvider object\n");
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -26,16 +41,19 @@ export async function activate(context: vscode.ExtensionContext) {
     checkEq();
   });
 	context.subscriptions.push(disposable);
-
-	const provider = new EqcheckViewProvider(context.extensionUri);
-
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, provider));
 }
+
 // This method is called when your extension is deactivated
 export function deactivate() {}
 
-
+function getNonce() {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
 
 async function checkEq()
 {
@@ -157,13 +175,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
-	) { }
+	) {
+    console.log("EqcheckViewProvider constructor called\n");
+  }
 
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
 		context: vscode.WebviewViewResolveContext,
 		_token: vscode.CancellationToken,
 	) {
+    console.log("resolveWebviewView() called\n");
 		this._view = webviewView;
 
 		webviewView.webview.options = {
@@ -181,8 +202,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 			switch (data.type) {
 				case 'eqcheckSelected':
 					{
-            vscode.window.showInformationMessage(`eqcheckSelected received.`);
-						//vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
+            //vscode.window.showInformationMessage(`eqcheckSelected received.`);
+						vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
 						break;
 					}
 			}
@@ -190,6 +211,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public addEqcheck() {
+    console.log("addEqcheck() called\n");
 		if (this._view) {
 			this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
 			this._view.webview.postMessage({ type: 'addEqcheck' });
@@ -197,6 +219,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
+    console.log("_getHtmlForWebview() called\n");
 		// Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 

@@ -12,9 +12,9 @@
 
     updateEqcheckList(eqchecks);
 
-    //document.querySelector('.add-eqcheck-button').addEventListener('click', () => {
-    //    addColor();
-    //});
+    document.querySelector('.add-eqcheck-button').addEventListener('click', () => {
+        addEqcheck();
+    });
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
@@ -25,20 +25,19 @@
                     addEqcheck();
                     break;
                 }
-            //case 'clearColors':
+            //case 'clearEqchecks':
             //    {
-            //        colors = [];
-            //        updateColorList(colors);
+            //        eqchecks = [];
+            //        updateEqcheckList(eqchecks);
             //        break;
             //    }
-
         }
     });
 
     /**
-     * @param {Array<{ value: string }>} colors
+     * @param {Array<{ value: string }>} eqchecks
      */
-    function updateColorList(colors) {
+    function updateEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
         for (const eqcheck of eqchecks) {
@@ -49,9 +48,9 @@
             eqcheckPreview.className = 'eqcheck-preview';
             eqcheckPreview.style.backgroundColor = `#${eqcheck.value}`;
             eqcheckPreview.addEventListener('click', () => {
-                onEqcheckClicked(color.value);
+                onEqcheckClicked(eqcheck.value);
             });
-            li.appendChild(colorPreview);
+            li.appendChild(eqcheckPreview);
 
             const input = document.createElement('input');
             input.className = 'eqcheck-input';
@@ -61,11 +60,11 @@
                 const value = e.target.value;
                 if (!value) {
                     // Treat empty value as delete
-                    colors.splice(colors.indexOf(color), 1);
+                    eqchecks.splice(eqchecks.indexOf(eqcheck), 1);
                 } else {
-                    color.value = value;
+                    eqcheck.value = value;
                 }
-                updateColorList(colors);
+                updateEqcheckList(eqchecks);
             });
             li.appendChild(input);
 
@@ -73,11 +72,11 @@
         }
 
         // Update the saved state
-        vscode.setState({ eqchecks: eqcheck });
+        vscode.setState({ eqchecks : eqchecks });
     }
 
     /** 
-     * @param {string} color 
+     * @param {string} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
         vscode.postMessage({ type: 'eqcheckSelected', value: eqcheck });
@@ -88,13 +87,12 @@
      */
     function getNewCalicoColor() {
         const colors = ['020202', 'f1eeee', 'a85b20', 'daab70', 'efcb99'];
-        //return colors[Math.floor(Math.random() * colors.length)];
-        return colors[0];
+        return colors[Math.floor(Math.random() * colors.length)];
     }
 
-    function addColor() {
-        colors.push({ value: getNewCalicoColor() });
-        updateColorList(colors);
+    function addEqcheck() {
+        eqchecks.push({ value: getNewCalicoColor() });
+        updateEqcheckList(eqchecks);
     }
 }());
 

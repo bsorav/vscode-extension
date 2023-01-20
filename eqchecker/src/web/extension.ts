@@ -250,7 +250,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 			<body>
 				<ul class="eqcheck-list">
 				</ul>
-				<!--<button class="add-eqcheck-button">Add Eqcheck</button>-->
+				<button class="add-eqcheck-button">Add Eqcheck</button>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;

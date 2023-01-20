@@ -2,28 +2,28 @@ body {
 	background-color: transparent;
 }
 
-.color-list {
+.eqcheck-list {
 	list-style: none;
 	padding: 0;
 }
 
-.color-entry {
+.eqcheck-entry {
 	width: 100%;
 	display: flex;
 	margin-bottom: 0.4em;
 	border: 1px solid var(--vscode-input-border);
 }
 
-.color-preview {
+.eqcheck-preview {
 	width: 2em;
 	height: 2em;
 }
 
-.color-preview:hover {
+.eqcheck-preview:hover {
 	outline: inset white;
 }
 
-.color-input {
+.eqcheck-input {
 	display: block;
 	flex: 1;
 	width: 100%;
@@ -33,7 +33,7 @@ body {
 	padding: 0 0.6em;
 }
 
-.add-color-button {
+.add-eqcheck-button {
 	display: block;
 	border: none;
 	margin: 0 auto;

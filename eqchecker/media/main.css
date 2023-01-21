@@ -9,14 +9,15 @@ body {
 
 .eqcheck-entry {
 	width: 100%;
+	font-size: 15px;
+	text-align: center;
 	display: flex;
-	margin-bottom: 0.4em;
 	border: 1px solid var(--vscode-input-border);
 }
 
 .eqcheck-preview {
-	width: 2em;
-	height: 2em;
+	width: 20em;
+	height: 1.4em;
 }
 
 .eqcheck-preview:hover {
@@ -33,7 +34,7 @@ body {
 	padding: 0 0.6em;
 }
 
-.add-eqcheck-button {
+.clear-eqchecks-button {
 	display: block;
 	border: none;
 	margin: 0 auto;

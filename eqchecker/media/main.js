@@ -52,6 +52,9 @@
             eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
                 onEqcheckMouseOver(eqcheck);
             });
+            eqcheckPreview.addEventListener('mouseout', (/*event*/) => {
+                onEqcheckMouseOut(eqcheck);
+            });
             eqcheckPreview.addEventListener('oncontextmenu', () => {
                 onEqcheckRightClick(eqcheck);
             });
@@ -81,6 +84,7 @@
 
             ul.appendChild(li);
         }
+	      document.getElementById('hoverEqcheck').style.display='none';
 
         // Update the saved state
         vscode.setState({ eqchecks : eqchecks });
@@ -91,6 +95,21 @@
      */
     function onEqcheckMouseOver(eqcheck) {
         //do nothing for now. Should display the URIs
+	      document.getElementById('hoverEqcheckSource1Uri').value = eqcheck.source1Uri;
+	      document.getElementById('hoverEqcheckSource2Uri').value = eqcheck.source2Uri;
+	      document.getElementById('hoverEqcheckArrow').style.display = 'inline';
+	      document.getElementById('hoverEqcheckSource1Uri').style.display='inline';
+	      document.getElementById('hoverEqcheckSource2Uri').style.display='inline';
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     */
+    function onEqcheckMouseOut(eqcheck) {
+        //do nothing for now. Should display the URIs
+	      document.getElementById('hoverEqcheckSource1Uri').style.display='none';
+	      document.getElementById('hoverEqcheckSource2Uri').style.display='none';
+	      document.getElementById('hoverEqcheckArrow').style.display = 'none';
     }
 
     /**
@@ -112,6 +131,13 @@
      */
     function onEqcheckClicked(eqcheck) {
         vscode.postMessage({ type: 'eqcheckSelected', value: eqcheck });
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     */
+    function getHoverMessage(eqcheck) {
+      return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
     }
 
     /**

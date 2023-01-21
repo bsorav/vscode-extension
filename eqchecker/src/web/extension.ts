@@ -219,8 +219,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     console.log("addEqcheck() called\n");
 		if (this._view) {
 			this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
-      console.log("Posting message.");
-			this._view.webview.postMessage({ type: 'addEqcheck', source1Uri: entry.source1Uri, source1Name: entry.source1Name, source2Uri: entry.source2Uri, source2Name: entry.source2Name, functionName: entry.functionName, bgColor: this.getNewCalicoColor() });
+      //console.log("Posting message.");
+			this._view.webview.postMessage(
+        { type: 'addEqcheck',
+          source1Uri: entry.source1Uri,
+          source1Name: entry.source1Name,
+          source2Uri: entry.source2Uri,
+          source2Name: entry.source2Name,
+          functionName: entry.functionName,
+          bgColor: this.getNewCalicoColor()
+        }
+      );
 		}
 	}
 
@@ -266,6 +275,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 				<ul class="eqcheck-list">
 				</ul>
 				<button class="clear-eqchecks-button">Clear Eqchecks</button>
+        <output id='hoverEqcheckSource1Uri'></output><br>
+        <output align=center id='hoverEqcheckArrow'>&#x2192</output><br>
+        <output id='hoverEqcheckSource2Uri'></output>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;

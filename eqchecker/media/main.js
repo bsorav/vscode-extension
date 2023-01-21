@@ -116,21 +116,21 @@
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckRightClick(eqcheck) {
-        //do nothing for now.
+        vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckDoubleClick(eqcheck) {
-        //do nothing for now.
+        vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
-        vscode.postMessage({ type: 'eqcheckSelected', value: eqcheck });
+        vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**

@@ -205,7 +205,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.onDidReceiveMessage(data => {
 			switch (data.type) {
-				case 'eqcheckSelected':
+				case 'eqcheckShowProof':
 					{
             //vscode.window.showInformationMessage(`eqcheckSelected received.`);
 						vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));

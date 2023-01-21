@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-//import * as path from 'path'; 
+//import * as path from 'path';
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -23,16 +23,16 @@ export async function activate(context: vscode.ExtensionContext) {
 	//context.subscriptions.push(
 	//	vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
 
+  EqcheckViewProvider.initializeEqcheckViewProvider(context.extensionUri);
 
+  //console.log("creating EqcheckViewProvider object\n");
 
-  console.log("creating EqcheckViewProvider object\n");
-	const provider = new EqcheckViewProvider(context.extensionUri);
-  console.log("done creating EqcheckViewProvider object\n");
+  //console.log("done creating EqcheckViewProvider object\n");
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, provider)
+		vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, EqcheckViewProvider.provider)
   );
-  console.log("done registering EqcheckViewProvider object\n");
+  //console.log("done registering EqcheckViewProvider object\n");
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -85,6 +85,7 @@ async function checkEq()
     let eqcheckPairs = genLikelyEqcheckPairs(cSources, asmSources);
     let result = await showEqcheckFileOptions(eqcheckPairs);
     vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
+    EqcheckViewProvider.provider.addEqcheck();
 	    //console.log(tabs);
 		//let url = "http://localhost:3000";
 		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
@@ -171,12 +172,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 	public static readonly viewType = 'eqchecker.eqcheckView';
 
+  public static provider : EqcheckViewProvider;
+
 	private _view?: vscode.WebviewView;
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
-	) {
-    console.log("EqcheckViewProvider constructor called\n");
+	) { }
+
+  public static initializeEqcheckViewProvider(_extensionUri: vscode.Uri) {
+	  EqcheckViewProvider.provider = new EqcheckViewProvider(_extensionUri);
   }
 
 	public resolveWebviewView(

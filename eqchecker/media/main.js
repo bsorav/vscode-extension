@@ -6,6 +6,7 @@
     const vscode = acquireVsCodeApi();
 
     const oldState = vscode.getState() || { eqchecks: [] };
+    //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     /** @type {Array<{ value: string }>} */
     let eqchecks = oldState.eqchecks;

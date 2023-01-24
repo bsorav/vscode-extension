@@ -66,6 +66,8 @@ function uri2str(uri : vscode.Uri) : string {
 }
 
 class Eqchecker {
+  public static serverURL : string = 'localhost:3000';
+
   public static async checkEq()
   {
   		// Get labels of opened files in all groups
@@ -112,7 +114,7 @@ class Eqchecker {
     const result = await vscode.window.showQuickPick(servers, {
       placeHolder: servers?.[0],
     });
-    return result;
+    Eqchecker.serverURL = result;
   }
 
   private static genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[]) : eqcheckMenuEntry[]

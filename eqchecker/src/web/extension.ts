@@ -291,8 +291,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 				<title>Equivalence Checks</title>
 			</head>
 			<body>
-				<!--<ul class="eqcheck-list">
-				</ul>-->
+				<ul class="eqcheck-list">
+				</ul>
 				<button class="clear-eqchecks-button">Clear Eqchecks</button>
         <output id='hoverEqcheckSource1Uri'></output><br>
         <output align=center id='hoverEqcheckArrow'>&#x2192</output><br>

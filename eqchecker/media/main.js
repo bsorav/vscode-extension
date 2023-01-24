@@ -85,7 +85,9 @@
 
             ul.appendChild(li);
         }
-	      document.getElementById('hoverEqcheck').style.display='none';
+	      document.getElementById('hoverEqcheckSource1Uri').style.display='none';
+	      document.getElementById('hoverEqcheckSource2Uri').style.display='none';
+	      document.getElementById('hoverEqcheckArrow').style.display='none';
 
         // Update the saved state
         vscode.setState({ eqchecks : eqchecks });

@@ -27,6 +27,10 @@
       {
         "command": "eqchecker.checkEq",
         "title": "Check Equivalence"
+      },
+      {
+        "command": "eqchecker.setServer",
+        "title": "Configure Equivalence Server"
       }
     ]
   },

@@ -38,9 +38,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
-    checkEq();
+    Eqchecker.checkEq();
   });
 	context.subscriptions.push(disposable);
+
+	disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
+    Eqchecker.setServer();
+  });
+	context.subscriptions.push(disposable);
+
 }
 
 // This method is called when your extension is deactivated
@@ -55,117 +61,130 @@ function getNonce() {
   return text;
 }
 
-async function checkEq()
-{
-		// Get labels of opened files in all groups
-        let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
-	    //console.log("tabs size = ");
-		//console.log(tabs.length);
-		let cSources : (typeof tabs) = [];
-		let asmSources : (typeof tabs) = [];
-		tabs.forEach(async function(entry) {
-			//console.log('label = ' + entry.label);
-			//console.log('isActive = ' + entry.isActive);
-			//console.log('isDirty = ' + entry.isDirty);
-			//console.log('isPinned = ' + entry.isPinned);
-			//console.log('isPreview = ' + entry.isPreview);
-			//console.log('groupViewColumn = ' + entry.group.viewColumn);
-			//console.log('\n');
-			if (entry.label.endsWith(".c")) {
-			  cSources.push(entry);
-			} else if (entry.label.endsWith(".s")) {
-	          asmSources.push(entry);
-			}
-			//c_sources.push(tab);
-		});
-		console.log("Printing C sources:");
-		cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
-		console.log("Printing ASM sources:");
-		asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
-    let eqcheckPairs = genLikelyEqcheckPairs(cSources, asmSources);
-    let result = await showEqcheckFileOptions(eqcheckPairs);
-    vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
-    EqcheckViewProvider.provider.addEqcheck(eqcheckPairs[result]);
-	    //console.log(tabs);
-		//let url = "http://localhost:3000";
-		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
-		// Display a message box to the user
-		//vscode.window.showInformationMessage("hello");
-}
-
-function genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[]) : eqcheckMenuEntry[]
-{
-  let ret : eqcheckMenuEntry[] = [];
-  let i = 0;
-  cSources.forEach(function (cSource1 : vscode.Tab) {
-    console.log("cSource1Label = " + cSource1.label);
-    if (cSource1.input instanceof vscode.TabInputText) {
-      let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
-      console.log("cSource1Uri = " + cSource1Uri);
-      asmSources.forEach(function (asmSource) {
-        console.log("asmSourceLabel = " + asmSource.label);
-        if (asmSource.input instanceof vscode.TabInputText) {
-          let asmSourceUri = uri2str((asmSource.input as vscode.TabInputText).uri);
-          console.log("asmSource1Uri = " + asmSourceUri);
-          ret.push({ source1Uri: cSource1Uri,
-                     source1Name: cSource1.label,
-                     source2Uri: asmSourceUri,
-                     source2Name: asmSource.label,
-                     functionName: "*"});
-          //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
-          //ret.push(pr);
-        }
-      });
-      cSources.forEach(function (cSource2) {
-        if (cSource2.input instanceof vscode.TabInputText) {
-          let cSource2Uri = uri2str((cSource2.input as vscode.TabInputText).uri);
-          if (!(cSource1 === cSource2)) {
-            ret.push({ source1Uri: cSource1Uri,
-                       source1Name: cSource1.label,
-                       source2Uri: cSource2Uri,
-                       source2Name: cSource2.label,
-                       functionName: "*"});
-            //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
-            //ret.push(pr);
-          }
-        }
-      });
-    }
-  });
-  return ret;
-}
-
 function uri2str(uri : vscode.Uri) : string {
   return uri.fsPath;
 }
 
-/**
- * Shows a pick list using window.showQuickPick().
- */
-async function showEqcheckFileOptions(menuItems : eqcheckMenuEntry[]) : Promise<number> {
-  let i = 0;
-  console.log("before getQuickPickItems..() call: menuItems length = " + menuItems.length.toString());
-  let items = getQuickPickItemsFromEqcheckMenuEntries(menuItems);
-  console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
-  const result = await vscode.window.showQuickPick(items, {
-    placeHolder: items?.[0],
-    //onDidSelectItem: item => window.showInformationMessage(`Focus ${++i}: ${item}`)
-  });
-  //console.log("before findIndex call");
-  //vscode.window.showInformationMessage(`Got: ${result}`);
-  let resultIndex = items.findIndex(function (v : string, _ : number, o : object) { return (v === result); });
-  //console.log("resultIndex = " + resultIndex.toString());
+class Eqchecker {
+  public static async checkEq()
+  {
+  		// Get labels of opened files in all groups
+          let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
+  	    //console.log("tabs size = ");
+  		//console.log(tabs.length);
+  		let cSources : (typeof tabs) = [];
+  		let asmSources : (typeof tabs) = [];
+  		tabs.forEach(async function(entry) {
+  			//console.log('label = ' + entry.label);
+  			//console.log('isActive = ' + entry.isActive);
+  			//console.log('isDirty = ' + entry.isDirty);
+  			//console.log('isPinned = ' + entry.isPinned);
+  			//console.log('isPreview = ' + entry.isPreview);
+  			//console.log('groupViewColumn = ' + entry.group.viewColumn);
+  			//console.log('\n');
+  			if (entry.label.endsWith(".c")) {
+  			  cSources.push(entry);
+  			} else if (entry.label.endsWith(".s")) {
+  	          asmSources.push(entry);
+  			}
+  			//c_sources.push(tab);
+  		});
+  		console.log("Printing C sources:");
+  		cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
+  		console.log("Printing ASM sources:");
+  		asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
+      let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
+      console.log("eqcheckPairs size " + eqcheckPairs.length);
+      let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
+      vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
+      EqcheckViewProvider.provider.addEqcheck(eqcheckPairs[result]);
+  	    //console.log(tabs);
+  		//let url = "http://localhost:3000";
+  		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
+  		// Display a message box to the user
+  		//vscode.window.showInformationMessage("hello");
+  }
 
-  return resultIndex;
-}
+  public static async setServer()
+  {
+    let servers : string[] = [];
+    servers.push("localhost:3000");
+    const result = await vscode.window.showQuickPick(servers, {
+      placeHolder: servers?.[0],
+    });
+    return result;
+  }
 
-function getQuickPickItemsFromEqcheckMenuEntries(menuItems : eqcheckMenuEntry[]) : string[] {
-  //console.log("calling menuItems.map(). menuItems.length = " + menuItems.length.toString());
-  let ret = menuItems.map(function (menuItem) {
-              return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
-            });
-  //console.log("returned from menuItems.map(). ret.length = " + ret.length.toString());
-  return ret;
+  private static genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[]) : eqcheckMenuEntry[]
+  {
+    let ret : eqcheckMenuEntry[] = [];
+    let i = 0;
+    cSources.forEach(function (cSource1 : vscode.Tab) {
+      console.log("cSource1Label = " + cSource1.label);
+      if (cSource1.input instanceof vscode.TabInputText) {
+        let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
+        console.log("cSource1Uri = " + cSource1Uri);
+        asmSources.forEach(function (asmSource) {
+          console.log("asmSourceLabel = " + asmSource.label);
+          if (asmSource.input instanceof vscode.TabInputText) {
+            let asmSourceUri = uri2str((asmSource.input as vscode.TabInputText).uri);
+            console.log("asmSource1Uri = " + asmSourceUri);
+            ret.push({ source1Uri: cSource1Uri,
+                       source1Name: cSource1.label,
+                       source2Uri: asmSourceUri,
+                       source2Name: asmSource.label,
+                       functionName: "*"});
+            //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
+            //ret.push(pr);
+          }
+        });
+        cSources.forEach(function (cSource2) {
+          if (cSource2.input instanceof vscode.TabInputText) {
+            let cSource2Uri = uri2str((cSource2.input as vscode.TabInputText).uri);
+            if (!(cSource1 === cSource2)) {
+              ret.push({ source1Uri: cSource1Uri,
+                         source1Name: cSource1.label,
+                         source2Uri: cSource2Uri,
+                         source2Name: cSource2.label,
+                         functionName: "*"});
+              //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
+              //ret.push(pr);
+            }
+          }
+        });
+      }
+    });
+    return ret;
+  }
+
+  /**
+   * Shows a pick list using window.showQuickPick().
+   */
+  private static async showEqcheckFileOptions(menuItems : eqcheckMenuEntry[]) : Promise<number> {
+    let i = 0;
+    console.log("before getQuickPickItems..() call: menuItems length = " + menuItems.length.toString());
+    let items = Eqchecker.getQuickPickItemsFromEqcheckMenuEntries(menuItems);
+    console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
+    const result = await vscode.window.showQuickPick(items, {
+      placeHolder: items?.[0],
+      //onDidSelectItem: item => window.showInformationMessage(`Focus ${++i}: ${item}`)
+    });
+    //console.log("before findIndex call");
+    //vscode.window.showInformationMessage(`Got: ${result}`);
+    let resultIndex = items.findIndex(function (v : string, _ : number, o : object) { return (v === result); });
+    //console.log("resultIndex = " + resultIndex.toString());
+  
+    return resultIndex;
+  }
+
+  private static getQuickPickItemsFromEqcheckMenuEntries(menuItems : eqcheckMenuEntry[]) : string[] {
+    //console.log("calling menuItems.map(). menuItems.length = " + menuItems.length.toString());
+    let ret = menuItems.map(function (menuItem) {
+                return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
+              });
+    //console.log("returned from menuItems.map(). ret.length = " + ret.length.toString());
+    return ret;
+  }
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
@@ -272,8 +291,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 				<title>Equivalence Checks</title>
 			</head>
 			<body>
-				<ul class="eqcheck-list">
-				</ul>
+				<!--<ul class="eqcheck-list">
+				</ul>-->
 				<button class="clear-eqchecks-button">Clear Eqchecks</button>
         <output id='hoverEqcheckSource1Uri'></output><br>
         <output align=center id='hoverEqcheckArrow'>&#x2192</output><br>

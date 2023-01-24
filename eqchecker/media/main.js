@@ -6,14 +6,14 @@
     const vscode = acquireVsCodeApi();
 
     const oldState = vscode.getState() || { eqchecks: [] };
+    //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
-    /** @type {Array<{ value: string }>} */
     let eqchecks = oldState.eqchecks;
 
     updateEqcheckList(eqchecks);
 
-    document.querySelector('.add-eqcheck-button').addEventListener('click', () => {
-        addEqcheck();
+    document.querySelector('.clear-eqchecks-button').addEventListener('click', () => {
+        clearEqchecks();
     });
 
     // Handle messages sent from the extension to the webview
@@ -22,7 +22,8 @@
         switch (message.type) {
             case 'addEqcheck':
                 {
-                    addEqcheck();
+                    console.log("received message");
+                    addEqcheck(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.bgColor);
                     break;
                 }
             //case 'clearEqchecks':
@@ -35,7 +36,7 @@
     });
 
     /**
-     * @param {Array<{ value: string }>} eqchecks
+     * @param {Array<{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }>} eqchecks
      */
     function updateEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
@@ -46,54 +47,124 @@
 
             const eqcheckPreview = document.createElement('div');
             eqcheckPreview.className = 'eqcheck-preview';
-            eqcheckPreview.style.backgroundColor = `#${eqcheck.value}`;
+            eqcheckPreview.style.backgroundColor = `#${eqcheck.bgColor}`;
+            eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`;
+            eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
+                onEqcheckMouseOver(eqcheck);
+            });
+            eqcheckPreview.addEventListener('mouseout', (/*event*/) => {
+                onEqcheckMouseOut(eqcheck);
+            });
+            eqcheckPreview.addEventListener('oncontextmenu', () => {
+                onEqcheckRightClick(eqcheck);
+            });
+            eqcheckPreview.addEventListener('ondblclick', () => {
+                onEqcheckDoubleClick(eqcheck);
+            });
             eqcheckPreview.addEventListener('click', () => {
-                onEqcheckClicked(eqcheck.value);
+                onEqcheckClicked(eqcheck);
             });
             li.appendChild(eqcheckPreview);
 
-            const input = document.createElement('input');
-            input.className = 'eqcheck-input';
-            input.type = 'text';
-            input.value = eqcheck.value;
-            input.addEventListener('change', (e) => {
-                const value = e.target.value;
-                if (!value) {
-                    // Treat empty value as delete
-                    eqchecks.splice(eqchecks.indexOf(eqcheck), 1);
-                } else {
-                    eqcheck.value = value;
-                }
-                updateEqcheckList(eqchecks);
-            });
-            li.appendChild(input);
+            //const input = document.createElement('input');
+            //input.className = 'eqcheck-input';
+            //input.type = 'text';
+            //input.value = eqcheck.value;
+            //input.addEventListener('change', (e) => {
+            //    const value = e.target.value;
+            //    if (!value) {
+            //        // Treat empty value as delete
+            //        eqchecks.splice(eqchecks.indexOf(eqcheck), 1);
+            //    } else {
+            //        eqcheck.value = value;
+            //    }
+            //    updateEqcheckList(eqchecks);
+            //});
+            //li.appendChild(input);
 
             ul.appendChild(li);
         }
+	      document.getElementById('hoverEqcheck').style.display='none';
 
         // Update the saved state
         vscode.setState({ eqchecks : eqchecks });
     }
 
-    /** 
-     * @param {string} eqcheck
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     */
+    function onEqcheckMouseOver(eqcheck) {
+        //do nothing for now. Should display the URIs
+	      document.getElementById('hoverEqcheckSource1Uri').value = eqcheck.source1Uri;
+	      document.getElementById('hoverEqcheckSource2Uri').value = eqcheck.source2Uri;
+	      document.getElementById('hoverEqcheckArrow').style.display = 'inline';
+	      document.getElementById('hoverEqcheckSource1Uri').style.display='inline';
+	      document.getElementById('hoverEqcheckSource2Uri').style.display='inline';
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     */
+    function onEqcheckMouseOut(eqcheck) {
+        //do nothing for now. Should display the URIs
+	      document.getElementById('hoverEqcheckSource1Uri').style.display='none';
+	      document.getElementById('hoverEqcheckSource2Uri').style.display='none';
+	      document.getElementById('hoverEqcheckArrow').style.display = 'none';
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     */
+    function onEqcheckRightClick(eqcheck) {
+        //do nothing for now.
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     */
+    function onEqcheckDoubleClick(eqcheck) {
+        //do nothing for now.
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
         vscode.postMessage({ type: 'eqcheckSelected', value: eqcheck });
     }
 
     /**
-     * @returns string
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
-    function getNewCalicoColor() {
-        const colors = ['020202', 'f1eeee', 'a85b20', 'daab70', 'efcb99'];
-        return colors[Math.floor(Math.random() * colors.length)];
+    function getHoverMessage(eqcheck) {
+      return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
     }
 
-    function addEqcheck() {
-        eqchecks.push({ value: getNewCalicoColor() });
+    /**
+     * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _bgColor: string
+     */
+    function addEqcheck(
+        _source1Uri,
+        _source1Name,
+        _source2Uri,
+        _source2Name,
+        _functionName,
+        _bgColor
+    ) {
+      eqchecks.push({
+        source1Uri: _source1Uri,
+        source1Name: _source1Name,
+        source2Uri: _source2Uri,
+        source2Name: _source2Name,
+        functionName: _functionName,
+        bgColor: _bgColor
+      });
+      updateEqcheckList(eqchecks);
+    }
+
+    function clearEqchecks() {
+        //eqchecks.push({ value: getNewCalicoColor() });
+        eqchecks = [];
         updateEqcheckList(eqchecks);
     }
 }());
-
-

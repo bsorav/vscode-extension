@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-//import * as path from 'path'; 
+//import * as path from 'path';
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -23,16 +23,16 @@ export async function activate(context: vscode.ExtensionContext) {
 	//context.subscriptions.push(
 	//	vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
 
+  EqcheckViewProvider.initializeEqcheckViewProvider(context.extensionUri);
 
+  //console.log("creating EqcheckViewProvider object\n");
 
-  console.log("creating EqcheckViewProvider object\n");
-	const provider = new EqcheckViewProvider(context.extensionUri);
-  console.log("done creating EqcheckViewProvider object\n");
+  //console.log("done creating EqcheckViewProvider object\n");
 
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, provider)
+		vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, EqcheckViewProvider.provider)
   );
-  console.log("done registering EqcheckViewProvider object\n");
+  //console.log("done registering EqcheckViewProvider object\n");
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -85,6 +85,7 @@ async function checkEq()
     let eqcheckPairs = genLikelyEqcheckPairs(cSources, asmSources);
     let result = await showEqcheckFileOptions(eqcheckPairs);
     vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
+    EqcheckViewProvider.provider.addEqcheck(eqcheckPairs[result]);
 	    //console.log(tabs);
 		//let url = "http://localhost:3000";
 		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
@@ -171,12 +172,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 	public static readonly viewType = 'eqchecker.eqcheckView';
 
+  public static provider : EqcheckViewProvider;
+
 	private _view?: vscode.WebviewView;
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
-	) {
-    console.log("EqcheckViewProvider constructor called\n");
+	) { }
+
+  public static initializeEqcheckViewProvider(_extensionUri: vscode.Uri) {
+	  EqcheckViewProvider.provider = new EqcheckViewProvider(_extensionUri);
   }
 
 	public resolveWebviewView(
@@ -210,13 +215,32 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
-	public addEqcheck() {
+	public addEqcheck(entry) {
     console.log("addEqcheck() called\n");
 		if (this._view) {
 			this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
-			this._view.webview.postMessage({ type: 'addEqcheck' });
+      //console.log("Posting message.");
+			this._view.webview.postMessage(
+        { type: 'addEqcheck',
+          source1Uri: entry.source1Uri,
+          source1Name: entry.source1Name,
+          source2Uri: entry.source2Uri,
+          source2Name: entry.source2Name,
+          functionName: entry.functionName,
+          bgColor: this.getNewCalicoColor()
+        }
+      );
 		}
 	}
+
+  /**
+   * @returns string
+   */
+  private getNewCalicoColor() {
+      return '000000';
+      const colors = ['020202', 'f1eeee', 'a85b20', 'daab70', 'efcb99'];
+      return colors[Math.floor(Math.random() * colors.length)];
+  }
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
     console.log("_getHtmlForWebview() called\n");
@@ -250,7 +274,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 			<body>
 				<ul class="eqcheck-list">
 				</ul>
-				<button class="add-eqcheck-button">Add Eqcheck</button>
+				<button class="clear-eqchecks-button">Clear Eqchecks</button>
+        <output id='hoverEqcheckSource1Uri'></output><br>
+        <output align=center id='hoverEqcheckArrow'>&#x2192</output><br>
+        <output id='hoverEqcheckSource2Uri'></output>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;

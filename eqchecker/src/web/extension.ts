@@ -87,6 +87,128 @@ class Eqchecker {
     //}
   }
 
+  public static async RequestNextChunk(jsonRequest) : Promise<string> {
+    var dirPath : string;
+    let prom =
+      fetch(Eqchecker.serverURL, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept' : 'application/json',
+        },
+        body: jsonRequest,
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(async function(result) {
+        let dirPath = result.dirPath;
+        let offset = result.offset;
+        let chunk = result.chunk.toString();
+        if (!Eqchecker.addEqcheckOutput(dirPath, chunk)) {
+          await Eqchecker.wait(500);
+          let jsonRequestNew = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
+          return Eqchecker.RequestNextChunk(jsonRequestNew);
+          //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
+        } else {
+          return dirPath;
+        }
+      })
+      .catch(function(err) {
+        console.log(`Error: ${err}`)
+        return "";
+      });
+    return await prom;
+  }
+
+
+	public static addEqcheck(entry) {
+    //console.log("addEqcheck() called\n");
+    var request =
+        { type: 'addEqcheck',
+          source1Uri: entry.source1Uri,
+          source1Name: entry.source1Name,
+          source2Uri: entry.source2Uri,
+          source2Name: entry.source2Name,
+          functionName: entry.functionName,
+          bgColor: this.getNewCalicoColor()
+        };
+
+    var jsonRequest = JSON.stringify(request);
+    Eqchecker.RequestNextChunk(jsonRequest);
+    //var responseData : string;
+    //var promise = new Promise(_.bind(function (resolve, reject) {
+    //    var ajaxFn = _.bind(async function() {
+    //      var timeoutId : ReturnType<typeof setTimeout>;
+    //      //$.ajax({
+    //      //  type: 'POST',
+    //      //  url: Eqchecker.serverURL + "/api/eqchecker/start_eqcheck",
+    //      //  dataType: 'json',
+    //      //  contentType: 'application/json',
+    //      //  data: jsonRequest,
+    //      //  success: _.bind(function (result) {
+    //      //    let dirPath = result.dirPath;
+    //      //    let offset = result.offset;
+    //      //    let chunk = result.chunk.toString();
+    //      //    if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
+    //      //      jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
+    //      //      timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
+    //      //    }
+    //      //  }, this),
+    //      //  error: _.bind(function (error) {
+    //      //      clearTimeout(timeoutId);
+    //      //  }, this)
+    //      //});
+    //      const response = await fetch(Eqchecker.serverURL + "/api/eqchecker/start_eqcheck", {
+    //        method: 'POST',
+    //        mode: 'cors',
+    //        cache: 'no-cache',
+    //        headers: {
+    //          'Content-Type': 'application/json',
+    //          'Accept' : 'application/json',
+    //        },
+    //        body: jsonRequest,
+    //      });
+
+    //      if (response.ok) {
+    //        response.json().then(result => {
+    //          //let result = JSON.parse(res);
+    //          let dirPath = result.dirPath;
+    //          let offset = result.offset;
+    //          let chunk = result.chunk.toString();
+    //          if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
+    //            break;
+    //          } else {
+    //            jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
+    //            //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
+    //          }
+    //        });
+    //      } else {
+    //        clearTimeout(timeoutId);
+    //      }
+    //      //.catch(function(error) {
+    //      //  clearTimeout(timeoutId);
+    //      //})
+    //    }, this);
+    //    ajaxFn();
+    //    return Promise.resolve({ request: request, result: undefined});
+    //}, this));
+    //promise.catch(function (x) {
+    //  var message = "Unknown error";
+    //  if (_.isString(x)) {
+    //    message = x;
+    //  } else if (x) {
+    //    message = x.error || x.code;
+    //  }
+    //});
+
+    EqcheckViewProvider.provider.viewProviderAddEqcheck(request);
+	}
+
+
+
   public static async checkEq()
   {
   		// Get labels of opened files in all groups
@@ -183,7 +305,7 @@ class Eqchecker {
    */
   private static async showEqcheckFileOptions(menuItems : eqcheckMenuEntry[]) : Promise<number> {
     let i = 0;
-    console.log("before getQuickPickItems..() call: menuItems length = " + menuItems.length.toString());
+    //console.log("before getQuickPickItems..() call: menuItems length = " + menuItems.length.toString());
     let items = Eqchecker.getQuickPickItemsFromEqcheckMenuEntries(menuItems);
     console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
     const result = await vscode.window.showQuickPick(items, {
@@ -216,88 +338,9 @@ class Eqchecker {
       return colors[Math.floor(Math.random() * colors.length)];
   }
 
-
-	public static addEqcheck(entry) {
-    console.log("addEqcheck() called\n");
-    var request =
-        { type: 'addEqcheck',
-          source1Uri: entry.source1Uri,
-          source1Name: entry.source1Name,
-          source2Uri: entry.source2Uri,
-          source2Name: entry.source2Name,
-          functionName: entry.functionName,
-          bgColor: this.getNewCalicoColor()
-        };
-
-    var jsonRequest = JSON.stringify(request);
-    //var responseData : string;
-    var promise = new Promise(_.bind(function (resolve, reject) {
-        var ajaxFn = _.bind(async function() {
-          var timeoutId : ReturnType<typeof setTimeout>;
-          //$.ajax({
-          //  type: 'POST',
-          //  url: Eqchecker.serverURL + "/api/eqchecker/start_eqcheck",
-          //  dataType: 'json',
-          //  contentType: 'application/json',
-          //  data: jsonRequest,
-          //  success: _.bind(function (result) {
-          //    let dirPath = result.dirPath;
-          //    let offset = result.offset;
-          //    let chunk = result.chunk.toString();
-          //    if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
-          //      jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
-          //      timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
-          //    }
-          //  }, this),
-          //  error: _.bind(function (error) {
-          //      clearTimeout(timeoutId);
-          //  }, this)
-          //});
-          const response = await fetch(Eqchecker.serverURL + "/api/eqchecker/start_eqcheck", {
-            method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept' : 'application/json',
-            },
-            body: jsonRequest,
-          });
-
-          if (response.ok) {
-            response.json().then(result => {
-              //let result = JSON.parse(res);
-              let dirPath = result.dirPath;
-              let offset = result.offset;
-              let chunk = result.chunk.toString();
-              if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
-                break;
-              } else {
-                jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
-                //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
-              }
-            });
-          } else {
-            clearTimeout(timeoutId);
-          }
-          //.catch(function(error) {
-          //  clearTimeout(timeoutId);
-          //})
-        }, this);
-        ajaxFn();
-        return Promise.resolve({ request: request, result: undefined});
-    }, this));
-    promise.catch(function (x) {
-      var message = "Unknown error";
-      if (_.isString(x)) {
-        message = x;
-      } else if (x) {
-        message = x.error || x.code;
-      }
-    });
-
-    EqcheckViewProvider.provider.viewProviderAddEqcheck(request);
-	}
+  public static wait(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+  }
 
 }
 

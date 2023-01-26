@@ -24,7 +24,7 @@
             case 'addEqcheck':
                 {
                     console.log("received message");
-                    addEqcheck(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.bgColor);
+                    addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.bgColor);
                     break;
                 }
             //case 'clearEqchecks':
@@ -119,21 +119,21 @@
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckRightClick(eqcheck) {
-        vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
+        //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckDoubleClick(eqcheck) {
-        vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
+        //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
-        vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
+        //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
@@ -146,7 +146,7 @@
     /**
      * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _bgColor: string
      */
-    function addEqcheck(
+    function addEqcheckInView(
         _source1Uri,
         _source1Name,
         _source2Uri,

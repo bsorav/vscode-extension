@@ -1,6 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+//var $ = require('jquery');
+//var _ = require('underscore');
+//var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
 interface eqcheckMenuEntry {
@@ -68,6 +71,22 @@ function uri2str(uri : vscode.Uri) : string {
 class Eqchecker {
   public static serverURL : string = 'localhost:3000';
 
+  public static addEqcheckOutput(dirPath: string, chunk: string) : boolean
+  {
+    console.log("addEqcheckOutput called.");
+    return false;
+    //if ((chunk != undefined) || chunk.localCompare('') == 0) {
+    //  if (responseData === undefined) {
+    //      responseData = chunk;
+    //  } else {
+    //      responseData = responseData.concat(chunk);
+    //  }
+    //}
+    //if (!responseData.includes('</eqchecker>')) {
+    //  timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
+    //}
+  }
+
   public static async checkEq()
   {
   		// Get labels of opened files in all groups
@@ -99,7 +118,7 @@ class Eqchecker {
       console.log("eqcheckPairs size " + eqcheckPairs.length);
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
       vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
-      EqcheckViewProvider.provider.addEqcheck(eqcheckPairs[result]);
+      Eqchecker.addEqcheck(eqcheckPairs[result]);
   	    //console.log(tabs);
   		//let url = "http://localhost:3000";
   		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
@@ -175,7 +194,7 @@ class Eqchecker {
     //vscode.window.showInformationMessage(`Got: ${result}`);
     let resultIndex = items.findIndex(function (v : string, _ : number, o : object) { return (v === result); });
     //console.log("resultIndex = " + resultIndex.toString());
-  
+
     return resultIndex;
   }
 
@@ -187,6 +206,99 @@ class Eqchecker {
     //console.log("returned from menuItems.map(). ret.length = " + ret.length.toString());
     return ret;
   }
+
+  /**
+   * @returns string
+   */
+  public static getNewCalicoColor() {
+      return '000000';
+      const colors = ['020202', 'f1eeee', 'a85b20', 'daab70', 'efcb99'];
+      return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+
+	public static addEqcheck(entry) {
+    console.log("addEqcheck() called\n");
+    var request =
+        { type: 'addEqcheck',
+          source1Uri: entry.source1Uri,
+          source1Name: entry.source1Name,
+          source2Uri: entry.source2Uri,
+          source2Name: entry.source2Name,
+          functionName: entry.functionName,
+          bgColor: this.getNewCalicoColor()
+        };
+
+    var jsonRequest = JSON.stringify(request);
+    //var responseData : string;
+    var promise = new Promise(_.bind(function (resolve, reject) {
+        var ajaxFn = _.bind(async function() {
+          var timeoutId : ReturnType<typeof setTimeout>;
+          //$.ajax({
+          //  type: 'POST',
+          //  url: Eqchecker.serverURL + "/api/eqchecker/start_eqcheck",
+          //  dataType: 'json',
+          //  contentType: 'application/json',
+          //  data: jsonRequest,
+          //  success: _.bind(function (result) {
+          //    let dirPath = result.dirPath;
+          //    let offset = result.offset;
+          //    let chunk = result.chunk.toString();
+          //    if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
+          //      jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
+          //      timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
+          //    }
+          //  }, this),
+          //  error: _.bind(function (error) {
+          //      clearTimeout(timeoutId);
+          //  }, this)
+          //});
+          const response = await fetch(Eqchecker.serverURL + "/api/eqchecker/start_eqcheck", {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept' : 'application/json',
+            },
+            body: jsonRequest,
+          });
+
+          if (response.ok) {
+            response.json().then(result => {
+              //let result = JSON.parse(res);
+              let dirPath = result.dirPath;
+              let offset = result.offset;
+              let chunk = result.chunk.toString();
+              if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
+                break;
+              } else {
+                jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
+                //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
+              }
+            });
+          } else {
+            clearTimeout(timeoutId);
+          }
+          //.catch(function(error) {
+          //  clearTimeout(timeoutId);
+          //})
+        }, this);
+        ajaxFn();
+        return Promise.resolve({ request: request, result: undefined});
+    }, this));
+    promise.catch(function (x) {
+      var message = "Unknown error";
+      if (_.isString(x)) {
+        message = x;
+      } else if (x) {
+        message = x.error || x.code;
+      }
+    });
+
+    EqcheckViewProvider.provider.viewProviderAddEqcheck(request);
+	}
+
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
@@ -226,41 +338,26 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.onDidReceiveMessage(data => {
 			switch (data.type) {
-				case 'eqcheckShowProof':
+				case 'addEqcheckOutput':
 					{
             //vscode.window.showInformationMessage(`eqcheckSelected received.`);
-						vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
+						//vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
+            Eqchecker.addEqcheckOutput(data.dirPath, data.chunk);
 						break;
 					}
 			}
 		});
 	}
 
-	public addEqcheck(entry) {
-    console.log("addEqcheck() called\n");
-		if (this._view) {
-			this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
+  public viewProviderAddEqcheck(message)
+  {
+    if (this._view) {
+		 this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
       //console.log("Posting message.");
-			this._view.webview.postMessage(
-        { type: 'addEqcheck',
-          source1Uri: entry.source1Uri,
-          source1Name: entry.source1Name,
-          source2Uri: entry.source2Uri,
-          source2Name: entry.source2Name,
-          functionName: entry.functionName,
-          bgColor: this.getNewCalicoColor()
-        }
+		 this._view.webview.postMessage(
+        message,
       );
 		}
-	}
-
-  /**
-   * @returns string
-   */
-  private getNewCalicoColor() {
-      return '000000';
-      const colors = ['020202', 'f1eeee', 'a85b20', 'daab70', 'efcb99'];
-      return colors[Math.floor(Math.random() * colors.length)];
   }
 
 	private _getHtmlForWebview(webview: vscode.Webview) {

@@ -61,7 +61,7 @@ class ApiHandler {
         //this.handle.get('/asm/:opcode', asmDocsHandler.handle.bind(asmDocsHandler));
 
         //this.handle.post('/compiler/:compiler/compile', compileHandler.handle.bind(compileHandler));
-        this.handle.get('/eqchecker/submit_eqcheck', eqcheckHandler.handle.bind(eqcheckHandler));
+        this.handle.post('/eqchecker/submit_eqcheck', eqcheckHandler.handle.bind(eqcheckHandler));
         //this.handle.post('/typechecker/run_typecheck', typecheckHandler.handle.bind(typecheckHandler));
         //this.handle.post('/popularArguments/:compiler', compileHandler.handlePopularArguments.bind(compileHandler));
         //this.handle.post('/optimizationArguments/:compiler',

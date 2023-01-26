@@ -89,8 +89,10 @@ class Eqchecker {
 
   public static async RequestNextChunk(jsonRequest) : Promise<string> {
     var dirPath : string;
-    let prom =
-      fetch(Eqchecker.serverURL, {
+    var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
+    console.log(`url = ${url}`);
+    var prom =
+      fetch(url, {
         method: 'POST',
         mode: 'cors',
         cache: 'no-cache',
@@ -101,18 +103,24 @@ class Eqchecker {
         body: jsonRequest,
       })
       .then(function(response) {
+        console.log("response received.\n");
         return response.json();
       })
       .then(async function(result) {
         let dirPath = result.dirPath;
         let offset = result.offset;
         let chunk = result.chunk.toString();
+        console.log(`dirPath = ${dirPath}.\n`);
+        console.log(`offset = ${offset}.\n`);
+        console.log(`chunk = ${chunk}.\n`);
         if (!Eqchecker.addEqcheckOutput(dirPath, chunk)) {
+          console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
           let jsonRequestNew = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
           return Eqchecker.RequestNextChunk(jsonRequestNew);
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
         } else {
+          console.log("done adding Eqcheck Output.\n");
           return dirPath;
         }
       })
@@ -120,7 +128,10 @@ class Eqchecker {
         console.log(`Error: ${err}`)
         return "";
       });
-    return await prom;
+    console.log("calling await prom");
+    var ret = await prom;
+    console.log(`returning ${ret}`);
+    return ret;
   }
 
 

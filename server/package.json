@@ -20,8 +20,11 @@
   "dependencies": {
     "@sentry/node": "^7.32.0",
     "@types/node": "^18.11.18",
+    "compression": "^1.7.4",
+    "express": "^4.18.2",
     "fs-extra": "^11.1.0",
     "http-proxy": "^1.18.1",
+    "morgan": "^1.10.0",
     "node-graceful": "^3.1.0",
     "profanities": "^3.0.1",
     "response-time": "^2.3.2",

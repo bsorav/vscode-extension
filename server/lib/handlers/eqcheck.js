@@ -13,6 +13,7 @@ const temp = require('temp'),
 temp.track();
 
 let hasSetUpAutoClean = false;
+const defaultUnrollFactor = 64;
 
 function initialise(compilerEnv) {
     if (hasSetUpAutoClean) return;
@@ -82,13 +83,30 @@ class EqcheckHandler {
         let dirPathIn, offsetIn, source, optimized, unrollFactor;
         if (req.is('json')) {
             // JSON-style request
-            //console.log('JSON-style parseRequest');
+            //console.log('JSON-style parseRequest:\n' + JSON.stringify(req));
             //const requestOptions = req.body.options;
+            //console.log('JSON-style parseRequest:\n' + Object.keys(req));
+            //console.log('method:\n' + req.method);
+            //console.log('headers:\n' + JSON.stringify(req.headers));
+            //console.log('query:\n' + JSON.stringify(req.query));
+            //console.log('route:\n' + JSON.stringify(req.route));
+            //console.log('params:\n' + JSON.stringify(req.params));
+            //console.log('_parsedUrl:\n' + JSON.stringify(req._parsedUrl));
+            //console.log('_readableState:\n' + JSON.stringify(req._readableState));
+            //console.log('complete:\n' + JSON.stringify(req.complete));
+            //console.log('rawTrailers:\n' + JSON.stringify(req.rawTrailers));
+            ////console.log('res:\n' + JSON.stringify(req.res));
+						//console.log('mode:\n' + req.mode);
+            //console.log('cache:\n' + req.cache);
+            //console.log('body:\n' + JSON.stringify(req.body));
+            //console.log('source:\n' + JSON.stringify(req.source));
+            //console.log('source1Uri:\n' + JSON.stringify(req.source1Uri));
             source = req.body.source;
+            //console.log('source:\n' + source);
             optimized = req.body.optimized;
-            unrollFactor = req.body.unrollFactor;
-	    dirPathIn = req.body.dirPathIn;
-	    offsetIn = req.body.offsetIn;
+            unrollFactor = req.body.unrollFactor || defaultUnrollFactor;
+            dirPathIn = req.body.dirPathIn;
+            offsetIn = req.body.offsetIn;
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -104,9 +122,9 @@ class EqcheckHandler {
             //console.log('API-style parseRequest');
             source = req.body;
             optimized = req.optimized;
-            unrollFactor = req.unrollFactor;
-	    dirPathIn = req.dirPathIn;
-	    offsetIn = req.offsetIn;
+            unrollFactor = req.unrollFactor || defaultUnrollFactor;
+            dirPathIn = req.dirPathIn;
+            offsetIn = req.offsetIn;
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();

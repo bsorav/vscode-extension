@@ -6,6 +6,8 @@ import * as vscode from 'vscode';
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
+var defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080';
+
 interface eqcheckMenuEntry {
   source1Uri: string;
   source1Name: string;
@@ -69,7 +71,7 @@ function uri2str(uri : vscode.Uri) : string {
 }
 
 class Eqchecker {
-  public static serverURL : string = 'localhost:3000';
+  public static serverURL : string = defaultServerURL;
 
   public static addEqcheckOutput(dirPath: string, chunk: string) : boolean
   {
@@ -262,7 +264,7 @@ class Eqchecker {
   public static async setServer()
   {
     let servers : string[] = [];
-    servers.push("localhost:3000");
+    servers.push(defaultServerURL);
     const result = await vscode.window.showQuickPick(servers, {
       placeHolder: servers?.[0],
     });

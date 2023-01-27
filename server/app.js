@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const
+    nopt = require('nopt'),
     os = require('os'),
     path = require('path'),
     process = require('process'),
@@ -12,6 +13,20 @@ const
     Sentry = require('@sentry/node'),
     {logger, logToPapertrail, suppressConsoleLog} = require('./lib/logger'),
     RouteAPI = require('./lib/handlers/route-api');
+
+const opts = nopt({
+  host: [String],
+  port: [Number],
+  superoptInstall: [String],
+  tmpDir: [String]
+});
+
+const defArgs = {
+  hostname: opts.host || 'localhost',
+  port: opts.port || 80,
+  superoptInstall: opts.superoptInstall || '/usr/local',
+  tmpDir: opts.tmpDir || '/tmp',
+};
 
 async function main() {
     const CompilationEnvironment = require('./lib/compilation-env');
@@ -93,12 +108,12 @@ function startListening(server) {
         }
         _port = ss;
     } else {
-        _port = 3000;
+        _port = defArgs.port;
     }
-    logger.info(`  Listening on http://${'localhost'}:${_port}/`);
+    logger.info(`  Listening on http://${defArgs.hostname}:${_port}/`);
     logger.info("=======================================");
     //server.listen(_port, defArgs.hostname);
-    server.listen(_port, "localhost");
+    server.listen(_port, defArgs.hostname);
 }
 
 main()

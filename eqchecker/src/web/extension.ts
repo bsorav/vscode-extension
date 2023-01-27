@@ -92,17 +92,18 @@ class Eqchecker {
   public static async RequestNextChunk(jsonRequest) : Promise<string> {
     var dirPath : string;
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
-    console.log(`url = ${url}`);
+    //console.log(`url = ${url}`);
+    //console.log("jsonRequest =\n" + jsonRequest);
     var prom =
       fetch(url, {
         method: 'POST',
         mode: 'cors',
         cache: 'no-cache',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept' : 'application/json',
-        },
         body: jsonRequest,
+        headers: {
+          'Content-Type' : 'application/json',
+          'Accept' : 'application/json',
+        }
       })
       .then(function(response) {
         console.log("response received.\n");
@@ -114,7 +115,7 @@ class Eqchecker {
         let chunk = result.chunk.toString();
         console.log(`dirPath = ${dirPath}.\n`);
         console.log(`offset = ${offset}.\n`);
-        console.log(`chunk = ${chunk}.\n`);
+        //console.log(`chunk = ${chunk}.\n`);
         if (!Eqchecker.addEqcheckOutput(dirPath, chunk)) {
           console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
@@ -130,15 +131,31 @@ class Eqchecker {
         console.log(`Error: ${err}`)
         return "";
       });
-    console.log("calling await prom");
+    //console.log("calling await prom");
     var ret = await prom;
-    console.log(`returning ${ret}`);
+    //console.log(`returning ${ret}`);
     return ret;
   }
 
 
-	public static addEqcheck(entry) {
+	public static async addEqcheck(entry) {
     //console.log("addEqcheck() called\n");
+    var source : string;
+    var optimized : string;
+
+    console.log("calling openTextDocument");
+    await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
+      console.log("opened source1Uri");
+      if (doc.isDirty) {}
+      source = doc.getText();
+    });
+    await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
+      console.log("opened source1Uri");
+      if (doc.isDirty) {}
+      optimized = doc.getText();
+    });
+    //console.log('source = ' + source);
+    //console.log('optimized = ' + optimized);
     var request =
         { type: 'addEqcheck',
           source1Uri: entry.source1Uri,
@@ -146,7 +163,9 @@ class Eqchecker {
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
           functionName: entry.functionName,
-          bgColor: this.getNewCalicoColor()
+          bgColor: this.getNewCalicoColor(),
+          source : source,
+          optimized : optimized,
         };
 
     var jsonRequest = JSON.stringify(request);

@@ -72,21 +72,19 @@ function uri2str(uri : vscode.Uri) : string {
 
 class Eqchecker {
   public static serverURL : string = defaultServerURL;
+  public static outputMap: Record<string, string> = {};
 
   public static addEqcheckOutput(dirPath: string, chunk: string) : boolean
   {
-    console.log("addEqcheckOutput called.");
-    return false;
-    //if ((chunk != undefined) || chunk.localCompare('') == 0) {
-    //  if (responseData === undefined) {
-    //      responseData = chunk;
-    //  } else {
-    //      responseData = responseData.concat(chunk);
-    //  }
-    //}
-    //if (!responseData.includes('</eqchecker>')) {
-    //  timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
-    //}
+    //console.log("addEqcheckOutput called.");
+    if (chunk !== undefined) {
+      if (Eqchecker.outputMap[dirPath] === undefined) {
+          Eqchecker.outputMap[dirPath] = chunk;
+      } else {
+          Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(chunk);
+      }
+    }
+    return Eqchecker.outputMap[dirPath].includes('</eqchecker>');
   }
 
   public static async RequestNextChunk(jsonRequest) : Promise<string> {
@@ -260,7 +258,7 @@ class Eqchecker {
   			if (entry.label.endsWith(".c")) {
   			  cSources.push(entry);
   			} else if (entry.label.endsWith(".s")) {
-  	          asmSources.push(entry);
+          asmSources.push(entry);
   			}
   			//c_sources.push(tab);
   		});

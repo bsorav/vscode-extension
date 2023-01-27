@@ -53,16 +53,21 @@
             eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
                 onEqcheckMouseOver(eqcheck);
             });
+            eqcheckPreview.addEventListener('mouseleave', (event) => {
+                //hideRightClickMenu(eqcheck); //this hides it even if we go to the right-click-menu
+                onEqcheckMouseLeave(eqcheck);
+            });
             eqcheckPreview.addEventListener('mouseout', (/*event*/) => {
                 onEqcheckMouseOut(eqcheck);
             });
-            eqcheckPreview.addEventListener('oncontextmenu', () => {
-                onEqcheckRightClick(eqcheck);
+            eqcheckPreview.addEventListener('contextmenu', (event) => {
+                onEqcheckRightClick(eqcheck, event);
             });
             eqcheckPreview.addEventListener('ondblclick', () => {
                 onEqcheckDoubleClick(eqcheck);
             });
-            eqcheckPreview.addEventListener('click', () => {
+            eqcheckPreview.addEventListener('click', (event) => {
+                hideRightClickMenu(eqcheck);
                 onEqcheckClicked(eqcheck);
             });
             li.appendChild(eqcheckPreview);
@@ -88,6 +93,7 @@
 	      document.getElementById('hoverEqcheckSource1Uri').style.display='none';
 	      document.getElementById('hoverEqcheckSource2Uri').style.display='none';
 	      document.getElementById('hoverEqcheckArrow').style.display='none';
+	      document.getElementById('eqcheck-right-click-menu.item').style.display='none';
 
         // Update the saved state
         vscode.setState({ eqchecks : eqchecks });
@@ -110,15 +116,42 @@
      */
     function onEqcheckMouseOut(eqcheck) {
         //do nothing for now. Should display the URIs
-	      document.getElementById('hoverEqcheckSource1Uri').style.display='none';
-	      document.getElementById('hoverEqcheckSource2Uri').style.display='none';
-	      document.getElementById('hoverEqcheckArrow').style.display = 'none';
     }
 
     /**
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
-    function onEqcheckRightClick(eqcheck) {
+    function onEqcheckMouseLeave(eqcheck) {
+	    document.getElementById('hoverEqcheckSource1Uri').style.display='none';
+	    document.getElementById('hoverEqcheckSource2Uri').style.display='none';
+	    document.getElementById('hoverEqcheckArrow').style.display = 'none';
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck, {number} mouseX, {number} mouseY
+     */
+    function showRightClickMenu(eqcheck, mouseX, mouseY) {
+        const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+        eqcheckRightClickMenu.style.top = `${mouseY}px`;
+        eqcheckRightClickMenu.style.left = `${mouseX}px`;
+
+        eqcheckRightClickMenu.classList.add("visible");
+    }
+
+    function hideRightClickMenu() {
+        const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+        eqcheckRightClickMenu.classList.remove("visible");
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     */
+    function onEqcheckRightClick(eqcheck, event) {
+        const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+        event.preventDefault();
+        const { clientX: mouseX, clientY: mouseY } = event;
+
+        showRightClickMenu(eqcheck, mouseX, mouseY);
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 

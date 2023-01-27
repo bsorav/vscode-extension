@@ -12,8 +12,9 @@ body {
 	font-size: 15px;
 	text-align: center;
 	display: flex;
-	border: 1px solid var(--vscode-input-border);
+	border: 0.1px solid var(--vscode-input-border);
 }
+
 
 .eqcheck-preview {
 	width: 20em;
@@ -38,4 +39,37 @@ body {
 	display: block;
 	border: none;
 	margin: 0 auto;
+}
+
+.hoverEqcheckArrow {
+  display: none;
+}
+
+.hoverEqcheckArrow.visible {
+	display: block;
+}
+
+#eqcheck-right-click-menu {
+	position: fixed;
+	z-index: 10000;
+	width: 150px;
+	background: #3b1a1a;
+    border-radius: 5px;
+	display: none;
+}
+
+#eqcheck-right-click-menu.visible {
+	display: block;
+}
+
+#eqcheck-right-click-menu .item {
+	padding: 8px 10px;
+	font-size: 10px;
+	color: #eee;
+	cursor: pointer;
+	border-radius: inherit;
+}
+
+#eqcheck-right-click-menu .item:hover {
+	background: #543434;
 }

@@ -81,7 +81,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let dirPathIn, offsetIn, source, optimized, unrollFactor;
+        let dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName;
         if (req.is('json')) {
             // JSON-style request
             //console.log('JSON-style parseRequest:\n' + JSON.stringify(req));
@@ -108,6 +108,8 @@ class EqcheckHandler {
             unrollFactor = req.body.unrollFactor || defaultUnrollFactor;
             dirPathIn = req.body.dirPathIn;
             offsetIn = req.body.offsetIn;
+            srcName = "src.".concat(req.body.source1Name);
+            optName = "opt.".concat(req.body.source2Name);
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -126,6 +128,8 @@ class EqcheckHandler {
             unrollFactor = req.unrollFactor || defaultUnrollFactor;
             dirPathIn = req.dirPathIn;
             offsetIn = req.offsetIn;
+            srcName = "src.".concat(req.source1Name);
+            optName = "opt.".concat(req.source2Name);
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();
@@ -154,7 +158,7 @@ class EqcheckHandler {
         //    tool.args = this.splitArguments(tool.args);
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
-        return {dirPathIn, offsetIn, source, optimized, unrollFactor};
+        return {dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName};
     }
 
     //splitArguments(options) {
@@ -214,7 +218,7 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.err');
     }
 
-    run_eqcheck(source, optimized, unrollFactor, dirPath) {
+    run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName) {
         //console.log('run_eqcheck called. source = ', source);
         //console.log('run_eqcheck called. optimized = ', optimized);
         //const optionsError = this.checkOptions(options);
@@ -227,26 +231,26 @@ class EqcheckHandler {
 
         return new Promise((resolve, reject) => {
             //console.log('dirPath = ', dirPath);
-            const sourceFilename = path.join(dirPath, 'eqcheck.example.c');
+            const sourceFilename = path.join(dirPath, srcName);
             fs.writeFile(sourceFilename, source);
             resolve([dirPath,sourceFilename]);
         }).then( values => {
              const dirPath = values[0];
              const sourceFilename = values[1];
              //console.log('sourceFilename = ', sourceFilename);
-             const optimizedFilename = path.join(dirPath, 'eqcheck.example.i386');
+             const optimizedFilename = path.join(dirPath, optName);
              fs.writeFile(optimizedFilename, optimized)
              return [dirPath,sourceFilename,optimizedFilename];
         }).then( values => {
             const dirPath = values[0];
             const sourceFilename = values[1];
             const optimizedFilename = values[2];
-            //console.log('assemblyFilename = ', assemblyFilename);
-            //console.log('calling exec.execute() on eq');
             const redirect = ['-xml-output', outFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
-            return exec.execute(this.superoptInstall + "/bin/eq32", ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(unroll)/*.concat(no_use_relocatable_mls)*/);
+            const eq32_args = ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(unroll);
+            console.log('calling eq32 ' + eq32_args);
+            return exec.execute(this.superoptInstall + "/bin/eq32", eq32_args);
         }).then( result => {
             return result;
         })
@@ -291,7 +295,7 @@ class EqcheckHandler {
         //}
         //console.log('parseRequest called');
         const {
-            dirPathIn, offsetIn, source, optimized, unrollFactor
+            dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName
         } = this.parseRequest(req/*, compiler*/);
         //const remote = compiler.getRemote();
         //if (remote) {
@@ -332,7 +336,7 @@ class EqcheckHandler {
         //console.log('calling run_eqcheck in handler');
             //
         const dirPath =  await this.newTempDir();
-        this.run_eqcheck(source, optimized, unrollFactor, dirPath)
+        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName)
             .then(
                 result => {
                     //console.log('found result', result);

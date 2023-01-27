@@ -52,7 +52,28 @@ async function main() {
         .set('trust proxy', true)
         .set('view engine', 'pug')
         .on('error', err => logger.error('Caught error in web handler; continuing:', err))
+        .use(express.json())
         .use('/', router)
+        //.post('/test', (req, res) => {
+        //    console.log('method:\n' + req.method);
+        //    console.log('headers:\n' + JSON.stringify(req.headers));
+        //    console.log('query:\n' + JSON.stringify(req.query));
+        //    console.log('route:\n' + JSON.stringify(req.route));
+        //    console.log('params:\n' + JSON.stringify(req.params));
+        //    console.log('_parsedUrl:\n' + JSON.stringify(req._parsedUrl));
+        //    console.log('_readableState:\n' + JSON.stringify(req._readableState));
+        //    console.log('complete:\n' + JSON.stringify(req.complete));
+        //    console.log('rawTrailers:\n' + JSON.stringify(req.rawTrailers));
+        //    //console.log('res:\n' + JSON.stringify(req.res));
+				//		console.log('mode:\n' + req.mode);
+        //    console.log('cache:\n' + req.cache);
+        //    console.log('body:\n' + req.body);
+        //    res.json({requestBody:req.body});
+        //    console.log('body:\n' + JSON.stringify(req.body));
+        //    console.log('data:\n' + JSON.stringify(req.data));
+        //    console.log('source:\n' + JSON.stringify(req.source));
+        //    console.log('source1Uri:\n' + JSON.stringify(req.source1Uri));
+        //})
         .use((req, res, next) => {
             next({status: 404, message: `page "${req.path}" could not be found`});
         });
@@ -87,8 +108,8 @@ async function main() {
 }
 
 function startListening(server) {
-    const ss = systemdSocket();
     let _port;
+    /*const ss = systemdSocket();
     if (ss) {
         // ms (5 min default)
         const idleTimeout = process.env.IDLE_TIMEOUT;
@@ -107,7 +128,7 @@ function startListening(server) {
             logger.info(`  IDLE_TIMEOUT: ${idleTimeout}`);
         }
         _port = ss;
-    } else {
+    } else */{
         _port = defArgs.port;
     }
     logger.info(`  Listening on http://${defArgs.hostname}:${_port}/`);

@@ -15,7 +15,7 @@ temp.track();
 let hasSetUpAutoClean = false;
 const defaultUnrollFactor = 64;
 
-function initialise(compilerEnv) {
+function initialise(/*compilerEnv*/) {
     if (hasSetUpAutoClean) return;
     hasSetUpAutoClean = true;
     //const tempDirCleanupSecs = compilerEnv.ceProps("tempDirCleanupSecs", 600);
@@ -42,14 +42,15 @@ function initialise(compilerEnv) {
 }
 
 class EqcheckHandler {
-    constructor(compilationEnvironment/*, awsProps*/) {
+    constructor(superoptInstall/*, awsProps*/) {
         this.compilersById = {};
-        this.compilerEnv = compilationEnvironment;
+        this.superoptInstall = superoptInstall;
+        //this.compilerEnv = compilationEnvironment;
         this.factories = {};
         //this.textBanner = this.compilerEnv.ceProps('textBanner');
         this.proxy = httpProxy.createProxyServer({});
         //this.awsProps = awsProps;
-        initialise(this.compilerEnv);
+        initialise(/*this.compilerEnv*/);
 
         // Mostly cribbed from
         // https://github.com/nodejitsu/node-http-proxy/blob/master/examples/middleware/bodyDecoder-middleware.js
@@ -245,7 +246,7 @@ class EqcheckHandler {
 	    const redirect = ['-xml-output', outFilename];
 	    const unroll = ['-unroll-factor', unrollFactor];
 	    //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
-            return exec.execute("/usr/local/bin/eq32", ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(unroll)/*.concat(no_use_relocatable_mls)*/);
+            return exec.execute(this.superoptInstall + "/bin/eq32", ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(unroll)/*.concat(no_use_relocatable_mls)*/);
 	}).then( result => {
             return result;
 	})

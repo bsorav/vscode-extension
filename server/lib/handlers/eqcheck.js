@@ -97,7 +97,7 @@ class EqcheckHandler {
             //console.log('complete:\n' + JSON.stringify(req.complete));
             //console.log('rawTrailers:\n' + JSON.stringify(req.rawTrailers));
             ////console.log('res:\n' + JSON.stringify(req.res));
-						//console.log('mode:\n' + req.mode);
+            //console.log('mode:\n' + req.mode);
             //console.log('cache:\n' + req.cache);
             //console.log('body:\n' + JSON.stringify(req.body));
             //console.log('source:\n' + JSON.stringify(req.source));
@@ -225,31 +225,31 @@ class EqcheckHandler {
         const outFilename = this.get_outfilename(dirPath);
         //const errFilename = this.get_errfilename(dirPath);
 
-	return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             //console.log('dirPath = ', dirPath);
             const sourceFilename = path.join(dirPath, 'eqcheck.example.c');
-	    fs.writeFile(sourceFilename, source);
-	    resolve([dirPath,sourceFilename]);
-	}).then( values => {
+            fs.writeFile(sourceFilename, source);
+            resolve([dirPath,sourceFilename]);
+        }).then( values => {
              const dirPath = values[0];
-	     const sourceFilename = values[1];
+             const sourceFilename = values[1];
              //console.log('sourceFilename = ', sourceFilename);
              const optimizedFilename = path.join(dirPath, 'eqcheck.example.i386');
              fs.writeFile(optimizedFilename, optimized)
-	     return [dirPath,sourceFilename,optimizedFilename];
-	}).then( values => {
+             return [dirPath,sourceFilename,optimizedFilename];
+        }).then( values => {
             const dirPath = values[0];
-	    const sourceFilename = values[1];
-	    const optimizedFilename = values[2];
+            const sourceFilename = values[1];
+            const optimizedFilename = values[2];
             //console.log('assemblyFilename = ', assemblyFilename);
             //console.log('calling exec.execute() on eq');
-	    const redirect = ['-xml-output', outFilename];
-	    const unroll = ['-unroll-factor', unrollFactor];
-	    //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
+            const redirect = ['-xml-output', outFilename];
+            const unroll = ['-unroll-factor', unrollFactor];
+            //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
             return exec.execute(this.superoptInstall + "/bin/eq32", ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(unroll)/*.concat(no_use_relocatable_mls)*/);
-	}).then( result => {
+        }).then( result => {
             return result;
-	})
+        })
         //result.stdout = result.stdout.split('\n');
         //result.stderr = result.stderr.split('\n');
         //return { stdout: [ {line: 1, text: sourceFilename}], stderr: [{line: 2, text: assemblyFilename}] };
@@ -302,14 +302,14 @@ class EqcheckHandler {
         //    });
         //    return;
         //}
-	if (dirPathIn != undefined) {
-          //console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
-	  const ret = await this.getOutputChunk(dirPathIn, offsetIn);
-	  const offsetNew = ret[0];
+        if (dirPathIn != undefined) {
+          console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
+          const ret = await this.getOutputChunk(dirPathIn, offsetIn);
+          const offsetNew = ret[0];
           const chunkNew = ret[1];
-	  //console.log('chunkNew ', chunkNew);
+          //console.log('chunkNew ', chunkNew);
           res.end(JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkNew}));
-	  return;
+          return;
         }
 
         if (source === undefined) {
@@ -330,8 +330,8 @@ class EqcheckHandler {
         }
 
         //console.log('calling run_eqcheck in handler');
-	    //
-	const dirPath =  await this.newTempDir();
+            //
+        const dirPath =  await this.newTempDir();
         this.run_eqcheck(source, optimized, unrollFactor, dirPath)
             .then(
                 result => {

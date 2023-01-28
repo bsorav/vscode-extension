@@ -9,7 +9,7 @@ const temp = require('temp'),
     utils = require('../utils'),
     which = require('which'),
     Sentry = require('@sentry/node'),
-    xml2json = require('xml2json');
+    xml2js = require('xml2js');
 
 temp.track();
 
@@ -322,11 +322,34 @@ class EqcheckHandler {
           console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
           const ret = await this.getOutputChunk(dirPathIn, offsetIn);
           const offsetNew = ret[0];
-          const chunkXML = ret[1];
-          const chunkJson = xml2json.toJson(chunkXML);
+          let chunkXML_orig = ret[1];
+          let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
+          console.log("chunkXML:\n" + chunkXML);
+
+          //var xml = "<root>Hello xml2js!</root>"
+          var chunkObj;
+          xml2js.parseString(chunkXML, {explictArray: true}, function (err, result) {
+              //console.dir(result);
+              chunkObj = result;
+          });
+
+          //const chunkJson = xml2json.toJson(chunkXML, );
+          //const chunkObj = JSON.parse(chunkJson);
+          //const chunkObj = xml2json.toJson(chunkXML, { object: true, arrayNotation: true });
+          //console.log("chunkJson:\n" + chunkJson);
+          //console.log("chunkObj:\n" + chunkObj);
+          console.log("JSON.stringify(chunkObj):\n" + JSON.stringify(chunkObj));
+
+          //console.log("chunkJson:\n" + JSON.stringify(chunkJson, null, "    ") );
+          //console.log("chunkJson:\n" + JSON.stringify(chunkJson));
+          //for (var key in chunkJson) {
+          //  console.log('key ' + key);
+          //  console.log('value ' + chunkJson[key]);
+          //}
+
           //console.log('chunkNew ', chunkNew);
-          const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkJson});
-          console.log('chunkStr =\n' + chunkStr);
+          const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj});
+          //console.log('chunkStr =\n' + chunkStr);
           res.end(chunkStr);
           return;
         }

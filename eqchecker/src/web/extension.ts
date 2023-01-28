@@ -76,7 +76,7 @@ class Eqchecker {
 
   public static addEqcheckOutput(dirPath: string, jsonMessages) : boolean
   {
-    let messages = jsonMessages['MSG'];
+    let messages = jsonMessages['\"MSG\"'];
     console.log("addEqcheckOutput called. messages.length = " + messages.length);
     if (messages === undefined || messages.length === 0) {
       return false;
@@ -84,12 +84,10 @@ class Eqchecker {
     messages.foreach(function(message) {
       console.log(message);
     });
-    if (chunk !== undefined) {
-      if (Eqchecker.outputMap[dirPath] === undefined) {
-          Eqchecker.outputMap[dirPath] = messages;
-      } else {
-          Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
-      }
+    if (Eqchecker.outputMap[dirPath] === undefined) {
+        Eqchecker.outputMap[dirPath] = messages;
+    } else {
+        Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
     return Eqchecker.outputMap[dirPath].includes('</eqchecker>');
   }

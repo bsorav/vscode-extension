@@ -42,6 +42,7 @@
     "which": "^3.0.0",
     "winston": "^3.8.2",
     "winston-papertrail": "^1.0.5",
-    "winston-transport": "^4.5.0"
+    "winston-transport": "^4.5.0",
+    "xml2json": "^0.12.0"
   }
 }

@@ -72,16 +72,23 @@ function uri2str(uri : vscode.Uri) : string {
 
 class Eqchecker {
   public static serverURL : string = defaultServerURL;
-  public static outputMap: Record<string, string> = {};
+  public static outputMap: Record<string, string[]> = {};
 
-  public static addEqcheckOutput(dirPath: string, chunk: string) : boolean
+  public static addEqcheckOutput(dirPath: string, jsonMessages) : boolean
   {
-    //console.log("addEqcheckOutput called.");
+    let messages = jsonMessages['MSG'];
+    console.log("addEqcheckOutput called. messages.length = " + messages.length);
+    if (messages === undefined || messages.length === 0) {
+      return false;
+    }
+    messages.foreach(function(message) {
+      console.log(message);
+    });
     if (chunk !== undefined) {
       if (Eqchecker.outputMap[dirPath] === undefined) {
-          Eqchecker.outputMap[dirPath] = chunk;
+          Eqchecker.outputMap[dirPath] = messages;
       } else {
-          Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(chunk);
+          Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
       }
     }
     return Eqchecker.outputMap[dirPath].includes('</eqchecker>');
@@ -110,12 +117,12 @@ class Eqchecker {
       .then(async function(result) {
         let dirPath = result.dirPath;
         let offset = result.offset;
-        let chunk = result.chunk.toString();
+        let chunk = result.chunk;
         console.log(`dirPath = ${dirPath}.\n`);
         console.log(`offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
         if (!Eqchecker.addEqcheckOutput(dirPath, chunk)) {
-          console.log("added to Eqcheck Output, not done yet.\n");
+          //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
           let jsonRequestNew = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
           return Eqchecker.RequestNextChunk(jsonRequestNew);
@@ -409,17 +416,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-		webviewView.webview.onDidReceiveMessage(data => {
-			switch (data.type) {
-				case 'addEqcheckOutput':
-					{
-            //vscode.window.showInformationMessage(`eqcheckSelected received.`);
-						//vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
-            Eqchecker.addEqcheckOutput(data.dirPath, data.chunk);
-						break;
-					}
-			}
-		});
+		//webviewView.webview.onDidReceiveMessage(data => {
+		//	switch (data.type) {
+		//		case 'addEqcheckOutput':
+		//			{
+    //        //vscode.window.showInformationMessage(`eqcheckSelected received.`);
+		//				//vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
+    //        Eqchecker.addEqcheckOutput(data.dirPath, data.chunk);
+		//				break;
+		//			}
+		//	}
+		//});
 	}
 
   public viewProviderAddEqcheck(message)

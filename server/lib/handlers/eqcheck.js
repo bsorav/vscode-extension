@@ -8,7 +8,8 @@ const temp = require('temp'),
     logger = require('../logger').logger,
     utils = require('../utils'),
     which = require('which'),
-    Sentry = require('@sentry/node');
+    Sentry = require('@sentry/node'),
+    xml2json = require('xml2json');
 
 temp.track();
 
@@ -280,10 +281,21 @@ class EqcheckHandler {
       let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
       chunkBuf = chunkBuf.slice(0, numread);
       let chunk = chunkBuf.toString();
+      const end_of_message_marker = "</MSG>";
+
+      let lastMessage = chunk.indexOf(end_of_message_marker);
+      if (lastMessage === -1) {
+        return [offset, ""];
+      }
+      let chunkEnd = lastMessage + end_of_message_marker.length;
+      let truncatedChunk = chunk.substring(0, chunkEnd);
+
       //console.log('numread = ', numread, ", chunk ", chunk);
       await fs.close(outfd);
-      let offsetNew = offset + numread;
-      return [offsetNew, chunk];
+      //let offsetNew = offset + numread;
+      //return [offsetNew, chunk];
+      let offsetNew = offset + chunkEnd;
+      return [offsetNew, truncatedChunk];
     }
 
     async handle(req, res, next) {
@@ -310,9 +322,12 @@ class EqcheckHandler {
           console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
           const ret = await this.getOutputChunk(dirPathIn, offsetIn);
           const offsetNew = ret[0];
-          const chunkNew = ret[1];
+          const chunkXML = ret[1];
+          const chunkJson = xml2json.toJson(chunkXML);
           //console.log('chunkNew ', chunkNew);
-          res.end(JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkNew}));
+          const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkJson});
+          console.log('chunkStr =\n' + chunkStr);
+          res.end(chunkStr);
           return;
         }
 

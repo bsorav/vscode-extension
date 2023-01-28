@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 //import * as path from 'path';
 
 var defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080';
+var EqcheckDoneMessage = 'Eqcheck DONE';
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -76,20 +77,42 @@ class Eqchecker {
 
   public static addEqcheckOutput(dirPath: string, jsonMessages) : boolean
   {
-    let messages = jsonMessages['\"MSG\"'];
-    console.log("addEqcheckOutput called. messages.length = " + messages.length);
-    if (messages === undefined || messages.length === 0) {
+    if (jsonMessages === null || jsonMessages.messages === undefined) {
       return false;
     }
-    messages.foreach(function(message) {
-      console.log(message);
-    });
+    //const rawData = `{
+    //  "price":13300000,
+    //  "area":7420,
+    //  "bedrooms":4,
+    //  "bathrooms":2,
+    //  "stories":3,
+    //  "airconditioning":true
+    //}`;
+
+    //let jsonData = JSON.parse(rawData);
+    //console.log("jsonData:\n" + JSON.stringify(jsonData));
+
+    //console.log("jsonMessages[MSG]:\n" + jsonMessages.messages.MSG);
+    //for (var key in jsonMessages) {
+    //  console.log('key ' + key);
+    //  console.log('value ' + jsonMessages[key]);
+    //}
+    let messages = jsonMessages.messages.MSG;
+    if (messages === undefined || messages.length === 0) {
+      //console.log("messages = " + messages);
+      return false;
+    }
+    //console.log("addEqcheckOutput called. messages.length = " + messages.length);
+    //messages.foreach(function(message) {
+    //  console.log(message);
+    //});
     if (Eqchecker.outputMap[dirPath] === undefined) {
         Eqchecker.outputMap[dirPath] = messages;
     } else {
         Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
-    return Eqchecker.outputMap[dirPath].includes('</eqchecker>');
+    let numMessages = Eqchecker.outputMap[dirPath].length;
+    return Eqchecker.outputMap[dirPath][numMessages - 1] === EqcheckDoneMessage;
   }
 
   public static async RequestNextChunk(jsonRequest) : Promise<string> {
@@ -153,7 +176,7 @@ class Eqchecker {
       source = doc.getText();
     });
     await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
-      console.log("opened source1Uri");
+      console.log("opened source2Uri");
       if (doc.isDirty) {}
       optimized = doc.getText();
     });

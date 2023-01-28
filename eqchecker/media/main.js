@@ -5,11 +5,11 @@
 (function () {
     const vscode = acquireVsCodeApi();
 
-    //const oldState = vscode.getState() || { eqchecks: [] };
     const oldState = vscode.getState() || { eqchecks: [] };
     //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     let eqchecks = oldState.eqchecks;
+    //let eqchecks = [];
 
     updateEqcheckList(eqchecks);
 
@@ -42,6 +42,8 @@
     function updateEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
+        //ul.empty();
+        //ul.innerHTML = "";
         for (const eqcheck of eqchecks) {
             const li = document.createElement('li');
             li.className = 'eqcheck-entry';
@@ -90,10 +92,9 @@
 
             ul.appendChild(li);
         }
-	      document.getElementById('hoverEqcheckSource1Uri').style.display='none';
-	      document.getElementById('hoverEqcheckSource2Uri').style.display='none';
-	      document.getElementById('hoverEqcheckArrow').style.display='none';
-	      document.getElementById('eqcheck-right-click-menu.item').style.display='none';
+	      //document.getElementById('hoverEqcheckSource1Uri').style.display='none';
+	      //document.getElementById('hoverEqcheckSource2Uri').style.display='none';
+	      //document.getElementById('hoverEqcheckArrow').style.display='none';
 
         // Update the saved state
         vscode.setState({ eqchecks : eqchecks });
@@ -104,11 +105,11 @@
      */
     function onEqcheckMouseOver(eqcheck) {
         //do nothing for now. Should display the URIs
-	      document.getElementById('hoverEqcheckSource1Uri').value = eqcheck.source1Uri;
-	      document.getElementById('hoverEqcheckSource2Uri').value = eqcheck.source2Uri;
-	      document.getElementById('hoverEqcheckArrow').style.display = 'inline';
-	      document.getElementById('hoverEqcheckSource1Uri').style.display='inline';
-	      document.getElementById('hoverEqcheckSource2Uri').style.display='inline';
+	      //document.getElementById('hoverEqcheckSource1Uri').value = eqcheck.source1Uri;
+	      //document.getElementById('hoverEqcheckSource2Uri').value = eqcheck.source2Uri;
+	      //document.getElementById('hoverEqcheckArrow').style.display = 'inline';
+	      //document.getElementById('hoverEqcheckSource1Uri').style.display='inline';
+	      //document.getElementById('hoverEqcheckSource2Uri').style.display='inline';
     }
 
     /**
@@ -122,9 +123,9 @@
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
      */
     function onEqcheckMouseLeave(eqcheck) {
-	    document.getElementById('hoverEqcheckSource1Uri').style.display='none';
-	    document.getElementById('hoverEqcheckSource2Uri').style.display='none';
-	    document.getElementById('hoverEqcheckArrow').style.display = 'none';
+	    //document.getElementById('hoverEqcheckSource1Uri').style.display='none';
+	    //document.getElementById('hoverEqcheckSource2Uri').style.display='none';
+	    //document.getElementById('hoverEqcheckArrow').style.display = 'none';
     }
 
     /**
@@ -201,6 +202,7 @@
     function clearEqchecks() {
         //eqchecks.push({ value: getNewCalicoColor() });
         eqchecks = [];
+        console.log('clearEqchecks Called');
         updateEqcheckList(eqchecks);
     }
 }());

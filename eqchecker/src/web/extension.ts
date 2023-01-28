@@ -75,7 +75,7 @@ class Eqchecker {
   public static serverURL : string = defaultServerURL;
   public static outputMap: Record<string, string[]> = {};
 
-  public static addEqcheckOutput(dirPath: string, jsonMessages) : boolean
+  public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages) : boolean
   {
     if (jsonMessages === null || jsonMessages.messages === undefined) {
       return false;
@@ -111,11 +111,25 @@ class Eqchecker {
     } else {
         Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
-    let numMessages = Eqchecker.outputMap[dirPath].length;
-    return Eqchecker.outputMap[dirPath][numMessages - 1] === EqcheckDoneMessage;
+    const lastMessage = Eqchecker.getLastMessage(dirPath);
+    var request =
+        { type: 'lastMessageUpdate',
+          dirPath: dirPath,
+          lastMessage: lastMessage,
+          origRequest: origRequest,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(request);
+
+    return lastMessage === EqcheckDoneMessage;
   }
 
-  public static async RequestNextChunk(jsonRequest) : Promise<string> {
+  public static getLastMessage(dirPath)
+  {
+    let numMessages = Eqchecker.outputMap[dirPath].length;
+    return Eqchecker.outputMap[dirPath][numMessages - 1];
+  }
+
+  public static async RequestNextChunk(jsonRequest, origRequest) : Promise<string> {
     var dirPath : string;
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
     //console.log(`url = ${url}`);
@@ -142,11 +156,11 @@ class Eqchecker {
         console.log(`dirPath = ${dirPath}.\n`);
         console.log(`offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
-        if (!Eqchecker.addEqcheckOutput(dirPath, chunk)) {
+        if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
           let jsonRequestNew = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
-          return Eqchecker.RequestNextChunk(jsonRequestNew);
+          return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest);
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
         } else {
           console.log("done adding Eqcheck Output.\n");
@@ -195,7 +209,7 @@ class Eqchecker {
         };
 
     var jsonRequest = JSON.stringify(request);
-    Eqchecker.RequestNextChunk(jsonRequest);
+    Eqchecker.RequestNextChunk(jsonRequest, request);
     //var responseData : string;
     //var promise = new Promise(_.bind(function (resolve, reject) {
     //    var ajaxFn = _.bind(async function() {
@@ -262,7 +276,7 @@ class Eqchecker {
     //  }
     //});
 
-    EqcheckViewProvider.provider.viewProviderAddEqcheck(request);
+    EqcheckViewProvider.provider.viewProviderPostMessage(request);
 	}
 
 
@@ -450,7 +464,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 		//});
 	}
 
-  public viewProviderAddEqcheck(message)
+  public viewProviderPostMessage(message)
   {
     if (this._view) {
 		 this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders

@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 const defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080'
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
+const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -113,15 +114,23 @@ class Eqchecker {
         Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
+    const [statusMessage, bgColor] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages);
     var request =
-        { type: 'lastMessagesUpdate',
+        { type: 'updateEqcheckInView',
           dirPath: dirPath,
-          lastMessages: lastMessages,
           origRequest: origRequest,
+          statusMessage: statusMessage,
+          bgColor: bgColor,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
 
     return lastMessages[0] === EqcheckDoneMessage;
+  }
+
+  public static determineEqcheckViewStatusFromLastMessages(lastMessages)
+  {
+    const bgColor = '#000000';
+    return [lastMessages[0], bgColor];
   }
 
   public static getLastMessages(dirPath, n)
@@ -208,6 +217,7 @@ class Eqchecker {
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
           functionName: entry.functionName,
+          statusMessage: EQCHECK_STATUS_MESSAGE_START,
           bgColor: this.getNewCalicoColor(),
           source : source,
           optimized : optimized,

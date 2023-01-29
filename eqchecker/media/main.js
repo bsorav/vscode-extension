@@ -23,8 +23,14 @@
         switch (message.type) {
             case 'addEqcheck':
                 {
-                    console.log("received message");
-                    addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.bgColor);
+                    //console.log("received message '" + message.type + "'");
+                    addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.statusMessage, message.bgColor);
+                    break;
+                }
+            case 'updateEqcheckInView':
+                {
+                    //console.log("received message '" + message.type + "'");
+                    updateEqcheckInView(message.origRequest, message.dirPath, message.statusMessage, message.bgColor);
                     break;
                 }
             //case 'clearEqchecks':
@@ -178,6 +184,31 @@
     }
 
     /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, bgColor: string }} origRequest, dirName: string, statusMessage: string, bgColor: string
+     */
+    function updateEqcheckInView(origRequest, dirPath, statusMessage, bgColor)
+    {
+      console.log('statusMessage = ' + statusMessage + '\n');
+      console.log('bgColor = ' + bgColor + '\n');
+      for (const eqcheck of eqchecks) {
+        if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
+          eqcheck.statusMessage = statusMessage;
+          eqcheck.bgColor = bgColor;
+          break;
+        }
+      }
+      updateEqcheckList(eqchecks);
+    }
+
+    /**
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, bgColor: string }} eqcheck, dirName: string, statusMessage: string, bgColor: string
+     */
+    function eqcheckMatchesOrigRequest(eqcheck, origRequest) : boolean
+    {
+      return false;
+    }
+
+    /**
      * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _bgColor: string
      */
     function addEqcheckInView(
@@ -194,7 +225,8 @@
         source2Uri: _source2Uri,
         source2Name: _source2Name,
         functionName: _functionName,
-        bgColor: _bgColor
+        statusMessage : _statusMessage,
+        bgColor: _bgColor,
       });
       updateEqcheckList(eqchecks);
     }
@@ -202,7 +234,7 @@
     function clearEqchecks() {
         //eqchecks.push({ value: getNewCalicoColor() });
         eqchecks = [];
-        console.log('clearEqchecks Called');
+        //console.log('clearEqchecks Called');
         updateEqcheckList(eqchecks);
     }
 }());

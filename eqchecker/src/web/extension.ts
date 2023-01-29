@@ -6,8 +6,9 @@ import * as vscode from 'vscode';
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-var defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080';
-var EqcheckDoneMessage = 'Eqcheck DONE';
+const defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080'
+const EqcheckDoneMessage = 'Eqcheck DONE';
+const NUM_LAST_MESSAGES = 3;
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -111,22 +112,26 @@ class Eqchecker {
     } else {
         Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
-    const lastMessage = Eqchecker.getLastMessage(dirPath);
+    const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     var request =
-        { type: 'lastMessageUpdate',
+        { type: 'lastMessagesUpdate',
           dirPath: dirPath,
-          lastMessage: lastMessage,
+          lastMessages: lastMessages,
           origRequest: origRequest,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
 
-    return lastMessage === EqcheckDoneMessage;
+    return lastMessages[0] === EqcheckDoneMessage;
   }
 
-  public static getLastMessage(dirPath)
+  public static getLastMessages(dirPath, n)
   {
+    var lastMessages : string[] = [];
     let numMessages = Eqchecker.outputMap[dirPath].length;
-    return Eqchecker.outputMap[dirPath][numMessages - 1];
+    for (let i = 0; i < n; i++) {
+      lastMessages.push(Eqchecker.outputMap[dirPath][numMessages - 1 - i]);
+    }
+    return lastMessages;
   }
 
   public static async RequestNextChunk(jsonRequest, origRequest) : Promise<string> {

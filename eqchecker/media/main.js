@@ -198,30 +198,30 @@
       return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
     }
 
-    /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
-     */
-    function updateEqcheckInView(origRequest, dirPath, statusMessage, runState)
-    {
-      console.log('statusMessage = ' + statusMessage + '\n');
-      console.log('runState = ' + runState + '\n');
-      for (const eqcheck of eqchecks) {
-        if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
-          eqcheck.statusMessage = statusMessage;
-          eqcheck.runState = runState;
-          break;
-        }
-      }
-      updateEqcheckList(eqchecks);
-    }
+    ///**
+    // * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
+    // */
+    //function updateEqcheckInView(origRequest, dirPath, statusMessage, runState)
+    //{
+    //  console.log('statusMessage = ' + statusMessage + '\n');
+    //  console.log('runState = ' + runState + '\n');
+    //  for (const eqcheck of eqchecks) {
+    //    if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
+    //      eqcheck.statusMessage = statusMessage;
+    //      eqcheck.runState = runState;
+    //      break;
+    //    }
+    //  }
+    //  updateEqcheckList(eqchecks);
+    //}
 
-    /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
-     */
-    function eqcheckMatchesOrigRequest(eqcheck, origRequest) : boolean
-    {
-      return false;
-    }
+    ///**
+    // * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
+    // */
+    //function eqcheckMatchesOrigRequest(eqcheck, origRequest) : boolean
+    //{
+    //  return false;
+    //}
 
     /**
      * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _statusMessage: string, _runState: string

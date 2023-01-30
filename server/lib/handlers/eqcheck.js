@@ -272,18 +272,39 @@ class EqcheckHandler {
     }
 
     async getOutputChunk(dirPath, offset) {
-      const max_chunksize = 8192;
+      const max_chunksize = 8192; //8192-byte intervals
       let outFilename;
-      let chunkBuf = Buffer.alloc(max_chunksize);
+      //let chunkBuf = Buffer.alloc(max_chunksize);
 
       outFilename = this.get_outfilename(dirPath);
       let outfd = await fs.open(outFilename, 'r');
-      let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
-      chunkBuf = chunkBuf.slice(0, numread);
+
+      let stats = fs.fstatSync(outfd);
+      //console.log("stats.size = " + stats.size);
+      //console.log("offset = " + offset);
+      if (stats.size === undefined) {
+        return [offset, ""];
+      }
+      var bufferSize = stats.size - offset;
+      if (bufferSize === 0) {
+        return [offset, ""];
+      }
+      var buffer = Buffer.alloc(bufferSize);
+      var bytesRead = 0;
+
+      while (bytesRead < bufferSize) {
+        var size = Math.min(max_chunksize, bufferSize - bytesRead);
+        var read = fs.readSync(outfd, buffer, bytesRead, size, offset + bytesRead);
+        bytesRead += read;
+      }
+      const numread = bytesRead;
+
+      //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
+      let chunkBuf = buffer.slice(0, numread);
       let chunk = chunkBuf.toString();
       const end_of_message_marker = "</MSG>";
 
-      let lastMessage = chunk.indexOf(end_of_message_marker);
+      let lastMessage = chunk.lastIndexOf(end_of_message_marker);
       if (lastMessage === -1) {
         return [offset, ""];
       }

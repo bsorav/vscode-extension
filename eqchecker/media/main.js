@@ -11,7 +11,7 @@
     let eqchecks = oldState.eqchecks;
     //let eqchecks = [];
 
-    updateEqcheckList(eqchecks);
+    displayEqcheckList(eqchecks);
 
     document.querySelector('.clear-eqchecks-button').addEventListener('click', () => {
         clearEqchecks();
@@ -56,7 +56,7 @@
     /**
      * @param {Array<{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }>} eqchecks
      */
-    function updateEqcheckList(eqchecks) {
+    function displayEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
         //ul.empty();
@@ -211,7 +211,7 @@
           break;
         }
       }
-      updateEqcheckList(eqchecks);
+      displayEqcheckList(eqchecks);
     }
 
     ///**
@@ -248,13 +248,13 @@
         statusMessage : _statusMessage,
         runState: _runState,
       });
-      updateEqcheckList(eqchecks);
+      displayEqcheckList(eqchecks);
     }
 
     function clearEqchecks() {
         //eqchecks.push({ value: getNewCalicoColor() });
         eqchecks = [];
         //console.log('clearEqchecks Called');
-        updateEqcheckList(eqchecks);
+        displayEqcheckList(eqchecks);
     }
 }());

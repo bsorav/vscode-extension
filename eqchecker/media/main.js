@@ -69,9 +69,8 @@
             eqcheckPreview.className = 'eqcheck-preview';
             //const bgColor = '000000';
             const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
-            console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
+            //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
             eqcheckPreview.style.backgroundColor = `#${bgColor}`;
-            eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}<br>${eqcheck.statusMessage}`;
             eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
                 onEqcheckMouseOver(eqcheck);
             });
@@ -92,6 +91,30 @@
                 hideRightClickMenu(eqcheck);
                 onEqcheckClicked(eqcheck);
             });
+
+            var t = document.createElement("table");
+            t.setAttribute("id", "eqcheck-preview-table");
+            eqcheckPreview.appendChild(t);
+
+            var th = document.createElement("th");
+            th.setAttribute("id", "Eqcheck header row");
+            var thd = document.createElement("td");
+            //var thd_text = document.createTextNode(`${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`);
+            //thd.appendChild(thd_text);
+            thd.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`;
+            th.appendChild(thd);
+            t.appendChild(th);
+
+            var tr = document.createElement("tr");
+            tr.setAttribute("id", "Eqcheck status row");
+            var trd = document.createElement("td");
+            var trd_text = document.createTextNode(`${eqcheck.statusMessage}`);
+            trd.appendChild(trd_text);
+            tr.appendChild(trd);
+            t.appendChild(tr);
+
+            eqcheckPreview.appendChild(t);
+            //eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}<br>${eqcheck.statusMessage}`;
             li.appendChild(eqcheckPreview);
 
             //const input = document.createElement('input');

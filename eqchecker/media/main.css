@@ -9,7 +9,7 @@ body {
 
 .eqcheck-entry {
 	width: 100%;
-	font-size: 15px;
+	font-size: 10px;
 	text-align: center;
 	display: flex;
 	border: 0.1px solid var(--vscode-input-border);

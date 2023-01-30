@@ -48,7 +48,7 @@
     function getBackgroundColorFromRunstate(runState)
     {
       switch(runState) {
-        case "RunstateRunning": return "008000";
+        case "RunstateRunning": return "006400"; //dark green
         default: return "000000";
       }
     }
@@ -67,12 +67,11 @@
 
             const eqcheckPreview = document.createElement('div');
             eqcheckPreview.className = 'eqcheck-preview';
-            const bgColor = '000000';
-            //const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
-            //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
-            //eqcheckPreview.style.backgroundColor = `#${bgColor}`;
-            eqcheckPreview.style.backgroundColor = '000000';
-            eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`;
+            //const bgColor = '000000';
+            const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
+            console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
+            eqcheckPreview.style.backgroundColor = `#${bgColor}`;
+            eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}<br>${eqcheck.statusMessage}`;
             eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
                 onEqcheckMouseOver(eqcheck);
             });
@@ -201,27 +200,31 @@
     ///**
     // * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
     // */
-    //function updateEqcheckInView(origRequest, dirPath, statusMessage, runState)
-    //{
-    //  console.log('statusMessage = ' + statusMessage + '\n');
-    //  console.log('runState = ' + runState + '\n');
-    //  for (const eqcheck of eqchecks) {
-    //    if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
-    //      eqcheck.statusMessage = statusMessage;
-    //      eqcheck.runState = runState;
-    //      break;
-    //    }
-    //  }
-    //  updateEqcheckList(eqchecks);
-    //}
+    function updateEqcheckInView(origRequest, dirPath, statusMessage, runState)
+    {
+      //console.log('statusMessage = ' + statusMessage + '\n');
+      //console.log('runState = ' + runState + '\n');
+      for (const eqcheck of eqchecks) {
+        if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
+          eqcheck.statusMessage = statusMessage;
+          eqcheck.runState = runState;
+          break;
+        }
+      }
+      updateEqcheckList(eqchecks);
+    }
 
     ///**
     // * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
     // */
-    //function eqcheckMatchesOrigRequest(eqcheck, origRequest) : boolean
-    //{
-    //  return false;
-    //}
+    function eqcheckMatchesOrigRequest(eqcheck, origRequest)
+    {
+      return true
+        && eqcheck.source1Uri === origRequest.source1Uri
+        && eqcheck.source2Uri === origRequest.source2Uri
+        && eqcheck.functionName === origRequest.functionName
+      ;
+    }
 
     /**
      * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _statusMessage: string, _runState: string

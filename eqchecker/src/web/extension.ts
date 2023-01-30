@@ -169,17 +169,16 @@ class Eqchecker {
       })
       .then(async function(result) {
         if (firstRequest) {
-          console.log("first response received.\n");
+          //console.log("first response received.\n");
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
           vscode.window.showInformationMessage(`Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`);
         } else {
-          console.log("response received.\n");
+          //console.log("response received.\n");
         }
         let dirPath = result.dirPath;
         let offset = result.offset;
         let chunk = result.chunk;
-        console.log(`dirPath = ${dirPath}.\n`);
-        console.log(`offset = ${offset}.\n`);
+        console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
         if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
@@ -502,7 +501,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     if (this._view) {
 		 this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
-     console.log("Posting message.");
+     //console.log("Posting message.");
 		 this._view.webview.postMessage(
         message,
       );

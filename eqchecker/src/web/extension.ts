@@ -77,6 +77,11 @@ class Eqchecker {
   public static serverURL : string = defaultServerURL;
   public static outputMap: Record<string, string[]> = {};
 
+  public static fetchFailed(err, url)
+  {
+    vscode.window.showInformationMessage(`Connection failed to eqcheck server: ${err}: URL ${url}`);
+  }
+
   public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages) : boolean
   {
     if (jsonMessages === null || jsonMessages.messages === undefined) {
@@ -114,13 +119,13 @@ class Eqchecker {
         Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
-    const [statusMessage, bgColor] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages);
+    const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages);
     var request =
         { type: 'updateEqcheckInView',
           dirPath: dirPath,
           origRequest: origRequest,
           statusMessage: statusMessage,
-          bgColor: bgColor,
+          runState: runState,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
 
@@ -129,8 +134,8 @@ class Eqchecker {
 
   public static determineEqcheckViewStatusFromLastMessages(lastMessages)
   {
-    const bgColor = '#000000';
-    return [lastMessages[0], bgColor];
+    const runState = 'RunstateRunning';
+    return [lastMessages[0], runState];
   }
 
   public static getLastMessages(dirPath, n)
@@ -143,7 +148,7 @@ class Eqchecker {
     return lastMessages;
   }
 
-  public static async RequestNextChunk(jsonRequest, origRequest) : Promise<string> {
+  public static async RequestNextChunk(jsonRequest, origRequest, firstRequest:boolean) : Promise<string> {
     var dirPath : string;
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
     //console.log(`url = ${url}`);
@@ -160,7 +165,13 @@ class Eqchecker {
         }
       })
       .then(function(response) {
-        console.log("response received.\n");
+        if (firstRequest) {
+          console.log("first response received.\n");
+          EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
+          vscode.window.showInformationMessage(`Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`);
+        } else {
+          console.log("response received.\n");
+        }
         return response.json();
       })
       .then(async function(result) {
@@ -174,7 +185,7 @@ class Eqchecker {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
           let jsonRequestNew = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
-          return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest);
+          return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
         } else {
           console.log("done adding Eqcheck Output.\n");
@@ -182,6 +193,7 @@ class Eqchecker {
         }
       })
       .catch(function(err) {
+        Eqchecker.fetchFailed(err, url);
         console.log(`Error: ${err}`)
         return "";
       });
@@ -218,13 +230,21 @@ class Eqchecker {
           source2Name: entry.source2Name,
           functionName: entry.functionName,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
-          bgColor: this.getNewCalicoColor(),
+          //bgColor: this.getNewCalicoColor(),
+          runState: 'RunstateRunning',
           source : source,
           optimized : optimized,
         };
 
     var jsonRequest = JSON.stringify(request);
-    Eqchecker.RequestNextChunk(jsonRequest, request);
+    const response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    console.log(`response = ${response}.`);
+    if (response !== "") {
+      console.log('returning true');
+      return true;
+    }
+    console.log('returning false');
+    return false;
     //var responseData : string;
     //var promise = new Promise(_.bind(function (resolve, reject) {
     //    var ajaxFn = _.bind(async function() {
@@ -290,8 +310,6 @@ class Eqchecker {
     //    message = x.error || x.code;
     //  }
     //});
-
-    EqcheckViewProvider.provider.viewProviderPostMessage(request);
 	}
 
 
@@ -326,8 +344,9 @@ class Eqchecker {
       let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
       console.log("eqcheckPairs size " + eqcheckPairs.length);
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
-      vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
-      Eqchecker.addEqcheck(eqcheckPairs[result]);
+      if (await Eqchecker.addEqcheck(eqcheckPairs[result]) === true) {
+        vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
+      }
   	    //console.log(tabs);
   		//let url = "http://localhost:3000";
   		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
@@ -483,7 +502,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     if (this._view) {
 		 this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
-      //console.log("Posting message.");
+     console.log("Posting message.");
 		 this._view.webview.postMessage(
         message,
       );

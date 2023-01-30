@@ -23,14 +23,14 @@
         switch (message.type) {
             case 'addEqcheck':
                 {
-                    //console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.statusMessage, message.bgColor);
+                    console.log("received message '" + message.type + "'");
+                    addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.statusMessage, message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    updateEqcheckInView(message.origRequest, message.dirPath, message.statusMessage, message.bgColor);
+                    updateEqcheckInView(message.origRequest, message.dirPath, message.statusMessage, message.runState);
                     break;
                 }
             //case 'clearEqchecks':
@@ -43,7 +43,18 @@
     });
 
     /**
-     * @param {Array<{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }>} eqchecks
+     * @param {string} runState
+     */
+    function getBackgroundColorFromRunstate(runState)
+    {
+      switch(runState) {
+        case "RunstateRunning": return "008000";
+        default: return "000000";
+      }
+    }
+
+    /**
+     * @param {Array<{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }>} eqchecks
      */
     function updateEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
@@ -56,7 +67,11 @@
 
             const eqcheckPreview = document.createElement('div');
             eqcheckPreview.className = 'eqcheck-preview';
-            eqcheckPreview.style.backgroundColor = `#${eqcheck.bgColor}`;
+            const bgColor = '000000';
+            //const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
+            //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
+            //eqcheckPreview.style.backgroundColor = `#${bgColor}`;
+            eqcheckPreview.style.backgroundColor = '000000';
             eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`;
             eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
                 onEqcheckMouseOver(eqcheck);
@@ -107,7 +122,7 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseOver(eqcheck) {
         //do nothing for now. Should display the URIs
@@ -119,14 +134,14 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseOut(eqcheck) {
         //do nothing for now. Should display the URIs
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseLeave(eqcheck) {
 	    //document.getElementById('hoverEqcheckSource1Uri').style.display='none';
@@ -135,7 +150,7 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck, {number} mouseX, {number} mouseY
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck, {number} mouseX, {number} mouseY
      */
     function showRightClickMenu(eqcheck, mouseX, mouseY) {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
@@ -151,7 +166,7 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckRightClick(eqcheck, event) {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
@@ -163,37 +178,37 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckDoubleClick(eqcheck) {
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, bgColor: string }} eqcheck
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function getHoverMessage(eqcheck) {
       return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, bgColor: string }} origRequest, dirName: string, statusMessage: string, bgColor: string
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
      */
-    function updateEqcheckInView(origRequest, dirPath, statusMessage, bgColor)
+    function updateEqcheckInView(origRequest, dirPath, statusMessage, runState)
     {
       console.log('statusMessage = ' + statusMessage + '\n');
-      console.log('bgColor = ' + bgColor + '\n');
+      console.log('runState = ' + runState + '\n');
       for (const eqcheck of eqchecks) {
         if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
           eqcheck.statusMessage = statusMessage;
-          eqcheck.bgColor = bgColor;
+          eqcheck.runState = runState;
           break;
         }
       }
@@ -201,7 +216,7 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, bgColor: string }} eqcheck, dirName: string, statusMessage: string, bgColor: string
+     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
      */
     function eqcheckMatchesOrigRequest(eqcheck, origRequest) : boolean
     {
@@ -209,7 +224,7 @@
     }
 
     /**
-     * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _bgColor: string
+     * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _runState: string
      */
     function addEqcheckInView(
         _source1Uri,
@@ -217,8 +232,9 @@
         _source2Uri,
         _source2Name,
         _functionName,
-        _bgColor
+        _runState
     ) {
+      console.log(`runState = ${_runState}`);
       eqchecks.push({
         source1Uri: _source1Uri,
         source1Name: _source1Name,
@@ -226,7 +242,7 @@
         source2Name: _source2Name,
         functionName: _functionName,
         statusMessage : _statusMessage,
-        bgColor: _bgColor,
+        runState: _runState,
       });
       updateEqcheckList(eqchecks);
     }

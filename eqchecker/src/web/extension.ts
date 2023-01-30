@@ -165,6 +165,9 @@ class Eqchecker {
         }
       })
       .then(function(response) {
+        return response.json();
+      })
+      .then(async function(result) {
         if (firstRequest) {
           console.log("first response received.\n");
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
@@ -172,9 +175,6 @@ class Eqchecker {
         } else {
           console.log("response received.\n");
         }
-        return response.json();
-      })
-      .then(async function(result) {
         let dirPath = result.dirPath;
         let offset = result.offset;
         let chunk = result.chunk;

@@ -224,7 +224,7 @@
     }
 
     /**
-     * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _runState: string
+     * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _statusMessage: string, _runState: string
      */
     function addEqcheckInView(
         _source1Uri,
@@ -232,6 +232,7 @@
         _source2Uri,
         _source2Name,
         _functionName,
+        _statusMessage,
         _runState
     ) {
       console.log(`runState = ${_runState}`);

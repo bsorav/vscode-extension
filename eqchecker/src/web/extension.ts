@@ -10,6 +10,8 @@ const defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080'
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
+const commandPingEqcheck = 'pingEqcheck';
+const commandSubmitEqcheck = 'submitEqcheck';
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -183,7 +185,7 @@ class Eqchecker {
         if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
-          let jsonRequestNew = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
+          let jsonRequestNew = JSON.stringify({type: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
           return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
         } else {
@@ -222,7 +224,7 @@ class Eqchecker {
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
     var request =
-        { type: 'addEqcheck',
+        { type: commandSubmitEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
           source2Uri: entry.source2Uri,

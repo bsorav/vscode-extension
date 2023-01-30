@@ -9,12 +9,16 @@ const temp = require('temp'),
     utils = require('../utils'),
     which = require('which'),
     Sentry = require('@sentry/node'),
-    xml2js = require('xml2js');
+    xml2js = require('xml2js'),
+    assert = require('assert')
+;
 
 temp.track();
 
 let hasSetUpAutoClean = false;
 const defaultUnrollFactor = 64;
+const commandPingEqcheck = 'pingEqcheck';
+const commandSubmitEqcheck = 'submitEqcheck';
 
 function initialise(/*compilerEnv*/) {
     if (hasSetUpAutoClean) return;
@@ -82,7 +86,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName;
+        let commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName;
         if (req.is('json')) {
             // JSON-style request
             //console.log('JSON-style parseRequest:\n' + JSON.stringify(req));
@@ -107,6 +111,7 @@ class EqcheckHandler {
             //console.log('source:\n' + source);
             optimized = req.body.optimized;
             unrollFactor = req.body.unrollFactor || defaultUnrollFactor;
+            commandIn = req.body.type;
             dirPathIn = req.body.dirPathIn;
             offsetIn = req.body.offsetIn;
             srcName = "src.".concat(req.body.source1Name);
@@ -127,6 +132,7 @@ class EqcheckHandler {
             source = req.body;
             optimized = req.optimized;
             unrollFactor = req.unrollFactor || defaultUnrollFactor;
+            commandIn = req.body.type;
             dirPathIn = req.dirPathIn;
             offsetIn = req.offsetIn;
             srcName = "src.".concat(req.source1Name);
@@ -159,7 +165,7 @@ class EqcheckHandler {
         //    tool.args = this.splitArguments(tool.args);
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
-        return {dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName};
+        return {commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName};
     }
 
     //splitArguments(options) {
@@ -320,61 +326,60 @@ class EqcheckHandler {
     }
 
     async handle(req, res, next) {
-        //console.log('eqchecker handler called');
-        //const eqchecker = this.get_eqchecker();
-        //const compiler = this.compilerFor(req);
-        //if (!compiler) {
-        //    return next();
+      //console.log('eqchecker handler called');
+      //const eqchecker = this.get_eqchecker();
+      //const compiler = this.compilerFor(req);
+      //if (!compiler) {
+      //    return next();
+      //}
+      //console.log('parseRequest called');
+      const {
+          command, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName
+      } = this.parseRequest(req/*, compiler*/);
+      //const remote = compiler.getRemote();
+      //if (remote) {
+      //    req.url = remote.path;
+      //    this.proxy.web(req, res, {target: remote.target, changeOrigin: true}, e => {
+      //        logger.error("Proxy error: ", e);
+      //        next(e);
+      //    });
+      //    return;
+      //}
+      if (command === commandPingEqcheck) {
+        console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
+        const ret = await this.getOutputChunk(dirPathIn, offsetIn);
+        const offsetNew = ret[0];
+        let chunkXML_orig = ret[1];
+        let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
+        console.log("chunkXML:\n" + chunkXML);
+
+        //var xml = "<root>Hello xml2js!</root>"
+        var chunkObj;
+        xml2js.parseString(chunkXML, {explictArray: true}, function (err, result) {
+            //console.dir(result);
+            chunkObj = result;
+        });
+
+        //const chunkJson = xml2json.toJson(chunkXML, );
+        //const chunkObj = JSON.parse(chunkJson);
+        //const chunkObj = xml2json.toJson(chunkXML, { object: true, arrayNotation: true });
+        //console.log("chunkJson:\n" + chunkJson);
+        //console.log("chunkObj:\n" + chunkObj);
+        console.log("JSON.stringify(chunkObj):\n" + JSON.stringify(chunkObj));
+
+        //console.log("chunkJson:\n" + JSON.stringify(chunkJson, null, "    ") );
+        //console.log("chunkJson:\n" + JSON.stringify(chunkJson));
+        //for (var key in chunkJson) {
+        //  console.log('key ' + key);
+        //  console.log('value ' + chunkJson[key]);
         //}
-        //console.log('parseRequest called');
-        const {
-            dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName
-        } = this.parseRequest(req/*, compiler*/);
-        //const remote = compiler.getRemote();
-        //if (remote) {
-        //    req.url = remote.path;
-        //    this.proxy.web(req, res, {target: remote.target, changeOrigin: true}, e => {
-        //        logger.error("Proxy error: ", e);
-        //        next(e);
-        //    });
-        //    return;
-        //}
-        if (dirPathIn != undefined) {
-          console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
-          const ret = await this.getOutputChunk(dirPathIn, offsetIn);
-          const offsetNew = ret[0];
-          let chunkXML_orig = ret[1];
-          let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
-          console.log("chunkXML:\n" + chunkXML);
 
-          //var xml = "<root>Hello xml2js!</root>"
-          var chunkObj;
-          xml2js.parseString(chunkXML, {explictArray: true}, function (err, result) {
-              //console.dir(result);
-              chunkObj = result;
-          });
-
-          //const chunkJson = xml2json.toJson(chunkXML, );
-          //const chunkObj = JSON.parse(chunkJson);
-          //const chunkObj = xml2json.toJson(chunkXML, { object: true, arrayNotation: true });
-          //console.log("chunkJson:\n" + chunkJson);
-          //console.log("chunkObj:\n" + chunkObj);
-          console.log("JSON.stringify(chunkObj):\n" + JSON.stringify(chunkObj));
-
-          //console.log("chunkJson:\n" + JSON.stringify(chunkJson, null, "    ") );
-          //console.log("chunkJson:\n" + JSON.stringify(chunkJson));
-          //for (var key in chunkJson) {
-          //  console.log('key ' + key);
-          //  console.log('value ' + chunkJson[key]);
-          //}
-
-          //console.log('chunkNew ', chunkNew);
-          const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj});
-          //console.log('chunkStr =\n' + chunkStr);
-          res.end(chunkStr);
-          return;
-        }
-
+        //console.log('chunkNew ', chunkNew);
+        const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj});
+        //console.log('chunkStr =\n' + chunkStr);
+        res.end(chunkStr);
+        return;
+      } else if (command === commandSubmitEqcheck) {
         if (source === undefined) {
             logger.warn("No body found in request: source code missing", req);
             return next(new Error("Bad request"));
@@ -445,6 +450,9 @@ class EqcheckHandler {
                     res.end(JSON.stringify({retcode: -1, stderr: [{text: error}]}));
                 });
         res.end(JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''}));
+      } else {
+        assert(false, "Invalid Command " + command);
+      }
     }
 }
 

@@ -178,6 +178,7 @@
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
         eqcheckRightClickMenu.style.top = `${mouseY}px`;
         eqcheckRightClickMenu.style.left = `${mouseX}px`;
+        eqcheckRightClickMenu.eqcheck = eqcheck;
 
         eqcheckRightClickMenu.classList.add("visible");
     }

@@ -21,7 +21,7 @@
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
         switch (message.type) {
-            case 'addEqcheck':
+            case 'submitEqcheck':
                 {
                     console.log("received message '" + message.type + "'");
                     addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.statusMessage, message.runState);

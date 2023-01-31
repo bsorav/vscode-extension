@@ -154,7 +154,7 @@ class Eqchecker {
     var dirPath : string;
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
     //console.log(`url = ${url}`);
-    //console.log("jsonRequest =\n" + jsonRequest);
+    console.log("jsonRequest =\n" + jsonRequest);
     var prom =
       fetch(url, {
         method: 'POST',
@@ -185,7 +185,7 @@ class Eqchecker {
         if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
-          let jsonRequestNew = JSON.stringify({type: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
+          let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
           return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
         } else {
@@ -224,7 +224,8 @@ class Eqchecker {
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
     var request =
-        { type: commandSubmitEqcheck,
+        { serverCommand: commandSubmitEqcheck,
+          type: commandSubmitEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
           source2Uri: entry.source2Uri,

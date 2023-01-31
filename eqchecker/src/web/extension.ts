@@ -540,8 +540,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 			<body>
 				<ul class="eqcheck-list">
 				</ul>
-        <div id="eqcheck-right-click-menu">
-        <div class="item"><b>View Proof</b></div>
+        <div id="eqcheck-right-click-menu" eqcheck="eqcheck-none">
+        <div id="eqcheck-view-proof" class="item"><b>View Proof</b></div>
         </div>
 				<button class="clear-eqchecks-button">Clear Eqchecks</button>
 				<script nonce="${nonce}" src="${scriptUri}"></script>

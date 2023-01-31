@@ -89,7 +89,7 @@ class EqcheckHandler {
         let commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName;
         if (req.is('json')) {
             // JSON-style request
-            //console.log('JSON-style parseRequest:\n' + JSON.stringify(req));
+            //console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
             //const requestOptions = req.body.options;
             //console.log('JSON-style parseRequest:\n' + Object.keys(req));
             //console.log('method:\n' + req.method);
@@ -111,7 +111,7 @@ class EqcheckHandler {
             //console.log('source:\n' + source);
             optimized = req.body.optimized;
             unrollFactor = req.body.unrollFactor || defaultUnrollFactor;
-            commandIn = req.body.type;
+            commandIn = req.body.serverCommand;
             dirPathIn = req.body.dirPathIn;
             offsetIn = req.body.offsetIn;
             srcName = "src.".concat(req.body.source1Name);
@@ -132,7 +132,7 @@ class EqcheckHandler {
             source = req.body;
             optimized = req.optimized;
             unrollFactor = req.unrollFactor || defaultUnrollFactor;
-            commandIn = req.body.type;
+            commandIn = req.serverCommand;
             dirPathIn = req.dirPathIn;
             offsetIn = req.offsetIn;
             srcName = "src.".concat(req.source1Name);
@@ -165,6 +165,7 @@ class EqcheckHandler {
         //    tool.args = this.splitArguments(tool.args);
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
+        //console.log("commandIn = " + commandIn);
         return {commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName};
     }
 
@@ -334,7 +335,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       const {
-          command, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName
+          commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -345,7 +346,8 @@ class EqcheckHandler {
       //    });
       //    return;
       //}
-      if (command === commandPingEqcheck) {
+      //console.log("commandIn = " + commandIn);
+      if (commandIn === commandPingEqcheck) {
         console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
         const ret = await this.getOutputChunk(dirPathIn, offsetIn);
         const offsetNew = ret[0];
@@ -379,7 +381,7 @@ class EqcheckHandler {
         //console.log('chunkStr =\n' + chunkStr);
         res.end(chunkStr);
         return;
-      } else if (command === commandSubmitEqcheck) {
+      } else if (commandIn === commandSubmitEqcheck) {
         if (source === undefined) {
             logger.warn("No body found in request: source code missing", req);
             return next(new Error("Bad request"));
@@ -451,7 +453,7 @@ class EqcheckHandler {
                 });
         res.end(JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''}));
       } else {
-        assert(false, "Invalid Command " + command);
+        assert(false, "Invalid Command " + commandIn);
       }
     }
 }

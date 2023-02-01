@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080'
+const defaultServerURL = 'http://workstation.cse.iitd.ac.in:8080';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -154,7 +154,7 @@ class Eqchecker {
     var dirPath : string;
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
     //console.log(`url = ${url}`);
-    //console.log("jsonRequest =\n" + jsonRequest);
+    console.log("jsonRequest =\n" + jsonRequest);
     var prom =
       fetch(url, {
         method: 'POST',
@@ -185,7 +185,7 @@ class Eqchecker {
         if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
-          let jsonRequestNew = JSON.stringify({type: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
+          let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
           return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
         } else {
@@ -224,7 +224,8 @@ class Eqchecker {
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
     var request =
-        { type: commandSubmitEqcheck,
+        { serverCommand: commandSubmitEqcheck,
+          type: commandSubmitEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
           source2Uri: entry.source2Uri,
@@ -486,17 +487,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-		//webviewView.webview.onDidReceiveMessage(data => {
-		//	switch (data.type) {
-		//		case 'addEqcheckOutput':
-		//			{
-    //        //vscode.window.showInformationMessage(`eqcheckSelected received.`);
-		//				//vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
-    //        Eqchecker.addEqcheckOutput(data.dirPath, data.chunk);
-		//				break;
-		//			}
-		//	}
-		//});
+		webviewView.webview.onDidReceiveMessage(data => {
+			switch (data.type) {
+				case 'eqcheckViewProof': {
+            vscode.window.showInformationMessage(`eqcheckViewProof received.`);
+						break;
+					}
+        default: {
+          console.log('Unknown message received from webview: ' + data.type)
+        }
+			}
+		});
 	}
 
   public viewProviderPostMessage(message)
@@ -513,7 +514,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 	private _getHtmlForWebview(webview: vscode.Webview) {
     console.log("_getHtmlForWebview() called\n");
 		// Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
+		const mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 
 		// Do the same for the stylesheet.
 		const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
@@ -546,7 +547,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="eqcheck-view-proof" class="item"><b>View Proof</b></div>
         </div>
 				<button class="clear-eqchecks-button">Clear Eqchecks</button>
-				<script nonce="${nonce}" src="${scriptUri}"></script>
+				<script nonce="${nonce}" src="${mainScriptUri}"></script>
 			</body>
 			</html>`;
 	}

@@ -1,5 +1,3 @@
-//@ts-check
-
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
@@ -17,11 +15,16 @@
         clearEqchecks();
     });
 
+    document.getElementById('eqcheck-view-proof').addEventListener('click', () => {
+        //console.log('ViewProof clicked');
+        vscode.postMessage({ type: 'eqcheckViewProof'});
+    });
+
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
         switch (message.type) {
-            case 'addEqcheck':
+            case 'submitEqcheck':
                 {
                     console.log("received message '" + message.type + "'");
                     addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.statusMessage, message.runState);
@@ -217,9 +220,9 @@
     /**
      * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
-    function getHoverMessage(eqcheck) {
-      return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
-    }
+    //function getHoverMessage(eqcheck) {
+    //  return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
+    //}
 
     ///**
     // * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string

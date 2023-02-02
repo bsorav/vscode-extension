@@ -43,7 +43,7 @@ function executeDirect(command, args, options, filenameTransform) {
     // it is passed through here only so clients can see it in the result.
     filenameTransform = filenameTransform || (x => x);
     options = options || {};
-    const maxOutput = options.maxOutput || 1024 * 1024;
+    const maxOutput = options.maxOutput || 0;
     const timeoutMs = options.timeoutMs || 0;
     const env = options.env ? options.env : _.clone(process.env);
 

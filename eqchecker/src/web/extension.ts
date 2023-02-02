@@ -490,7 +490,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.onDidReceiveMessage(data => {
 			switch (data.type) {
 				case 'eqcheckViewProof': {
-            vscode.window.showInformationMessage(`eqcheckViewProof received.`);
+            vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}.`);
 						break;
 					}
         default: {

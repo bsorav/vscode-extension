@@ -1,5 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+
 import * as vscode from 'vscode';
 //var $ = require('jquery');
 //var _ = require('underscore');
@@ -24,26 +25,19 @@ interface eqcheckMenuEntry {
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   //console.log('Congratulations, your extension "eqchecker" is now active in the web extension host!');
   //const cprovider = new ColorsViewProvider(context.extensionUri);
-
   //context.subscriptions.push(
   //  vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
-
   EqcheckViewProvider.initializeEqcheckViewProvider(context.extensionUri);
-
   //console.log("creating EqcheckViewProvider object\n");
-
   //console.log("done creating EqcheckViewProvider object\n");
-
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, EqcheckViewProvider.provider)
   );
   //console.log("done registering EqcheckViewProvider object\n");
-
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
@@ -51,17 +45,14 @@ export async function activate(context: vscode.ExtensionContext) {
     Eqchecker.checkEq();
   });
   context.subscriptions.push(disposable);
-
   disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
     Eqchecker.setServer();
   });
   context.subscriptions.push(disposable);
-
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
-
 function getNonce() {
   let text = '';
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -113,7 +104,6 @@ class Eqchecker {
           runState: runState,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
-
     return lastMessages[0] === EqcheckDoneMessage;
   }
 
@@ -133,12 +123,10 @@ class Eqchecker {
     return lastMessages;
   }
 
-  public static async RequestNextChunk(jsonRequest, origRequest, firstRequest:boolean) : Promise<string> {
-    var dirPath : string;
+  public static async RequestResponseForCommand(jsonRequest) {
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
-    //console.log(`url = ${url}`);
-    console.log("jsonRequest =\n" + jsonRequest);
-    var prom =
+    //console.log("jsonRequest =\n" + jsonRequest);
+    return await
       fetch(url, {
         method: 'POST',
         mode: 'cors',
@@ -149,9 +137,19 @@ class Eqchecker {
           'Accept' : 'application/json',
         }
       })
-      .then(function(response) {
+      .then(function (response) {
         return response.json();
       })
+      .catch(function(err) {
+        Eqchecker.fetchFailed(err, url);
+      })
+    ;
+  }
+
+  public static async RequestNextChunk(jsonRequest, origRequest, firstRequest:boolean) : Promise<string> {
+    var dirPath : string;
+    var prom =
+      this.RequestResponseForCommand(jsonRequest)
       .then(async function(result) {
         let dirPath = result.dirPath;
         if (firstRequest) {
@@ -179,7 +177,6 @@ class Eqchecker {
         }
       })
       .catch(function(err) {
-        Eqchecker.fetchFailed(err, url);
         console.log(`Error: ${err}`)
         return "";
       });
@@ -189,12 +186,10 @@ class Eqchecker {
     return ret;
   }
 
-
   public static async addEqcheck(entry) {
     //console.log("addEqcheck() called\n");
     var source : string;
     var optimized : string;
-
     console.log("calling openTextDocument");
     await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
       console.log("opened source1Uri");
@@ -222,7 +217,6 @@ class Eqchecker {
           source : source,
           optimized : optimized,
         };
-
     var jsonRequest = JSON.stringify(request);
     const response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
     console.log(`response = ${response}.`);
@@ -233,8 +227,6 @@ class Eqchecker {
     console.log('returning false');
     return false;
   }
-
-
 
   public static async checkEq()
   {
@@ -344,7 +336,6 @@ class Eqchecker {
     //vscode.window.showInformationMessage(`Got: ${result}`);
     let resultIndex = items.findIndex(function (v : string, _ : number, o : object) { return (v === result); });
     //console.log("resultIndex = " + resultIndex.toString());
-
     return resultIndex;
   }
 
@@ -369,15 +360,11 @@ class Eqchecker {
   public static wait(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
   }
-
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
-
   public static readonly viewType = 'eqchecker.eqcheckView';
-
   public static provider : EqcheckViewProvider;
-
   private _view?: vscode.WebviewView;
 
   constructor(
@@ -395,18 +382,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   ) {
     console.log("resolveWebviewView() called\n");
     this._view = webviewView;
-
     webviewView.webview.options = {
       // Allow scripts in the webview
       enableScripts: true,
-
       localResourceRoots: [
         this._extensionUri
       ]
     };
-
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.type) {
         case 'eqcheckViewProof': {
@@ -424,8 +407,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //    source : source,
           //    optimized : optimized,
           //  };
-
-
           //const panel_prd = vscode.window.createWebviewPanel(
           //  'productCFG', // Identifies the type of the webview. Used internally
           //  'Product Control Flow Graph', // Title of the panel displayed to the user
@@ -444,7 +425,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //    retainContextWhenHidden: true,
           //  } // Webview options.
           //);
-
           //const panel_dst_code = vscode.window.createWebviewPanel(
           //  'dst_code', // Identifies the type of the webview. Used internally
           //  'Destination Code', // Title of the panel displayed to the user
@@ -454,7 +434,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //    retainContextWhenHidden: true,
           //  } // Webview options.
           //);
-
           //const styleProductCFGUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'productCFG.css'));
           //const productCFGScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'productCFG.js'));
           break;
@@ -481,15 +460,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     console.log("_getHtmlForWebview() called\n");
     // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
     const mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
-
     // Do the same for the stylesheet.
     const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
     const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
     const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
-
     // Use a nonce to only allow a specific script to be run.
     const nonce = getNonce();
-
     return `<!DOCTYPE html>
       <html lang="en">
       <head>
@@ -602,14 +578,12 @@ function _format(sep, pathObject) {
   }
   return dir + sep + base;
 }
-
 var posix = {
   // path.resolve([from ...], to)
   resolve: function resolve() {
     var resolvedPath = '';
     var resolvedAbsolute = false;
     var cwd;
-
     for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
       var path;
       if (i >= 0)
@@ -619,24 +593,18 @@ var posix = {
           cwd = process.cwd();
         path = cwd;
       }
-
       assertPath(path);
-
       // Skip empty entries
       if (path.length === 0) {
         continue;
       }
-
       resolvedPath = path + '/' + resolvedPath;
       resolvedAbsolute = path.charCodeAt(0) === 47 /*/*/;
     }
-
     // At this point the path should be resolved to a full absolute path, but
     // handle relative paths to be safe (might happen when process.cwd() fails)
-
     // Normalize the path
     resolvedPath = normalizeStringPosix(resolvedPath, !resolvedAbsolute);
-
     if (resolvedAbsolute) {
       if (resolvedPath.length > 0)
         return '/' + resolvedPath;
@@ -648,30 +616,22 @@ var posix = {
       return '.';
     }
   },
-
   normalize: function normalize(path) {
     assertPath(path);
-
     if (path.length === 0) return '.';
-
     var isAbsolute = path.charCodeAt(0) === 47 /*/*/;
     var trailingSeparator = path.charCodeAt(path.length - 1) === 47 /*/*/;
-
     // Normalize the path
     path = normalizeStringPosix(path, !isAbsolute);
-
     if (path.length === 0 && !isAbsolute) path = '.';
     if (path.length > 0 && trailingSeparator) path += '/';
-
     if (isAbsolute) return '/' + path;
     return path;
   },
-
   isAbsolute: function isAbsolute(path) {
     assertPath(path);
     return path.length > 0 && path.charCodeAt(0) === 47 /*/*/;
   },
-
   join: function join() {
     if (arguments.length === 0)
       return '.';
@@ -690,18 +650,13 @@ var posix = {
       return '.';
     return posix.normalize(joined);
   },
-
   relative: function relative(from, to) {
     assertPath(from);
     assertPath(to);
-
     if (from === to) return '';
-
     //from = posix.resolve(from);
     //to = posix.resolve(to);
-
     if (from === to) return '';
-
     // Trim any leading backslashes
     var fromStart = 1;
     for (; fromStart < from.length; ++fromStart) {
@@ -710,7 +665,6 @@ var posix = {
     }
     var fromEnd = from.length;
     var fromLen = fromEnd - fromStart;
-
     // Trim any leading backslashes
     var toStart = 1;
     for (; toStart < to.length; ++toStart) {
@@ -719,7 +673,6 @@ var posix = {
     }
     var toEnd = to.length;
     var toLen = toEnd - toStart;
-
     // Compare paths to find the longest common path from root
     var length = fromLen < toLen ? fromLen : toLen;
     var lastCommonSep = -1;
@@ -756,7 +709,6 @@ var posix = {
       else if (fromCode === 47 /*/*/)
         lastCommonSep = i;
     }
-
     var out = '';
     // Generate the relative path based on the path difference between `to`
     // and `from`
@@ -768,7 +720,6 @@ var posix = {
           out += '/..';
       }
     }
-
     // Lastly, append the rest of the destination (`to`) path that comes after
     // the common path parts
     if (out.length > 0)
@@ -780,11 +731,9 @@ var posix = {
       return to.slice(toStart);
     }
   },
-
   _makeLong: function _makeLong(path) {
     return path;
   },
-
   dirname: function dirname(path) {
     assertPath(path);
     if (path.length === 0) return '.';
@@ -804,21 +753,17 @@ var posix = {
         matchedSlash = false;
       }
     }
-
     if (end === -1) return hasRoot ? '/' : '.';
     if (hasRoot && end === 1) return '//';
     return path.slice(0, end);
   },
-
   basename: function basename(path, ext) {
     if (ext !== undefined && typeof ext !== 'string') throw new TypeError('"ext" argument must be a string');
     assertPath(path);
-
     var start = 0;
     var end = -1;
     var matchedSlash = true;
     var i;
-
     if (ext !== undefined && ext.length > 0 && ext.length <= path.length) {
       if (ext.length === path.length && ext === path) return '';
       var extIdx = ext.length - 1;
@@ -856,7 +801,6 @@ var posix = {
           }
         }
       }
-
       if (start === end) end = firstNonSlashEnd;else if (end === -1) end = path.length;
       return path.slice(start, end);
     } else {
@@ -875,12 +819,10 @@ var posix = {
           end = i + 1;
         }
       }
-
       if (end === -1) return '';
       return path.slice(start, end);
     }
   },
-
   extname: function extname(path) {
     assertPath(path);
     var startDot = -1;
@@ -919,7 +861,6 @@ var posix = {
         preDotState = -1;
       }
     }
-
     if (startDot === -1 || end === -1 ||
         // We saw a non-dot character immediately before the dot
         preDotState === 0 ||
@@ -929,17 +870,14 @@ var posix = {
     }
     return path.slice(startDot, end);
   },
-
   format: function format(pathObject) {
     if (pathObject === null || typeof pathObject !== 'object') {
       throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof pathObject);
     }
     return _format('/', pathObject);
   },
-
   parse: function parse(path) {
     assertPath(path);
-
     var ret = { root: '', dir: '', base: '', ext: '', name: '' };
     if (path.length === 0) return ret;
     var code = path.charCodeAt(0);
@@ -956,11 +894,9 @@ var posix = {
     var end = -1;
     var matchedSlash = true;
     var i = path.length - 1;
-
     // Track the state of characters (if any) we see before our first dot and
     // after any path separator we find
     var preDotState = 0;
-
     // Get non-dir info
     for (; i >= start; --i) {
       code = path.charCodeAt(i);
@@ -988,7 +924,6 @@ var posix = {
         preDotState = -1;
       }
     }
-
     if (startDot === -1 || end === -1 ||
     // We saw a non-dot character immediately before the dot
     preDotState === 0 ||
@@ -1007,29 +942,21 @@ var posix = {
       }
       ret.ext = path.slice(startDot, end);
     }
-
     if (startPart > 0) ret.dir = path.slice(0, startPart - 1);else if (isAbsolute) ret.dir = '/';
-
     return ret;
   },
-
   sep: '/',
   delimiter: ':',
   win32: null,
   posix: null
 };
-
-
 class File implements vscode.FileStat {
-
   type: vscode.FileType;
   ctime: number;
   mtime: number;
   size: number;
-
   name: string;
   data?: Uint8Array;
-
   constructor(name: string) {
     this.type = vscode.FileType.File;
     this.ctime = Date.now();
@@ -1038,17 +965,13 @@ class File implements vscode.FileStat {
     this.name = name;
   }
 }
-
 class Directory implements vscode.FileStat {
-
   type: vscode.FileType;
   ctime: number;
   mtime: number;
   size: number;
-
   name: string;
   entries: Map<string, File | Directory>;
-
   constructor(name: string) {
     this.type = vscode.FileType.Directory;
     this.ctime = Date.now();
@@ -1058,13 +981,9 @@ class Directory implements vscode.FileStat {
     this.entries = new Map();
   }
 }
-
 type Entry = File | Directory;
-
 class MemFS implements vscode.FileSystemProvider {
-
   root = new Directory('');
-
   // --- snapshot save and restore functions
   async snapshotSave(snapshotFilename: vscode.Uri): Promise<void> {
     //const fs = require('vscode.workspace.fs')
@@ -1072,21 +991,16 @@ class MemFS implements vscode.FileSystemProvider {
   var enc = new TextEncoder(); // always utf-8
     await vscode.workspace.fs.writeFile(snapshotFilename, enc.encode(snapshot));
   }
-
   async snapshotRestore(snapshotFilename: vscode.Uri): Promise<void> {
     //const fs = require('vscode.workspace.fs')
     var contents = await vscode.workspace.fs.readFile(snapshotFilename);
   var dec = new TextDecoder("utf-8");
     this.root = JSON.parse(dec.decode(contents));
   }
-
-
   // --- manage file metadata
-
   stat(uri: vscode.Uri): vscode.FileStat {
     return this._lookup(uri, false);
   }
-
   readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
     const entry = this._lookupAsDirectory(uri, false);
     const result: [string, vscode.FileType][] = [];
@@ -1095,9 +1009,7 @@ class MemFS implements vscode.FileSystemProvider {
     }
     return result;
   }
-
   // --- manage file contents
-
   readFile(uri: vscode.Uri): Uint8Array {
     const data = this._lookupAsFile(uri, false).data;
     if (data) {
@@ -1105,7 +1017,6 @@ class MemFS implements vscode.FileSystemProvider {
     }
     throw vscode.FileSystemError.FileNotFound();
   }
-
   writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void {
     const basename = posix.basename(uri.path, undefined);
     const parent = this._lookupParentDirectory(uri);
@@ -1127,34 +1038,25 @@ class MemFS implements vscode.FileSystemProvider {
     entry.mtime = Date.now();
     entry.size = content.byteLength;
     entry.data = content;
-
     this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
   }
-
   // --- manage files/folders
-
   rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void {
-
     if (!options.overwrite && this._lookup(newUri, true)) {
       throw vscode.FileSystemError.FileExists(newUri);
     }
-
     const entry = this._lookup(oldUri, false);
     const oldParent = this._lookupParentDirectory(oldUri);
-
     const newParent = this._lookupParentDirectory(newUri);
     const newName = posix.basename(newUri.path, undefined);
-
     oldParent.entries.delete(entry.name);
     entry.name = newName;
     newParent.entries.set(newName, entry);
-
     this._fireSoon(
       { type: vscode.FileChangeType.Deleted, uri: oldUri },
       { type: vscode.FileChangeType.Created, uri: newUri }
     );
   }
-
   delete(uri: vscode.Uri): void {
     const dirname = uri.with({ path: posix.dirname(uri.path) });
     const basename = posix.basename(uri.path, undefined);
@@ -1167,21 +1069,17 @@ class MemFS implements vscode.FileSystemProvider {
     parent.size -= 1;
     this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { uri, type: vscode.FileChangeType.Deleted });
   }
-
   createDirectory(uri: vscode.Uri): void {
     const basename = posix.basename(uri.path, undefined);
     const dirname = uri.with({ path: posix.dirname(uri.path) });
     const parent = this._lookupAsDirectory(dirname, false);
-
     const entry = new Directory(basename);
     parent.entries.set(entry.name, entry);
     parent.mtime = Date.now();
     parent.size += 1;
     this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { type: vscode.FileChangeType.Created, uri });
   }
-
   // --- lookup
-
   private _lookup(uri: vscode.Uri, silent: false): Entry;
   private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined;
   private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined {
@@ -1206,7 +1104,6 @@ class MemFS implements vscode.FileSystemProvider {
     }
     return entry;
   }
-
   private _lookupAsDirectory(uri: vscode.Uri, silent: boolean): Directory {
     const entry = this._lookup(uri, silent);
     if (entry instanceof Directory) {
@@ -1214,7 +1111,6 @@ class MemFS implements vscode.FileSystemProvider {
     }
     throw vscode.FileSystemError.FileNotADirectory(uri);
   }
-
   private _lookupAsFile(uri: vscode.Uri, silent: boolean): File {
     const entry = this._lookup(uri, silent);
     if (entry instanceof File) {
@@ -1222,32 +1118,24 @@ class MemFS implements vscode.FileSystemProvider {
     }
     throw vscode.FileSystemError.FileIsADirectory(uri);
   }
-
   private _lookupParentDirectory(uri: vscode.Uri): Directory {
     const dirname = uri.with({ path: posix.dirname(uri.path) });
     return this._lookupAsDirectory(dirname, false);
   }
-
   // --- manage file events
-
   private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   private _bufferedEvents: vscode.FileChangeEvent[] = [];
   private _fireSoonHandle?: NodeJS.Timer;
-
   readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
-
   watch(_resource: vscode.Uri): vscode.Disposable {
     // ignore, fires for all changes...
     return new vscode.Disposable(() => { });
   }
-
   private _fireSoon(...events: vscode.FileChangeEvent[]): void {
     this._bufferedEvents.push(...events);
-
     if (this._fireSoonHandle) {
       clearTimeout(this._fireSoonHandle);
     }
-
     this._fireSoonHandle = setTimeout(() => {
       this._emitter.fire(this._bufferedEvents);
       this._bufferedEvents.length = 0;

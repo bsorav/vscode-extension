@@ -25,13 +25,13 @@ interface eqcheckMenuEntry {
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	//console.log('Congratulations, your extension "eqchecker" is now active in the web extension host!');
-	//const cprovider = new ColorsViewProvider(context.extensionUri);
+  // Use the console to output diagnostic information (console.log) and errors (console.error)
+  // This line of code will only be executed once when your extension is activated
+  //console.log('Congratulations, your extension "eqchecker" is now active in the web extension host!');
+  //const cprovider = new ColorsViewProvider(context.extensionUri);
 
-	//context.subscriptions.push(
-	//	vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
+  //context.subscriptions.push(
+  //  vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
 
   EqcheckViewProvider.initializeEqcheckViewProvider(context.extensionUri);
 
@@ -39,23 +39,23 @@ export async function activate(context: vscode.ExtensionContext) {
 
   //console.log("done creating EqcheckViewProvider object\n");
 
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, EqcheckViewProvider.provider)
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(EqcheckViewProvider.viewType, EqcheckViewProvider.provider)
   );
   //console.log("done registering EqcheckViewProvider object\n");
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
+  // The command has been defined in the package.json file
+  // Now provide the implementation of the command with registerCommand
+  // The commandId parameter must match the command field in package.json
+  let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
     Eqchecker.checkEq();
   });
-	context.subscriptions.push(disposable);
+  context.subscriptions.push(disposable);
 
-	disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
+  disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
     Eqchecker.setServer();
   });
-	context.subscriptions.push(disposable);
+  context.subscriptions.push(disposable);
 
 }
 
@@ -205,7 +205,7 @@ class Eqchecker {
   }
 
 
-	public static async addEqcheck(entry) {
+  public static async addEqcheck(entry) {
     //console.log("addEqcheck() called\n");
     var source : string;
     var optimized : string;
@@ -312,48 +312,48 @@ class Eqchecker {
     //    message = x.error || x.code;
     //  }
     //});
-	}
+  }
 
 
 
   public static async checkEq()
   {
-  		// Get labels of opened files in all groups
+      // Get labels of opened files in all groups
           let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
-  	    //console.log("tabs size = ");
-  		//console.log(tabs.length);
-  		let cSources : (typeof tabs) = [];
-  		let asmSources : (typeof tabs) = [];
-  		tabs.forEach(async function(entry) {
-  			//console.log('label = ' + entry.label);
-  			//console.log('isActive = ' + entry.isActive);
-  			//console.log('isDirty = ' + entry.isDirty);
-  			//console.log('isPinned = ' + entry.isPinned);
-  			//console.log('isPreview = ' + entry.isPreview);
-  			//console.log('groupViewColumn = ' + entry.group.viewColumn);
-  			//console.log('\n');
-  			if (entry.label.endsWith(".c")) {
-  			  cSources.push(entry);
-  			} else if (entry.label.endsWith(".s")) {
+        //console.log("tabs size = ");
+      //console.log(tabs.length);
+      let cSources : (typeof tabs) = [];
+      let asmSources : (typeof tabs) = [];
+      tabs.forEach(async function(entry) {
+        //console.log('label = ' + entry.label);
+        //console.log('isActive = ' + entry.isActive);
+        //console.log('isDirty = ' + entry.isDirty);
+        //console.log('isPinned = ' + entry.isPinned);
+        //console.log('isPreview = ' + entry.isPreview);
+        //console.log('groupViewColumn = ' + entry.group.viewColumn);
+        //console.log('\n');
+        if (entry.label.endsWith(".c")) {
+          cSources.push(entry);
+        } else if (entry.label.endsWith(".s")) {
           asmSources.push(entry);
-  			}
-  			//c_sources.push(tab);
-  		});
-  		console.log("Printing C sources:");
-  		cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
-  		console.log("Printing ASM sources:");
-  		asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
+        }
+        //c_sources.push(tab);
+      });
+      console.log("Printing C sources:");
+      cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
+      console.log("Printing ASM sources:");
+      asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
       let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
       console.log("eqcheckPairs size " + eqcheckPairs.length);
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
       if (await Eqchecker.addEqcheck(eqcheckPairs[result]) === true) {
         vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
       }
-  	    //console.log(tabs);
-  		//let url = "http://localhost:3000";
-  		//fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
-  		// Display a message box to the user
-  		//vscode.window.showInformationMessage("hello");
+        //console.log(tabs);
+      //let url = "http://localhost:3000";
+      //fetch(url, {method: 'POST', body: JSON.stringify({name: "go"})}).then((response) => response.json()).then((data) => console.log(data));
+      // Display a message box to the user
+      //vscode.window.showInformationMessage("hello");
   }
 
   public static async setServer()
@@ -454,103 +454,103 @@ class Eqchecker {
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
-	public static readonly viewType = 'eqchecker.eqcheckView';
+  public static readonly viewType = 'eqchecker.eqcheckView';
 
   public static provider : EqcheckViewProvider;
 
-	private _view?: vscode.WebviewView;
+  private _view?: vscode.WebviewView;
 
-	constructor(
-		private readonly _extensionUri: vscode.Uri,
-	) { }
+  constructor(
+    private readonly _extensionUri: vscode.Uri,
+  ) { }
 
   public static initializeEqcheckViewProvider(_extensionUri: vscode.Uri) {
-	  EqcheckViewProvider.provider = new EqcheckViewProvider(_extensionUri);
+    EqcheckViewProvider.provider = new EqcheckViewProvider(_extensionUri);
   }
 
-	public resolveWebviewView(
-		webviewView: vscode.WebviewView,
-		context: vscode.WebviewViewResolveContext,
-		_token: vscode.CancellationToken,
-	) {
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken,
+  ) {
     console.log("resolveWebviewView() called\n");
-		this._view = webviewView;
+    this._view = webviewView;
 
-		webviewView.webview.options = {
-			// Allow scripts in the webview
-			enableScripts: true,
+    webviewView.webview.options = {
+      // Allow scripts in the webview
+      enableScripts: true,
 
-			localResourceRoots: [
-				this._extensionUri
-			]
-		};
+      localResourceRoots: [
+        this._extensionUri
+      ]
+    };
 
-		webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-		webviewView.webview.onDidReceiveMessage(data => {
-			switch (data.type) {
-				case 'eqcheckViewProof': {
-            vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}.`);
-						break;
-					}
+    webviewView.webview.onDidReceiveMessage(data => {
+      switch (data.type) {
+        case 'eqcheckViewProof': {
+          //vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}.`);
+          break;
+        }
         default: {
           console.log('Unknown message received from webview: ' + data.type)
         }
-			}
-		});
-	}
+      }
+    });
+  }
 
   public viewProviderPostMessage(message)
   {
     if (this._view) {
-		 this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
+     this._view.show?.(true); // `show` is not implemented in 1.49 but is for 1.50 insiders
      //console.log("Posting message.");
-		 this._view.webview.postMessage(
+     this._view.webview.postMessage(
         message,
       );
-		}
+    }
   }
 
-	private _getHtmlForWebview(webview: vscode.Webview) {
+  private _getHtmlForWebview(webview: vscode.Webview) {
     console.log("_getHtmlForWebview() called\n");
-		// Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-		const mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
+    // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
+    const mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 
-		// Do the same for the stylesheet.
-		const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
-		const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
-		const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
+    // Do the same for the stylesheet.
+    const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
+    const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
+    const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
 
-		// Use a nonce to only allow a specific script to be run.
-		const nonce = getNonce();
+    // Use a nonce to only allow a specific script to be run.
+    const nonce = getNonce();
 
-		return `<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<!--
-					Use a content security policy to only allow loading styles from our extension directory,
-					and only allow scripts that have a specific nonce.
-					(See the 'webview-sample' extension sample for img-src content security policy examples)
-				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link href="${styleResetUri}" rel="stylesheet">
-				<link href="${styleVSCodeUri}" rel="stylesheet">
-				<link href="${styleMainUri}" rel="stylesheet">
-				<title>Equivalence Checks</title>
-			</head>
-			<body>
-				<ul class="eqcheck-list">
-				</ul>
+    return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <!--
+          Use a content security policy to only allow loading styles from our extension directory,
+          and only allow scripts that have a specific nonce.
+          (See the 'webview-sample' extension sample for img-src content security policy examples)
+        -->
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="${styleResetUri}" rel="stylesheet">
+        <link href="${styleVSCodeUri}" rel="stylesheet">
+        <link href="${styleMainUri}" rel="stylesheet">
+        <title>Equivalence Checks</title>
+      </head>
+      <body>
+        <ul class="eqcheck-list">
+        </ul>
         <div id="eqcheck-right-click-menu" eqcheck="eqcheck-none">
         <div id="eqcheck-view-proof" class="item"><b>View Proof</b></div>
         </div>
-				<button class="clear-eqchecks-button">Clear Eqchecks</button>
-				<script nonce="${nonce}" src="${mainScriptUri}"></script>
-			</body>
-			</html>`;
-	}
+        <button class="clear-eqchecks-button">Clear Eqchecks</button>
+        <script nonce="${nonce}" src="${mainScriptUri}"></script>
+      </body>
+      </html>`;
+  }
 }
 
 function assertPath(path) {
@@ -1056,235 +1056,235 @@ var posix = {
 
 class File implements vscode.FileStat {
 
-	type: vscode.FileType;
-	ctime: number;
-	mtime: number;
-	size: number;
+  type: vscode.FileType;
+  ctime: number;
+  mtime: number;
+  size: number;
 
-	name: string;
-	data?: Uint8Array;
+  name: string;
+  data?: Uint8Array;
 
-	constructor(name: string) {
-		this.type = vscode.FileType.File;
-		this.ctime = Date.now();
-		this.mtime = Date.now();
-		this.size = 0;
-		this.name = name;
-	}
+  constructor(name: string) {
+    this.type = vscode.FileType.File;
+    this.ctime = Date.now();
+    this.mtime = Date.now();
+    this.size = 0;
+    this.name = name;
+  }
 }
 
 class Directory implements vscode.FileStat {
 
-	type: vscode.FileType;
-	ctime: number;
-	mtime: number;
-	size: number;
+  type: vscode.FileType;
+  ctime: number;
+  mtime: number;
+  size: number;
 
-	name: string;
-	entries: Map<string, File | Directory>;
+  name: string;
+  entries: Map<string, File | Directory>;
 
-	constructor(name: string) {
-		this.type = vscode.FileType.Directory;
-		this.ctime = Date.now();
-		this.mtime = Date.now();
-		this.size = 0;
-		this.name = name;
-		this.entries = new Map();
-	}
+  constructor(name: string) {
+    this.type = vscode.FileType.Directory;
+    this.ctime = Date.now();
+    this.mtime = Date.now();
+    this.size = 0;
+    this.name = name;
+    this.entries = new Map();
+  }
 }
 
 type Entry = File | Directory;
 
 class MemFS implements vscode.FileSystemProvider {
 
-	root = new Directory('');
+  root = new Directory('');
 
   // --- snapshot save and restore functions
   async snapshotSave(snapshotFilename: vscode.Uri): Promise<void> {
     //const fs = require('vscode.workspace.fs')
     var snapshot = JSON.stringify(this.root);
-	var enc = new TextEncoder(); // always utf-8
+  var enc = new TextEncoder(); // always utf-8
     await vscode.workspace.fs.writeFile(snapshotFilename, enc.encode(snapshot));
   }
 
   async snapshotRestore(snapshotFilename: vscode.Uri): Promise<void> {
     //const fs = require('vscode.workspace.fs')
     var contents = await vscode.workspace.fs.readFile(snapshotFilename);
-	var dec = new TextDecoder("utf-8");
+  var dec = new TextDecoder("utf-8");
     this.root = JSON.parse(dec.decode(contents));
   }
 
 
-	// --- manage file metadata
+  // --- manage file metadata
 
-	stat(uri: vscode.Uri): vscode.FileStat {
-		return this._lookup(uri, false);
-	}
+  stat(uri: vscode.Uri): vscode.FileStat {
+    return this._lookup(uri, false);
+  }
 
-	readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
-		const entry = this._lookupAsDirectory(uri, false);
-		const result: [string, vscode.FileType][] = [];
-		for (const [name, child] of entry.entries) {
-			result.push([name, child.type]);
-		}
-		return result;
-	}
+  readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
+    const entry = this._lookupAsDirectory(uri, false);
+    const result: [string, vscode.FileType][] = [];
+    for (const [name, child] of entry.entries) {
+      result.push([name, child.type]);
+    }
+    return result;
+  }
 
-	// --- manage file contents
+  // --- manage file contents
 
-	readFile(uri: vscode.Uri): Uint8Array {
-		const data = this._lookupAsFile(uri, false).data;
-		if (data) {
-			return data;
-		}
-		throw vscode.FileSystemError.FileNotFound();
-	}
+  readFile(uri: vscode.Uri): Uint8Array {
+    const data = this._lookupAsFile(uri, false).data;
+    if (data) {
+      return data;
+    }
+    throw vscode.FileSystemError.FileNotFound();
+  }
 
-	writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void {
-		const basename = posix.basename(uri.path, undefined);
-		const parent = this._lookupParentDirectory(uri);
-		let entry = parent.entries.get(basename);
-		if (entry instanceof Directory) {
-			throw vscode.FileSystemError.FileIsADirectory(uri);
-		}
-		if (!entry && !options.create) {
-			throw vscode.FileSystemError.FileNotFound(uri);
-		}
-		if (entry && options.create && !options.overwrite) {
-			throw vscode.FileSystemError.FileExists(uri);
-		}
-		if (!entry) {
-			entry = new File(basename);
-			parent.entries.set(basename, entry);
-			this._fireSoon({ type: vscode.FileChangeType.Created, uri });
-		}
-		entry.mtime = Date.now();
-		entry.size = content.byteLength;
-		entry.data = content;
+  writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void {
+    const basename = posix.basename(uri.path, undefined);
+    const parent = this._lookupParentDirectory(uri);
+    let entry = parent.entries.get(basename);
+    if (entry instanceof Directory) {
+      throw vscode.FileSystemError.FileIsADirectory(uri);
+    }
+    if (!entry && !options.create) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
+    if (entry && options.create && !options.overwrite) {
+      throw vscode.FileSystemError.FileExists(uri);
+    }
+    if (!entry) {
+      entry = new File(basename);
+      parent.entries.set(basename, entry);
+      this._fireSoon({ type: vscode.FileChangeType.Created, uri });
+    }
+    entry.mtime = Date.now();
+    entry.size = content.byteLength;
+    entry.data = content;
 
-		this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
-	}
+    this._fireSoon({ type: vscode.FileChangeType.Changed, uri });
+  }
 
-	// --- manage files/folders
+  // --- manage files/folders
 
-	rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void {
+  rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): void {
 
-		if (!options.overwrite && this._lookup(newUri, true)) {
-			throw vscode.FileSystemError.FileExists(newUri);
-		}
+    if (!options.overwrite && this._lookup(newUri, true)) {
+      throw vscode.FileSystemError.FileExists(newUri);
+    }
 
-		const entry = this._lookup(oldUri, false);
-		const oldParent = this._lookupParentDirectory(oldUri);
+    const entry = this._lookup(oldUri, false);
+    const oldParent = this._lookupParentDirectory(oldUri);
 
-		const newParent = this._lookupParentDirectory(newUri);
-		const newName = posix.basename(newUri.path, undefined);
+    const newParent = this._lookupParentDirectory(newUri);
+    const newName = posix.basename(newUri.path, undefined);
 
-		oldParent.entries.delete(entry.name);
-		entry.name = newName;
-		newParent.entries.set(newName, entry);
+    oldParent.entries.delete(entry.name);
+    entry.name = newName;
+    newParent.entries.set(newName, entry);
 
-		this._fireSoon(
-			{ type: vscode.FileChangeType.Deleted, uri: oldUri },
-			{ type: vscode.FileChangeType.Created, uri: newUri }
-		);
-	}
+    this._fireSoon(
+      { type: vscode.FileChangeType.Deleted, uri: oldUri },
+      { type: vscode.FileChangeType.Created, uri: newUri }
+    );
+  }
 
-	delete(uri: vscode.Uri): void {
-		const dirname = uri.with({ path: posix.dirname(uri.path) });
-		const basename = posix.basename(uri.path, undefined);
-		const parent = this._lookupAsDirectory(dirname, false);
-		if (!parent.entries.has(basename)) {
-			throw vscode.FileSystemError.FileNotFound(uri);
-		}
-		parent.entries.delete(basename);
-		parent.mtime = Date.now();
-		parent.size -= 1;
-		this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { uri, type: vscode.FileChangeType.Deleted });
-	}
+  delete(uri: vscode.Uri): void {
+    const dirname = uri.with({ path: posix.dirname(uri.path) });
+    const basename = posix.basename(uri.path, undefined);
+    const parent = this._lookupAsDirectory(dirname, false);
+    if (!parent.entries.has(basename)) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
+    parent.entries.delete(basename);
+    parent.mtime = Date.now();
+    parent.size -= 1;
+    this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { uri, type: vscode.FileChangeType.Deleted });
+  }
 
-	createDirectory(uri: vscode.Uri): void {
-		const basename = posix.basename(uri.path, undefined);
-		const dirname = uri.with({ path: posix.dirname(uri.path) });
-		const parent = this._lookupAsDirectory(dirname, false);
+  createDirectory(uri: vscode.Uri): void {
+    const basename = posix.basename(uri.path, undefined);
+    const dirname = uri.with({ path: posix.dirname(uri.path) });
+    const parent = this._lookupAsDirectory(dirname, false);
 
-		const entry = new Directory(basename);
-		parent.entries.set(entry.name, entry);
-		parent.mtime = Date.now();
-		parent.size += 1;
-		this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { type: vscode.FileChangeType.Created, uri });
-	}
+    const entry = new Directory(basename);
+    parent.entries.set(entry.name, entry);
+    parent.mtime = Date.now();
+    parent.size += 1;
+    this._fireSoon({ type: vscode.FileChangeType.Changed, uri: dirname }, { type: vscode.FileChangeType.Created, uri });
+  }
 
-	// --- lookup
+  // --- lookup
 
-	private _lookup(uri: vscode.Uri, silent: false): Entry;
-	private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined;
-	private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined {
-		const parts = uri.path.split('/');
-		let entry: Entry = this.root;
-		for (const part of parts) {
-			if (!part) {
-				continue;
-			}
-			let child: Entry | undefined;
-			if (entry instanceof Directory) {
-				child = entry.entries.get(part);
-			}
-			if (!child) {
-				if (!silent) {
-					throw vscode.FileSystemError.FileNotFound(uri);
-				} else {
-					return undefined;
-				}
-			}
-			entry = child;
-		}
-		return entry;
-	}
+  private _lookup(uri: vscode.Uri, silent: false): Entry;
+  private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined;
+  private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined {
+    const parts = uri.path.split('/');
+    let entry: Entry = this.root;
+    for (const part of parts) {
+      if (!part) {
+        continue;
+      }
+      let child: Entry | undefined;
+      if (entry instanceof Directory) {
+        child = entry.entries.get(part);
+      }
+      if (!child) {
+        if (!silent) {
+          throw vscode.FileSystemError.FileNotFound(uri);
+        } else {
+          return undefined;
+        }
+      }
+      entry = child;
+    }
+    return entry;
+  }
 
-	private _lookupAsDirectory(uri: vscode.Uri, silent: boolean): Directory {
-		const entry = this._lookup(uri, silent);
-		if (entry instanceof Directory) {
-			return entry;
-		}
-		throw vscode.FileSystemError.FileNotADirectory(uri);
-	}
+  private _lookupAsDirectory(uri: vscode.Uri, silent: boolean): Directory {
+    const entry = this._lookup(uri, silent);
+    if (entry instanceof Directory) {
+      return entry;
+    }
+    throw vscode.FileSystemError.FileNotADirectory(uri);
+  }
 
-	private _lookupAsFile(uri: vscode.Uri, silent: boolean): File {
-		const entry = this._lookup(uri, silent);
-		if (entry instanceof File) {
-			return entry;
-		}
-		throw vscode.FileSystemError.FileIsADirectory(uri);
-	}
+  private _lookupAsFile(uri: vscode.Uri, silent: boolean): File {
+    const entry = this._lookup(uri, silent);
+    if (entry instanceof File) {
+      return entry;
+    }
+    throw vscode.FileSystemError.FileIsADirectory(uri);
+  }
 
-	private _lookupParentDirectory(uri: vscode.Uri): Directory {
-		const dirname = uri.with({ path: posix.dirname(uri.path) });
-		return this._lookupAsDirectory(dirname, false);
-	}
+  private _lookupParentDirectory(uri: vscode.Uri): Directory {
+    const dirname = uri.with({ path: posix.dirname(uri.path) });
+    return this._lookupAsDirectory(dirname, false);
+  }
 
-	// --- manage file events
+  // --- manage file events
 
-	private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
-	private _bufferedEvents: vscode.FileChangeEvent[] = [];
-	private _fireSoonHandle?: NodeJS.Timer;
+  private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+  private _bufferedEvents: vscode.FileChangeEvent[] = [];
+  private _fireSoonHandle?: NodeJS.Timer;
 
-	readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
+  readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
 
-	watch(_resource: vscode.Uri): vscode.Disposable {
-		// ignore, fires for all changes...
-		return new vscode.Disposable(() => { });
-	}
+  watch(_resource: vscode.Uri): vscode.Disposable {
+    // ignore, fires for all changes...
+    return new vscode.Disposable(() => { });
+  }
 
-	private _fireSoon(...events: vscode.FileChangeEvent[]): void {
-		this._bufferedEvents.push(...events);
+  private _fireSoon(...events: vscode.FileChangeEvent[]): void {
+    this._bufferedEvents.push(...events);
 
-		if (this._fireSoonHandle) {
-			clearTimeout(this._fireSoonHandle);
-		}
+    if (this._fireSoonHandle) {
+      clearTimeout(this._fireSoonHandle);
+    }
 
-		this._fireSoonHandle = setTimeout(() => {
-			this._emitter.fire(this._bufferedEvents);
-			this._bufferedEvents.length = 0;
-		}, 5);
-	}
+    this._fireSoonHandle = setTimeout(() => {
+      this._emitter.fire(this._bufferedEvents);
+      this._bufferedEvents.length = 0;
+    }, 5);
+  }
 }

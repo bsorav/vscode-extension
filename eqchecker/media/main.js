@@ -34,7 +34,7 @@
             case 'updateEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    updateEqcheckInView(message.origRequest, message.dirPath, message.statusMessage, message.runState);
+                    updateEqcheckInView(message.origRequest, message.statusMessage, message.runState);
                     break;
                 }
             //case 'clearEqchecks':
@@ -228,7 +228,7 @@
     ///**
     // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
     // */
-    function updateEqcheckInView(origRequest, dirPath, statusMessage, runState)
+    function updateEqcheckInView(origRequest, statusMessage, runState)
     {
       //console.log('statusMessage = ' + statusMessage + '\n');
       //console.log('runState = ' + runState + '\n');

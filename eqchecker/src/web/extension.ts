@@ -107,7 +107,7 @@ class Eqchecker {
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages);
     var request =
         { type: 'updateEqcheckInView',
-          dirPath: dirPath,
+          //dirPath: dirPath,
           origRequest: origRequest,
           statusMessage: statusMessage,
           runState: runState,

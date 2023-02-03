@@ -89,23 +89,6 @@ class Eqchecker {
     if (jsonMessages === null || jsonMessages.messages === undefined) {
       return false;
     }
-    //const rawData = `{
-    //  "price":13300000,
-    //  "area":7420,
-    //  "bedrooms":4,
-    //  "bathrooms":2,
-    //  "stories":3,
-    //  "airconditioning":true
-    //}`;
-
-    //let jsonData = JSON.parse(rawData);
-    //console.log("jsonData:\n" + JSON.stringify(jsonData));
-
-    //console.log("jsonMessages[MSG]:\n" + jsonMessages.messages.MSG);
-    //for (var key in jsonMessages) {
-    //  console.log('key ' + key);
-    //  console.log('value ' + jsonMessages[key]);
-    //}
     let messages = jsonMessages.messages.MSG;
     if (messages === undefined || messages.length === 0) {
       //console.log("messages = " + messages);
@@ -170,14 +153,16 @@ class Eqchecker {
         return response.json();
       })
       .then(async function(result) {
+        let dirPath = result.dirPath;
         if (firstRequest) {
           //console.log("first response received.\n");
+          origRequest.type = 'addEqcheckInView';
+          origRequest.dirPath = dirPath;
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
           vscode.window.showInformationMessage(`Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`);
         } else {
           //console.log("response received.\n");
         }
-        let dirPath = result.dirPath;
         let offset = result.offset;
         let chunk = result.chunk;
         console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
@@ -247,71 +232,6 @@ class Eqchecker {
     }
     console.log('returning false');
     return false;
-    //var responseData : string;
-    //var promise = new Promise(_.bind(function (resolve, reject) {
-    //    var ajaxFn = _.bind(async function() {
-    //      var timeoutId : ReturnType<typeof setTimeout>;
-    //      //$.ajax({
-    //      //  type: 'POST',
-    //      //  url: Eqchecker.serverURL + "/api/eqchecker/start_eqcheck",
-    //      //  dataType: 'json',
-    //      //  contentType: 'application/json',
-    //      //  data: jsonRequest,
-    //      //  success: _.bind(function (result) {
-    //      //    let dirPath = result.dirPath;
-    //      //    let offset = result.offset;
-    //      //    let chunk = result.chunk.toString();
-    //      //    if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
-    //      //      jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
-    //      //      timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
-    //      //    }
-    //      //  }, this),
-    //      //  error: _.bind(function (error) {
-    //      //      clearTimeout(timeoutId);
-    //      //  }, this)
-    //      //});
-    //      const response = await fetch(Eqchecker.serverURL + "/api/eqchecker/start_eqcheck", {
-    //        method: 'POST',
-    //        mode: 'cors',
-    //        cache: 'no-cache',
-    //        headers: {
-    //          'Content-Type': 'application/json',
-    //          'Accept' : 'application/json',
-    //        },
-    //        body: jsonRequest,
-    //      });
-
-    //      if (response.ok) {
-    //        response.json().then(result => {
-    //          //let result = JSON.parse(res);
-    //          let dirPath = result.dirPath;
-    //          let offset = result.offset;
-    //          let chunk = result.chunk.toString();
-    //          if (Eqchecker.addEqcheckOutput(dirPath, chunk)) {
-    //            break;
-    //          } else {
-    //            jsonRequest = JSON.stringify({dirPathIn: dirPath, offsetIn: offset});
-    //            //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
-    //          }
-    //        });
-    //      } else {
-    //        clearTimeout(timeoutId);
-    //      }
-    //      //.catch(function(error) {
-    //      //  clearTimeout(timeoutId);
-    //      //})
-    //    }, this);
-    //    ajaxFn();
-    //    return Promise.resolve({ request: request, result: undefined});
-    //}, this));
-    //promise.catch(function (x) {
-    //  var message = "Unknown error";
-    //  if (_.isString(x)) {
-    //    message = x;
-    //  } else if (x) {
-    //    message = x.error || x.code;
-    //  }
-    //});
   }
 
 
@@ -490,7 +410,53 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          //vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}.`);
+          vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}.`);
+          //var request =
+          //  { serverCommand: commandObtainProof,
+          //    source1Uri: entry.source1Uri,
+          //    source1Name: entry.source1Name,
+          //    source2Uri: entry.source2Uri,
+          //    source2Name: entry.source2Name,
+          //    functionName: entry.functionName,
+          //    statusMessage: EQCHECK_STATUS_MESSAGE_START,
+          //    //bgColor: this.getNewCalicoColor(),
+          //    runState: 'RunstateRunning',
+          //    source : source,
+          //    optimized : optimized,
+          //  };
+
+
+          //const panel_prd = vscode.window.createWebviewPanel(
+          //  'productCFG', // Identifies the type of the webview. Used internally
+          //  'Product Control Flow Graph', // Title of the panel displayed to the user
+          //  vscode.ViewColumn.Two, // Editor column to show the new webview panel in.
+          //  {
+          //    enableScripts: true,
+          //    retainContextWhenHidden: true,
+          //  } // Webview options.
+          //);
+          //const panel_src_code = vscode.window.createWebviewPanel(
+          //  'src_code', // Identifies the type of the webview. Used internally
+          //  'Source Code', // Title of the panel displayed to the user
+          //  vscode.ViewColumn.One, // Editor column to show the new webview panel in.
+          //  {
+          //    enableScripts: true,
+          //    retainContextWhenHidden: true,
+          //  } // Webview options.
+          //);
+
+          //const panel_dst_code = vscode.window.createWebviewPanel(
+          //  'dst_code', // Identifies the type of the webview. Used internally
+          //  'Destination Code', // Title of the panel displayed to the user
+          //  vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
+          //  {
+          //    enableScripts: true,
+          //    retainContextWhenHidden: true,
+          //  } // Webview options.
+          //);
+
+          //const styleProductCFGUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'productCFG.css'));
+          //const productCFGScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'productCFG.js'));
           break;
         }
         default: {

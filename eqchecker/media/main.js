@@ -25,10 +25,10 @@
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
         switch (message.type) {
-            case 'submitEqcheck':
+            case 'addEqcheckInView':
                 {
                     console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.statusMessage, message.runState);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source2Uri, message.source2Name, message.functionName, message.statusMessage, message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
@@ -58,7 +58,7 @@
     }
 
     /**
-     * @param {Array<{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }>} eqchecks
+     * @param {Array<{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }>} eqchecks
      */
     function displayEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
@@ -148,7 +148,7 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseOver(eqcheck) {
         //do nothing for now. Should display the URIs
@@ -160,14 +160,14 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseOut(eqcheck) {
         //do nothing for now. Should display the URIs
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseLeave(eqcheck) {
 	    //document.getElementById('hoverEqcheckSource1Uri').style.display='none';
@@ -176,7 +176,7 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck, {number} mouseX, {number} mouseY
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck, {number} mouseX, {number} mouseY
      */
     function showRightClickMenu(eqcheck, mouseX, mouseY) {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
@@ -193,7 +193,7 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckRightClick(eqcheck, event) {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
@@ -205,28 +205,28 @@
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckDoubleClick(eqcheck) {
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
-     * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     //function getHoverMessage(eqcheck) {
     //  return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
     //}
 
     ///**
-    // * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
+    // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
     // */
     function updateEqcheckInView(origRequest, dirPath, statusMessage, runState)
     {
@@ -243,21 +243,22 @@
     }
 
     ///**
-    // * @param {{ source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
+    // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
     // */
     function eqcheckMatchesOrigRequest(eqcheck, origRequest)
     {
-      return true
-        && eqcheck.source1Uri === origRequest.source1Uri
-        && eqcheck.source2Uri === origRequest.source2Uri
-        && eqcheck.functionName === origRequest.functionName
-      ;
+      return eqcheck.dirPath === origRequest.dirPath;
+        //&& eqcheck.source1Uri === origRequest.source1Uri
+        //&& eqcheck.source2Uri === origRequest.source2Uri
+        //&& eqcheck.functionName === origRequest.functionName
+      //;
     }
 
     /**
-     * @param _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _statusMessage: string, _runState: string
+     * @param _dirPath : string, _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _statusMessage: string, _runState: string
      */
     function addEqcheckInView(
+        _dirPath,
         _source1Uri,
         _source1Name,
         _source2Uri,
@@ -268,6 +269,7 @@
     ) {
       console.log(`runState = ${_runState}`);
       eqchecks.push({
+        dirPath: _dirPath,
         source1Uri: _source1Uri,
         source1Name: _source1Name,
         source2Uri: _source2Uri,

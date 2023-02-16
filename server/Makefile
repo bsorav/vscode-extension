@@ -1,2 +1,8 @@
+# Add the HOST and PORT details below.
+FILE_PATH = "../eqchecker/src/web/extension.ts"
+HOST = "https://localhost"
+PORT = "3000"
+
 run::
-	node app.js --host workstation.cse.iitd.ac.in --port 8080 --superoptInstall ${HOME}/superopt-project/usr/local --tmpDir /tmp
+	sed -i "0,/^const defaultServerURL =/s|const defaultServerURL = .*|const defaultServerURL = '${HOST}:${PORT}'|" "${FILE_PATH}"
+	node app.js --host ${HOST} --port ${PORT} --superoptInstall ${HOME}/superopt-project/usr/local --tmpDir /tmp  

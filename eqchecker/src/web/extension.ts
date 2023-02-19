@@ -229,11 +229,14 @@ class Eqchecker {
     return false;
   }
 
-  public static async getProofFromServer(dirPath)
+  public static async obtainProofFromServer(dirPathIn)
   {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
     const response = await this.RequestResponseForCommand(jsonRequest);
-    return response.proof;
+    console.log("obtainProofFromServer response: ", JSON.stringify(response));
+    const proof = response.proof;
+    console.log("response proof: ", JSON.stringify(proof));
+    return proof;
   }
 
 
@@ -402,8 +405,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          const proof = Eqchecker.getProofFromServer(data.eqcheck.dirPath);
-          vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}:\n. ${proof}`);
+          const proof = Eqchecker.obtainProofFromServer(data.eqcheck.dirPath);
+          console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
+          vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}:\n. proof ${JSON.stringify(proof)}`);
           //var request =
           //  { serverCommand: commandObtainProof,
           //    source1Uri: entry.source1Uri,

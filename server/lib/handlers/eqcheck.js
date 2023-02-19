@@ -288,7 +288,7 @@ class EqcheckHandler {
     }
 
     async getProofXML(dirPath) {
-      let proofFilename = this.get_proof_filename(dirPath);
+      let proofFilename = this.get_proof_filename(dirPath) + ".xml";
 
       return fs.fstatSync(proofFilename, {flag: 'r'});
     }
@@ -468,9 +468,8 @@ class EqcheckHandler {
         res.end(chunkStr);
         return;
       } else if (commandIn === commandObtainProof) {
-        console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
+        console.log('ObtainProof received with dirPathIn ', dirPathIn);
         const proof_xml = await this.getProofXML(dirPathIn);
-        let proof_msg = ("<messages>").concat(proof_xml).concat("</messages>");
 
         var proofObj;
         xml2js.parseString(proof_xml, {explictArray: true}, function (err, result) {

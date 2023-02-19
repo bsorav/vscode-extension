@@ -13,7 +13,7 @@ const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
 const commandPingEqcheck = 'pingEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
-const commandGetProof = 'getProof';
+const commandObtainProof = 'obtainProof';
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -231,7 +231,7 @@ class Eqchecker {
 
   public static async getProofFromServer(dirPath)
   {
-    let jsonRequest = JSON.stringify({serverCommand: commandGetProof, dirPath: dirPath});
+    let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
     const response = await this.RequestResponseForCommand(jsonRequest);
     return response.proof;
   }

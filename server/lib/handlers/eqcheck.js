@@ -287,14 +287,32 @@ class EqcheckHandler {
         });
     }
 
+    readBuffer(fd, start, bufferSize, max_chunksize) {
+      var buffer = Buffer.alloc(bufferSize);
+      var bytesRead = 0;
+
+      while (bytesRead < bufferSize) {
+        var size = Math.min(max_chunksize, bufferSize - bytesRead);
+        var read = fs.readSync(fd, buffer, bytesRead, size, start + bytesRead);
+        bytesRead += read;
+      }
+      return buffer;
+    }
+
     async getProofXML(dirPath) {
       let proofFilename = this.get_proof_filename(dirPath) + ".xml";
 
-      return fs.fstatSync(proofFilename, {flag: 'r'});
+      let fd = await fs.open(proofFilename, 'r');
+      let stats = fs.fstatSync(fd);
+      if (stats.size === undefined) {
+        return "";
+      }
+      var buffer = this.readBuffer(fd, 0, stats.size, 8192);
+      await fs.close(fd);
+      return buffer.toString();
     }
 
     async getOutputChunk(dirPath, offset) {
-      const max_chunksize = 8192; //8192-byte intervals
       let outFilename;
       //let chunkBuf = Buffer.alloc(max_chunksize);
 
@@ -311,18 +329,11 @@ class EqcheckHandler {
       if (bufferSize === 0) {
         return [offset, ""];
       }
-      var buffer = Buffer.alloc(bufferSize);
-      var bytesRead = 0;
-
-      while (bytesRead < bufferSize) {
-        var size = Math.min(max_chunksize, bufferSize - bytesRead);
-        var read = fs.readSync(outfd, buffer, bytesRead, size, offset + bytesRead);
-        bytesRead += read;
-      }
-      const numread = bytesRead;
+      //const max_chunksize = 8192; //8192-byte intervals
+      var buffer = this.readBuffer(outfd, offset, bufferSize, 8192);
 
       //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
-      let chunkBuf = buffer.slice(0, numread);
+      let chunkBuf = buffer.slice(0, bufferSize);
       let chunk = chunkBuf.toString();
       const end_of_message_marker = "</MSG>";
 
@@ -470,6 +481,7 @@ class EqcheckHandler {
       } else if (commandIn === commandObtainProof) {
         console.log('ObtainProof received with dirPathIn ', dirPathIn);
         const proof_xml = await this.getProofXML(dirPathIn);
+        //console.log('proof_xml =\n', proof_xml);
 
         var proofObj;
         xml2js.parseString(proof_xml, {explictArray: true}, function (err, result) {
@@ -478,6 +490,7 @@ class EqcheckHandler {
         });
 
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj});
+        console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
       } else {

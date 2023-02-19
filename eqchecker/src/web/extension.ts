@@ -13,6 +13,7 @@ const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
 const commandPingEqcheck = 'pingEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
+const commandGetProof = 'getProof';
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -228,6 +229,14 @@ class Eqchecker {
     return false;
   }
 
+  public static async getProofFromServer(dirPath)
+  {
+    let jsonRequest = JSON.stringify({serverCommand: commandGetProof, dirPath: dirPath});
+    const response = await this.RequestResponseForCommand(jsonRequest);
+    return response.proof;
+  }
+
+
   public static async checkEq()
   {
       // Get labels of opened files in all groups
@@ -393,7 +402,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}.`);
+          const proof = Eqchecker.getProofFromServer(data.eqcheck.dirPath);
+          vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}:\n. ${proof}`);
           //var request =
           //  { serverCommand: commandObtainProof,
           //    source1Uri: entry.source1Uri,

@@ -387,6 +387,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     EqcheckViewProvider.provider = new EqcheckViewProvider(_extensionUri);
   }
 
+  async eqcheckViewProof(dirPath) {
+    var proof = await Eqchecker.obtainProofFromServer(dirPath);
+    console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
+    vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
+  }
+
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
@@ -405,9 +411,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          const proof = Eqchecker.obtainProofFromServer(data.eqcheck.dirPath);
-          console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
-          vscode.window.showInformationMessage(`eqcheckViewProof received for ${data.eqcheck.source1Uri} -> ${data.eqcheck.source2Uri}:\n. proof ${JSON.stringify(proof)}`);
+          this.eqcheckViewProof(data.eqcheck.dirPath);
           //var request =
           //  { serverCommand: commandObtainProof,
           //    source1Uri: entry.source1Uri,

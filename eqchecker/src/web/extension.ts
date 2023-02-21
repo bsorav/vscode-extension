@@ -239,12 +239,49 @@ class Eqchecker {
     return proof;
   }
 
+  // Method to Open Source Files for Equivalence Checking.
+  public static async openSourceFiles() {
+
+      const options = {
+        canSelectMany: false,
+        openLabel: 'Open First Source Code File',
+        filters: {
+          'Source Code': ['c', 's'],
+        }
+      };
+
+      let firstFileUri, nextFileUri;
+
+      // Ask the user to select the first source code file.
+      const firstFileUris = await vscode.window.showOpenDialog(options);
+        if (firstFileUris && firstFileUris[0]) {
+          firstFileUri = firstFileUris[0];
+          const firstSourceCode = await vscode.workspace.openTextDocument(firstFileUri);
+          await vscode.window.showTextDocument(firstSourceCode, { viewColumn: vscode.ViewColumn.One });
+
+          // Ask the user to select the next source code file.
+          options.openLabel = 'Open Next Source Code File';
+          options.filters = {
+            'Source Code': ['s', 'c'],
+          };
+          const nextFileUris = await vscode.window.showOpenDialog(options);
+          if (nextFileUris && nextFileUris[0]) {
+            nextFileUri = nextFileUris[0];
+            const nextSourceCode = await vscode.workspace.openTextDocument(nextFileUri);
+            await vscode.window.showTextDocument(nextSourceCode, { viewColumn: vscode.ViewColumn.Two });
+          }
+    }
+    return;
+  }
 
   public static async checkEq()
   {
+      // Get the Source Code Files selected by User.
+      await Eqchecker.openSourceFiles();
+
       // Get labels of opened files in all groups
-          let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
-        //console.log("tabs size = ");
+      let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
+      //console.log("tabs size = ");
       //console.log(tabs.length);
       let cSources : (typeof tabs) = [];
       let asmSources : (typeof tabs) = [];

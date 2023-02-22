@@ -32,7 +32,7 @@ export async function activate(context: vscode.ExtensionContext) {
   //const cprovider = new ColorsViewProvider(context.extensionUri);
   //context.subscriptions.push(
   //  vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
-  Eqchecker.initializeEqchecker(context.extensionUri);
+  Eqchecker.initializeEqchecker(context);
   EqcheckViewProvider.initializeEqcheckViewProvider(context.extensionUri);
   //console.log("creating EqcheckViewProvider object\n");
   //console.log("done creating EqcheckViewProvider object\n");
@@ -69,13 +69,15 @@ function uri2str(uri : vscode.Uri) : string {
 }
 
 class Eqchecker {
+  public static context;
   public static extensionUri;
   public static serverURL : string = defaultServerURL;
   public static outputMap: Record<string, string[]> = {};
 
-  public static initializeEqchecker(_extensionUri: vscode.Uri) {
-    console.log("extensionUri = " + _extensionUri.fsPath);
-    Eqchecker.extensionUri = _extensionUri;
+  public static initializeEqchecker(context: vscode.ExtensionContext) {
+    //console.log("extensionUri = " + context.extensionUri.fsPath);
+    Eqchecker.extensionUri = context.extensionUri;
+    Eqchecker.context = context;
   }
 
   public static fetchFailed(err, url)
@@ -245,7 +247,6 @@ class Eqchecker {
     console.log("response proof: ", JSON.stringify(proof));
     return proof;
   }
-
 
   public static async checkEq()
   {
@@ -556,7 +557,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         }
       },
       undefined,
-      context.subscriptions
+      Eqchecker.context.subscriptions
     );
   }
 

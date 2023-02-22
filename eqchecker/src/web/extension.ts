@@ -32,6 +32,7 @@ export async function activate(context: vscode.ExtensionContext) {
   //const cprovider = new ColorsViewProvider(context.extensionUri);
   //context.subscriptions.push(
   //  vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, cprovider));
+  Eqchecker.initializeEqchecker(context.extensionUri);
   EqcheckViewProvider.initializeEqcheckViewProvider(context.extensionUri);
   //console.log("creating EqcheckViewProvider object\n");
   //console.log("done creating EqcheckViewProvider object\n");
@@ -68,8 +69,14 @@ function uri2str(uri : vscode.Uri) : string {
 }
 
 class Eqchecker {
+  public static extensionUri;
   public static serverURL : string = defaultServerURL;
   public static outputMap: Record<string, string[]> = {};
+
+  public static initializeEqchecker(_extensionUri: vscode.Uri) {
+    console.log("extensionUri = " + _extensionUri.fsPath);
+    Eqchecker.extensionUri = _extensionUri;
+  }
 
   public static fetchFailed(err, url)
   {
@@ -387,10 +394,170 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     EqcheckViewProvider.provider = new EqcheckViewProvider(_extensionUri);
   }
 
-  async eqcheckViewProof(dirPath) {
+  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri) {
+    //const html = readFileSync(path.join(context_path, 'src/web_view/views/product.html'));
+    //return eval('`' + html + '`');
+    return '';
+  }
+
+  public static getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri) {
+    //const html = readFileSync(path.join(context_path, 'src/web_view/views/src_code.html')).toString();
+    //return eval('`' + html + '`');
+    return '';
+  }
+
+  public static getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri) {
+    //const html = readFileSync(path.join(context_path, 'src/web_view/views/dst_code.html')).toString();
+    //return eval('`' + html + '`');
+    return '';
+  }
+
+  async eqcheckViewProof(webview: vscode.Webview, dirPath)
+  {
     var proof = await Eqchecker.obtainProofFromServer(dirPath);
     console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
     vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
+    const panel_prd =
+      vscode.window.createWebviewPanel(
+          'productCFG',
+          'Product Control Flow Graph',
+          vscode.ViewColumn.Two,
+          {
+            enableScripts: true,
+            retainContextWhenHidden: true
+          }
+      );
+    const panel_src_code =
+      vscode.window.createWebviewPanel(
+        'src_code',
+        'Source Code',
+        vscode.ViewColumn.One,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true
+        }
+      );
+    const panel_dst_code =
+      vscode.window.createWebviewPanel(
+        'dst_code',
+        'Destination Code',
+        vscode.ViewColumn.Three,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true
+        }
+      );
+    const index_css = webview.asWebviewUri(
+      vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/css/index.css')
+    );
+
+    //var onDiskPath_script = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'src/web_view/scripts/product.js')
+    //);
+    //const product_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+    const product_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
+
+    //const onDiskPath_prism = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'node_modules/prismjs/prism.js')
+    //);
+    //const prism = panel_prd.webview.asWebviewUri(onDiskPath_prism);
+    const prism = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/prism.js'));
+
+    //const onDiskPath_prism_css = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'node_modules/prismjs/themes/prism.css')
+    //);
+    //const prism_css = panel_prd.webview.asWebviewUri(onDiskPath_prism_css);
+    const prism_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/themes/prism.css'));
+
+    //const onDiskPath_prism_ln_css = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css')
+    //);
+    //const prism_ln_css = panel_prd.webview.asWebviewUri(onDiskPath_prism_ln_css);
+    const prism_ln_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css'));
+
+    //const onDiskPath_prism_ln_script = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js')
+    //);
+    //const prism_ln_script = panel_prd.webview.asWebviewUri(onDiskPath_prism_ln_script);
+    const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
+
+    //const vis_network_script = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'node_modules/vis-network/standalone/umd/vis-network.min.js')
+    //);
+
+    //const vis_network = panel_prd.webview.asWebviewUri(vis_network_script);
+    const vis_network = panel_prd.webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
+
+    //onDiskPath_script = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'src/web_view/scripts/src_code.js')
+    //);
+    //const src_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+    const src_code_script = panel_prd.webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/web_view/scripts/src_code.js'));
+
+    //onDiskPath_script = vscode.Uri.file(
+    //  path.join(context.extensionPath, 'src/web_view/scripts/dst_code.js')
+    //);
+    //const dst_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
+    const dst_code_script = panel_prd.webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/web_view/scripts/dst_code.js'));
+
+    // Set the webview content
+
+    panel_prd.webview.html = EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network);
+    panel_src_code.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
+    panel_dst_code.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
+
+    // Message passing to src and dst webview
+
+    panel_prd.webview.postMessage(proof).then((res) => {console.log(res);});
+    panel_src_code.webview.postMessage({command: "data", code:proof});
+    panel_dst_code.webview.postMessage({command: "data", code:proof});
+
+    panel_prd.webview.onDidReceiveMessage(
+      message => {
+        switch (message.command) {
+          case "highlight":
+            // panel_src.webview.postMessage({
+            //  command: "highlight",
+            //  from: message.from[0],
+            //  to: message.to[0],
+            //  path: message.path1
+            // });
+            // panel_dst.webview.postMessage({
+            //  command: "highlight",
+            //  from: message.from[1],
+            //  to: message.to[1],
+            //  path: message.path2
+            // });
+            panel_src_code.webview.postMessage({
+              command: "highlight",
+              path: message.path1
+            });
+            panel_dst_code.webview.postMessage({
+              command: "highlight",
+              path: message.path2
+            });
+            break;
+          case "clear":
+            // panel_src.webview.postMessage({
+            //  command: "clear"
+            // });
+            // panel_dst.webview.postMessage({
+            //  command: "clear"
+            // });
+            panel_src_code.webview.postMessage({
+              command: "clear"
+            });
+            panel_dst_code.webview.postMessage({
+              command: "clear"
+            });
+            break;
+          default:
+            break;
+        }
+      },
+      undefined,
+      context.subscriptions
+    );
   }
 
   public resolveWebviewView(
@@ -411,7 +578,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          this.eqcheckViewProof(data.eqcheck.dirPath);
+          this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath);
           //var request =
           //  { serverCommand: commandObtainProof,
           //    source1Uri: entry.source1Uri,

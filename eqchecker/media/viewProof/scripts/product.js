@@ -3,30 +3,30 @@
     PRODUCT CFG 
 */
 
-
-var vscode = acquireVsCodeApi();
-
+const vscode = acquireVsCodeApi();
 
 var prod_cfg = null;
 
 window.addEventListener('message', async event => {
-    const message = event.data;
-    prod_cfg = message;
-    console.log("RECEIVED EVENT\n");
+    //console.log("RECEIVED EVENT\n");
+    prod_cfg = event.prod_cfg;
+    //prod_cfg = message;
     console.log(prod_cfg);
-    console.log("RECEIVED EVENT\n");
+    //console.log("RECEIVED EVENT\n");
 });
 
+vscode.postMessage({command:"loaded"});
 
 async function waitForMessage(){
-    // console.log(prod_cfg);
     while(prod_cfg === null){
-        await new Promise(r => window.setTimeout(r, 100));
+        console.log("prod_cfg is still NULL");
+        await new Promise(r => window.setTimeout(r, 1000));
     }
 }
 
+console.log("Waiting for proof\n");
 await waitForMessage();
-
+console.log("Proof received\n");
 
 function initializeContainer(){
     let container = document.getElementById('cfg');
@@ -132,4 +132,3 @@ network.on('deselectEdge', function(properties) {
         command:"clear"
     });
 });
-

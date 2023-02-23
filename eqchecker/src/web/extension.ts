@@ -400,8 +400,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/product.html'));
     //return eval('`' + html + '`');
 
-    const html = `
-    <!doctype html>
+    const html =
+    `<!doctype html>
     <html>
     <head>
       <script type="module" src=${product_script}></script>
@@ -490,8 +490,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   async eqcheckViewProof(webview: vscode.Webview, dirPath, src_code, dst_code)
   {
     var proof = await Eqchecker.obtainProofFromServer(dirPath);
-    console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
-    vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
+    //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
+    //vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
     const panel_prd =
       vscode.window.createWebviewPanel(
           'productCFG',
@@ -525,55 +525,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const index_css = webview.asWebviewUri(
       vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/css/index.css')
     );
-
-    //var onDiskPath_script = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'src/web_view/scripts/product.js')
-    //);
-    //const product_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
     const product_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
-
-    //const onDiskPath_prism = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'node_modules/prismjs/prism.js')
-    //);
-    //const prism = panel_prd.webview.asWebviewUri(onDiskPath_prism);
     const prism = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/prism.js'));
-
-    //const onDiskPath_prism_css = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'node_modules/prismjs/themes/prism.css')
-    //);
-    //const prism_css = panel_prd.webview.asWebviewUri(onDiskPath_prism_css);
     const prism_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/themes/prism.css'));
-
-    //const onDiskPath_prism_ln_css = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css')
-    //);
-    //const prism_ln_css = panel_prd.webview.asWebviewUri(onDiskPath_prism_ln_css);
     const prism_ln_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css'));
-
-    //const onDiskPath_prism_ln_script = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js')
-    //);
-    //const prism_ln_script = panel_prd.webview.asWebviewUri(onDiskPath_prism_ln_script);
     const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
-
-    //const vis_network_script = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'node_modules/vis-network/standalone/umd/vis-network.min.js')
-    //);
-
-    //const vis_network = panel_prd.webview.asWebviewUri(vis_network_script);
-    const vis_network = panel_prd.webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
-
-    //onDiskPath_script = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'src/web_view/scripts/src_code.js')
-    //);
-    //const src_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
-    const src_code_script = panel_prd.webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-
-    //onDiskPath_script = vscode.Uri.file(
-    //  path.join(context.extensionPath, 'src/web_view/scripts/dst_code.js')
-    //);
-    //const dst_code_script = panel_prd.webview.asWebviewUri(onDiskPath_script);
-    const dst_code_script = panel_prd.webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
+    const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
+    const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
 
     // Set the webview content
 
@@ -581,15 +540,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     panel_src_code.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
     panel_dst_code.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
 
-    // Message passing to src and dst webview
-    console.log("Posting proof to panel_prd\n");
-    panel_prd.webview.postMessage(proof).then((res) => {console.log("Received response\n" + res);});
-    //panel_src_code.webview.postMessage({command: "data", code:src_code});
-    //panel_dst_code.webview.postMessage({command: "data", code:dst_code});
+    let panel_prd_loaded = false;
+    let panel_src_code_loaded = false;
+    let panel_dst_code_loaded = false;
 
+    // Handle messages from the webview
     panel_prd.webview.onDidReceiveMessage(
       message => {
         switch (message.command) {
+          case 'loaded':
+            console.log("product-CFG panel loaded.\n");
+            panel_prd_loaded = true;
+            //vscode.window.showErrorMessage(message.text);
+            break;
           case "highlight":
             panel_src_code.webview.postMessage({
               command: "highlight",
@@ -615,6 +578,50 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       undefined,
       Eqchecker.context.subscriptions
     );
+
+    // Handle messages from the webview
+    panel_src_code.webview.onDidReceiveMessage(
+      message => {
+        switch (message.command) {
+          case 'loaded':
+            console.log("src-code panel loaded.\n");
+            panel_src_code_loaded = true;
+            //vscode.window.showErrorMessage(message.text);
+            break;
+        }
+      },
+      undefined,
+      Eqchecker.context.subscriptions
+    );
+
+    // Handle messages from the webview
+    panel_dst_code.webview.onDidReceiveMessage(
+      message => {
+        switch (message.command) {
+          case 'loaded':
+            console.log("dst-code panel loaded.\n");
+            panel_dst_code_loaded = true;
+            //vscode.window.showErrorMessage(message.text);
+            break;
+        }
+      },
+      undefined,
+      Eqchecker.context.subscriptions
+    );
+
+    async function waitForLoading(){
+      while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false) {
+          console.log(`panel_{prd,src_code,dst_code}_loaded ${panel_prd_loaded} ${panel_src_code_loaded} ${panel_dst_code_loaded} is still false`);
+          await Eqchecker.wait(1000);
+      }
+    }
+    await waitForLoading();
+    // Message passing to src and dst webview
+    console.log("Panels loaded. Posting proof to panel_prd\n");
+    panel_prd.webview.postMessage(proof);
+    console.log("Posted proof to panel_prd\n");
+    panel_src_code.webview.postMessage({command: "data", code:src_code});
+    panel_dst_code.webview.postMessage({command: "data", code:dst_code});
   }
 
   public resolveWebviewView(

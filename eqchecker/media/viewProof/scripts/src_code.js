@@ -1,6 +1,6 @@
 import { highlightPathInCode, clearCanvas} from "./utils.js";
 
-
+const vscode = acquireVsCodeApi();
 
 var code = null;
 
@@ -53,3 +53,4 @@ window.addEventListener('message', async event => {
     }
 
 });
+vscode.postMessage({command:"loaded"});

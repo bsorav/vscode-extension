@@ -108,9 +108,9 @@ class EqcheckHandler {
             //console.log('body:\n' + JSON.stringify(req.body));
             //console.log('source:\n' + JSON.stringify(req.source));
             //console.log('source1Uri:\n' + JSON.stringify(req.source1Uri));
-            source = req.body.source;
+            source = req.body.source1Text;
             //console.log('source:\n' + source);
-            optimized = req.body.optimized;
+            optimized = req.body.source2Text;
             unrollFactor = req.body.unrollFactor || defaultUnrollFactor;
             commandIn = req.body.serverCommand;
             dirPathIn = req.body.dirPathIn;
@@ -130,8 +130,8 @@ class EqcheckHandler {
         } else {
             // API-style
             //console.log('API-style parseRequest');
-            source = req.body;
-            optimized = req.optimized;
+            source = req.source1Text;
+            optimized = req.source2Text;
             unrollFactor = req.unrollFactor || defaultUnrollFactor;
             commandIn = req.serverCommand;
             dirPathIn = req.dirPathIn;

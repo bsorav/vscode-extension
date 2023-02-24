@@ -198,18 +198,18 @@ class Eqchecker {
 
   public static async addEqcheck(entry) {
     //console.log("addEqcheck() called\n");
-    var source : string;
-    var optimized : string;
+    //var source : string;
+    //var optimized : string;
     console.log("calling openTextDocument");
     await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
       console.log("opened source1Uri");
       if (doc.isDirty) {}
-      source = doc.getText();
+      entry.source1Text = doc.getText();
     });
     await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
       console.log("opened source2Uri");
       if (doc.isDirty) {}
-      optimized = doc.getText();
+      entry.source2Text = doc.getText();
     });
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
@@ -218,14 +218,14 @@ class Eqchecker {
           type: commandSubmitEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
+          source1Text: entry.source1Text,
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
+          source2Text: entry.source2Text,
           functionName: entry.functionName,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           //bgColor: this.getNewCalicoColor(),
           runState: 'RunstateRunning',
-          source : source,
-          optimized : optimized,
         };
     var jsonRequest = JSON.stringify(request);
     const response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
@@ -620,6 +620,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     console.log("Panels loaded. Posting proof to panel_prd\n");
     panel_prd.webview.postMessage(proof);
     console.log("Posted proof to panel_prd\n");
+
+    console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     panel_src_code.webview.postMessage({command: "data", code:src_code});
     panel_dst_code.webview.postMessage({command: "data", code:dst_code});
   }
@@ -642,7 +644,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, data.eqcheck.source, data.eqcheck.optimized);
+          console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
+          this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, data.eqcheck.source1Text, data.eqcheck.source2Text);
           //var request =
           //  { serverCommand: commandObtainProof,
           //    source1Uri: entry.source1Uri,

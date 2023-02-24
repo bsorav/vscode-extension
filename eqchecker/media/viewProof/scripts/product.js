@@ -26,7 +26,7 @@ async function waitForMessage(){
 
 console.log("Waiting for proof\n");
 await waitForMessage();
-console.log("Proof received\n");
+console.log(`Proof received, prod_cfg =\n${prod_cfg}\n`);
 
 function initializeContainer(){
     let container = document.getElementById('cfg');

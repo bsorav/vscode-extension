@@ -28,9 +28,9 @@ async function waitForMessage(){
 }
 vscode.postMessage({command:"loaded"});
 
-console.log("Waiting for proof\n");
+//console.log("Waiting for proof\n");
 await waitForMessage();
-console.log(`Proof received, prod_cfg =\n${JSON.stringify(prod_cfg)}\n`);
+//console.log(`Proof received, prod_cfg =\n${JSON.stringify(prod_cfg)}\n`);
 
 function initializeContainer(){
     let container = document.getElementById('cfg');
@@ -42,13 +42,23 @@ function drawNetwork(cfg) {
 
     var nodeMap = {};
     var idx = 0;
-    cfg["nodes"].forEach(element => {
-        nodeMap[element] = idx;
+    //console.log(`drawNetwork: prod_cfg =\n${JSON.stringify(cfg)}\n`);
+    const graph_hierarchy = cfg["graph-hierarchy"];
+    //console.log(`drawNetwork: graph_hierarchy=\n${JSON.stringify(graph_hierarchy)}\n`);
+    const graph = graph_hierarchy["graph"];
+    //console.log(`drawNetwork: graph=\n${JSON.stringify(graph)}\n`);
+    const nodes_in = graph["nodes"];
+    //console.log(`drawNetwork: nodes_in=\n${JSON.stringify(nodes_in)}\n`);
+    var edges_in = graph["edges"];
+    //console.log(`drawNetwork: edges_in=\n${JSON.stringify(edges_in)}\n`);
+
+    nodes_in.forEach(element => {
+        nodeMap[element.pc] = idx;
         idx++;
     });
 
-    var nodes = new vis.DataSet(cfg["nodes"].map(function(node, idx) {return {id:idx, label:node[0] + "," + node[1]};}));
-    var edges = new vis.DataSet(cfg["edges"].map(function(edge) {return {from:nodeMap[edge.from], to:nodeMap[edge.to], label:edge.path1 + '\n\n' +edge.path2};}));
+    var nodes = new vis.DataSet(nodes_in.map(function(node, idx) {return {id:idx, label:node.pc/*node[0] + "," + node[1]*/};}));
+    var edges = new vis.DataSet(edges_in.map(function(edge) {return {from:nodeMap[edge.from_pc], to:nodeMap[edge.to_pc], label:""/*edge.path1 + '\n\n' +edge.path2*/};}));
 
     var network = new vis.Network(document.getElementById('cfg'), {
         nodes: nodes,

@@ -484,13 +484,13 @@ class EqcheckHandler {
         //console.log('proof_xml =\n', proof_xml);
 
         var proofObj;
-        xml2js.parseString(proof_xml, {preserveChildrenOrder: true}, function (err, result) {
+        xml2js.parseString(proof_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
             console.dir(result);
             proofObj = result;
         });
 
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj});
-        //console.log("proofStr:\n" + proofStr);
+        console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
       } else {

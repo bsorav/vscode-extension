@@ -617,11 +617,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
     await waitForLoading();
     // Message passing to src and dst webview
-    console.log("Panels loaded. Posting proof to panel_prd\n");
-    panel_prd.webview.postMessage(proof);
+    console.log(`Panels loaded. Posting proof to panel_prd. proof = ${JSON.stringify(proof)}\n`);
+    panel_prd.webview.postMessage({command: 'showProof', code: proof});
     console.log("Posted proof to panel_prd\n");
 
-    console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
+    //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     panel_src_code.webview.postMessage({command: "data", code:src_code});
     panel_dst_code.webview.postMessage({command: "data", code:dst_code});
   }

@@ -8,14 +8,17 @@ const vscode = acquireVsCodeApi();
 var prod_cfg = null;
 
 window.addEventListener('message', async event => {
-    //console.log("RECEIVED EVENT\n");
-    prod_cfg = event.prod_cfg;
-    //prod_cfg = message;
-    console.log(prod_cfg);
-    //console.log("RECEIVED EVENT\n");
+    const message = event.data;
+    //console.log(`RECEIVED EVENT: ${JSON.stringify(message)}\n`);
+    switch (message.command) {
+      case 'showProof':
+        prod_cfg = message.code;
+        //prod_cfg = message;
+        //console.log(`prod_cfg = ${prod_cfg}`);
+        //console.log("RECEIVED showProof\n");
+        break;
+    }
 });
-
-vscode.postMessage({command:"loaded"});
 
 async function waitForMessage(){
     while(prod_cfg === null){
@@ -23,10 +26,11 @@ async function waitForMessage(){
         await new Promise(r => window.setTimeout(r, 1000));
     }
 }
+vscode.postMessage({command:"loaded"});
 
 console.log("Waiting for proof\n");
 await waitForMessage();
-console.log(`Proof received, prod_cfg =\n${prod_cfg}\n`);
+console.log(`Proof received, prod_cfg =\n${JSON.stringify(prod_cfg)}\n`);
 
 function initializeContainer(){
     let container = document.getElementById('cfg');

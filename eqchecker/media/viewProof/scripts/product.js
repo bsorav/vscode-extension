@@ -5,14 +5,16 @@
 
 const vscode = acquireVsCodeApi();
 
-var prod_cfg = null;
+var g_prodCfg = null;
+var g_nodeMap = null;
+var g_nodeIdMap = null;
 
 window.addEventListener('message', async event => {
     const message = event.data;
     //console.log(`RECEIVED EVENT: ${JSON.stringify(message)}\n`);
     switch (message.command) {
       case 'showProof':
-        prod_cfg = message.code;
+        g_prodCfg = message.code;
         //prod_cfg = message;
         //console.log(`prod_cfg = ${prod_cfg}`);
         //console.log("RECEIVED showProof\n");
@@ -21,8 +23,8 @@ window.addEventListener('message', async event => {
 });
 
 async function waitForMessage(){
-    while(prod_cfg === null){
-        console.log("prod_cfg is still NULL");
+    while(g_prodCfg === null){
+        //console.log("prod_cfg is still NULL");
         await new Promise(r => window.setTimeout(r, 1000));
     }
 }
@@ -110,6 +112,7 @@ function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc)
 function getNodesMap(nodes_in, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm)
 {
   var nodeMap = {};
+  var nodeIdMap = {};
   var idx = 0;
   nodes_in.forEach(element => {
     const src_pc = element.pc.split('_')[0];
@@ -126,10 +129,11 @@ function getNodesMap(nodes_in, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm)
     console.log(`element.pc = ${element.pc}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);
 
     const label = src_line_and_column_names + " ; " + dst_line_and_column_names;
-    nodeMap[element.pc] = {idx: idx, src_pc: src_pc, dst_pc: dst_pc, src_linename: src_linename, columnname: src_columnname, line_and_column_names: src_line_and_column_names, dst_linename: dst_linename, dst_columnname: dst_columnname, dst_line_and_column_names: dst_line_and_column_names, label: label};
+    nodeMap[element.pc] = {idx: idx, pc: element.pc, src_pc: src_pc, dst_pc: dst_pc, src_linename: src_linename, columnname: src_columnname, line_and_column_names: src_line_and_column_names, dst_linename: dst_linename, dst_columnname: dst_columnname, dst_line_and_column_names: dst_line_and_column_names, label: label};
+    nodeIdMap[idx] = {idx: idx, pc: element.pc, src_pc: src_pc, dst_pc: dst_pc, src_linename: src_linename, columnname: src_columnname, line_and_column_names: src_line_and_column_names, dst_linename: dst_linename, dst_columnname: dst_columnname, dst_line_and_column_names: dst_line_and_column_names, label: label};
     idx++;
   });
-  return nodeMap;
+  return [nodeMap, nodeIdMap];
 }
 
 function drawNetwork(cfg) {
@@ -150,10 +154,12 @@ function drawNetwork(cfg) {
     const dst_tfg_llvm = dst_tfg["tfg_llvm"];
     const dst_tfg_asm = dst_tfg["tfg_asm"];
 
-    const nodeMap = getNodesMap(nodes_in, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm);
+    [g_nodeMap, g_nodeIdMap] = getNodesMap(nodes_in, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm);
 
-    var nodes = new vis.DataSet(nodes_in.map(function(node) {return {id:nodeMap[node.pc].idx, label:nodeMap[node.pc].label};}));
-    var edges = new vis.DataSet(edges_in.map(function(edge) {return {from:nodeMap[edge.from_pc].idx, to:nodeMap[edge.to_pc].idx, label:""/*edge.path1 + '\n\n' +edge.path2*/};}));
+    console.log(`g_nodeMap = ${g_nodeMap}`);
+
+    var nodes = new vis.DataSet(nodes_in.map(function(node) {return {id:g_nodeMap[node.pc].idx, label:g_nodeMap[node.pc].label};}));
+    var edges = new vis.DataSet(edges_in.map(function(edge) {return {from:g_nodeMap[edge.from_pc].idx, to:g_nodeMap[edge.to_pc].idx, label:""/*edge.path1 + '\n\n' +edge.path2*/};}));
 
     var network = new vis.Network(document.getElementById('cfg'), {
         nodes: nodes,
@@ -209,31 +215,36 @@ function drawNetwork(cfg) {
         }
     });
 
-    return {network:network, nodeMap:nodeMap};
+    return network; //nodeMap:g_nodeMap
 }
 
 initializeContainer();
-var res = drawNetwork(prod_cfg);
+var network = drawNetwork(g_prodCfg);
+//var res = drawNetwork(g_prodCfg);
 
-var network = res.network;
-var nodeMap = res.nodeMap;
+//var network = res.network;
+//var nodeMap = res.nodeMap;
 
 network.on('selectEdge', function(properties) {
     let edgeId = properties.edges[0];
     let edge = network.body.data.edges.get(edgeId);
+    const from = g_nodeIdMap[edge.from];
+    const to = g_nodeIdMap[edge.to];
 
-    var from = prod_cfg["nodes"][edge.from];
-    var to = prod_cfg["nodes"][edge.to];
-    var path1 = edge.label.split('\n\n')[0];
-    var path2 = edge.label.split('\n\n')[1];
+    console.log(`from = ${JSON.stringify(from)}`);
+    console.log(`to = ${JSON.stringify(to)}`);
+    //var from = g_prodCfg["nodes"][edge.from];
+    //var to = g_prodCfg["nodes"][edge.to];
+    //var path1 = edge.label.split('\n\n')[0];
+    //var path2 = edge.label.split('\n\n')[1];
 
-    vscode.postMessage({
-        command:"highlight",
-        from: from,
-        to: to,
-        path1: path1,
-        path2: path2
-    });
+    //vscode.postMessage({
+    //    command:"highlight",
+    //    from: from,
+    //    to: to,
+    //    path1: path1,
+    //    path2: path2
+    //});
 });
 
 network.on('deselectEdge', function(properties) {

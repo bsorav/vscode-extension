@@ -37,7 +37,7 @@ function node_convert_to_xy(pc, pc_unroll, nodeMap)
     const columnname_prefix = " at column ";
     const linename = nodeMap[pc].linename.substring(linename_prefix.length);
     const columnname = nodeMap[pc].columnname.substring(columnname_prefix.length);
-    return { type: "L", x: columnname, y: linename, unroll_mu: pc_unroll.unroll_mu, unroll_delta: pc_unroll.unroll_delta };
+    return { type: "L", pc: pc, x: columnname, y: linename, unroll: pc_unroll.unroll };
   } else {
     return { type: "exit" };
   }
@@ -77,7 +77,7 @@ function getNodesEdgesFromPathAndNodeMap_recursive(ec, nodeMap)
 
 function getNodesEdgesFromPathAndNodeMap(path, nodeMap)
 {
-  return getNodesEdgesFromPathAndNodeMap_recursive(path.ec, nodeMap);
+  return getNodesEdgesFromPathAndNodeMap_recursive(path, nodeMap);
 }
 
 export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
@@ -91,7 +91,9 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
   //var EDGES = [ { from_node: {type: "entry"}, to_node: {type: "L", x: 6, y: 6} }, { from_node: {type: "L", x: 6, y: 6}, to_node: {type: "L", x: 9, y: 6} }, { from_node: {type: "L", x: 6, y: 6}, to_node: {type: "exit"} } ];
   //var NODES = [ { node: {type: "L", x: 6, y: 6}, unroll: 1 }, { node: {type: "L", x: 9, y: 6}, unroll: 1 } ];
 
-  const graph_ec = getNodesEdgesFromPathAndNodeMap(path, nodeMap);
+  //console.log(`path = ${JSON.stringify(path)}`);
+
+  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.ec, nodeMap);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
 
@@ -105,7 +107,11 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
   let topNode = canvas.height*1;
 
   NODES.forEach(element => {
-      drawPointOnNode(element/*.node, element.unroll*/);
+      var unroll = 1;
+      if (element.pc === path.to_pc) {
+        unroll = path.unroll_factor_mu;
+      }
+      drawPointOnNode(element, unroll);
       topNode = Math.min(topNode, element.y * 1 * deltaY);
   });
 
@@ -139,7 +145,7 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node/*, unroll*/)
+function drawPointOnNode(node, unroll)
 {
     //node = node.split("_");
 
@@ -155,7 +161,7 @@ function drawPointOnNode(node/*, unroll*/)
     let y1 = node.y * 1 * deltaY - deltaY/4;
 
     let color;
-    if(node.unroll_mu > 1){
+    if(unroll > 1){
         let r = 10;
         color = "rgb(252, 3, 219)";
         drawCircle(ctx, x1, y1, 3, color);
@@ -164,8 +170,8 @@ function drawPointOnNode(node/*, unroll*/)
         drawArrowHead(ctx, x1, y1-r, 0, color);
         let x = x1 + r*Math.cos(Math.PI/4);
         let y = y1 - r*Math.sin(Math.PI/4);
-        const textcolor = "rgb(252, 200, 219)";
-        drawText(ctx, x, y, "" + node.unroll_mu, textcolor);
+        const textcolor = "rgb(3, 3, 255)";
+        drawText(ctx, x, y, "" + unroll, textcolor);
     } else {
         color = "rgb(255, 0, 0)";
         drawCircle(ctx, x1, y1, 3, color);

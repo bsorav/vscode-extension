@@ -8,6 +8,9 @@ const vscode = acquireVsCodeApi();
 var g_prodCfg = null;
 var g_nodeMap = null;
 var g_nodeIdMap = null;
+var g_edgeMap = null;
+var g_src_nodeMap = null;
+var g_dst_nodeMap = null;
 
 window.addEventListener('message', async event => {
     const message = event.data;
@@ -109,10 +112,14 @@ function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc)
   return [dst_linename, dst_columnname, dst_line_and_column_names];
 }
 
-function getNodesMap(nodes_in, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm)
+function getNodesEdgesMap(nodes_in, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm)
 {
   var nodeMap = {};
   var nodeIdMap = {};
+  var edgeMap = {};
+  var src_nodeMap = {};
+  var dst_nodeMap = {};
+
   var idx = 0;
   nodes_in.forEach(element => {
     const src_pc = element.pc.split('_')[0];
@@ -129,11 +136,44 @@ function getNodesMap(nodes_in, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm)
     console.log(`element.pc = ${element.pc}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);
 
     const label = src_line_and_column_names + " ; " + dst_line_and_column_names;
-    nodeMap[element.pc] = {idx: idx, pc: element.pc, src_pc: src_pc, dst_pc: dst_pc, src_linename: src_linename, columnname: src_columnname, line_and_column_names: src_line_and_column_names, dst_linename: dst_linename, dst_columnname: dst_columnname, dst_line_and_column_names: dst_line_and_column_names, label: label};
-    nodeIdMap[idx] = {idx: idx, pc: element.pc, src_pc: src_pc, dst_pc: dst_pc, src_linename: src_linename, columnname: src_columnname, line_and_column_names: src_line_and_column_names, dst_linename: dst_linename, dst_columnname: dst_columnname, dst_line_and_column_names: dst_line_and_column_names, label: label};
+
+    const src_entry = {pc: src_pc, linename: src_linename, columnname: src_columnname, line_and_column_names: src_line_and_column_names};
+    const dst_entry = {pc: dst_pc, linename: dst_linename, columnname: dst_columnname, line_and_column_names: dst_line_and_column_names};
+
+    const entry = {idx: idx, pc: element.pc, src_node: src_entry, dst_node: dst_entry, label: label};
+
+    nodeMap[entry.pc] = entry;
+    nodeIdMap[entry.idx] = entry;
+    src_nodeMap[src_entry.pc] = src_entry;
+    dst_nodeMap[dst_entry.pc] = dst_entry;
+
     idx++;
   });
-  return [nodeMap, nodeIdMap];
+
+  cg_edges.forEach(element => {
+    const from_pc = element.edge.from_pc;
+    const to_pc = element.edge.to_pc;
+
+    const dst_from_pc = element.dst_edge.from_pc;
+    const dst_to_pc = element.dst_edge.to_pc;
+    const dst_unroll_factor_mu = element.dst_edge.unroll_factor_mu;
+    const dst_ec = element.dst_edge.graph_ec;
+
+    const src_from_pc = element.src_edge.from_pc;
+    const src_to_pc = element.src_edge.to_pc;
+    const src_unroll_factor_mu = element.src_edge.unroll_factor_mu;
+    const src_ec = element.src_edge.graph_ec;
+
+    const edgeId = { from_pc: from_pc, to_pc: to_pc };
+
+    const src_entry = { from_pc: src_from_pc, to_pc: src_to_pc, unroll_factor_mu: src_unroll_factor_mu, ec: src_ec };
+    const dst_entry = { from_pc: dst_from_pc, to_pc: dst_to_pc, unroll_factor_mu: dst_unroll_factor_mu, ec: dst_ec };
+
+    const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
+    edgeMap[edgeId] = entry;
+  });
+
+  return [nodeMap, nodeIdMap, edgeMap, src_nodeMap, dst_nodeMap];
 }
 
 function drawNetwork(cfg) {
@@ -143,8 +183,10 @@ function drawNetwork(cfg) {
     //console.log(`drawNetwork: prod_cfg =\n${JSON.stringify(cfg)}\n`);
     const graph_hierarchy = cfg["graph-hierarchy"];
     const graph = graph_hierarchy["graph"];
+    const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
     const nodes_in = graph["nodes"];
     const edges_in = graph["edges"];
+    const cg_edges = graph_with_predicates["edge"];
     const corr_graph = graph_hierarchy["corr_graph"];
     const src_tfg = corr_graph["src_tfg"];
     const dst_tfg = corr_graph["dst_tfg"];
@@ -154,7 +196,7 @@ function drawNetwork(cfg) {
     const dst_tfg_llvm = dst_tfg["tfg_llvm"];
     const dst_tfg_asm = dst_tfg["tfg_asm"];
 
-    [g_nodeMap, g_nodeIdMap] = getNodesMap(nodes_in, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm);
+    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_nodeMap, g_dst_nodeMap] = getNodesEdgesMap(nodes_in, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm);
 
     console.log(`g_nodeMap = ${g_nodeMap}`);
 
@@ -226,25 +268,25 @@ var network = drawNetwork(g_prodCfg);
 //var nodeMap = res.nodeMap;
 
 network.on('selectEdge', function(properties) {
-    let edgeId = properties.edges[0];
-    let edge = network.body.data.edges.get(edgeId);
-    const from = g_nodeIdMap[edge.from];
-    const to = g_nodeIdMap[edge.to];
+    let propEdgeId = properties.edges[0];
+    let propEdge = network.body.data.edges.get(propEdgeId);
+    const from = g_nodeIdMap[propEdge.from];
+    const to = g_nodeIdMap[propEdge.to];
+    const edgeId = { from_pc: from.pc, to_pc: to.pc };
+    const edge = g_edgeMap[edgeId];
 
-    console.log(`from = ${JSON.stringify(from)}`);
-    console.log(`to = ${JSON.stringify(to)}`);
-    //var from = g_prodCfg["nodes"][edge.from];
-    //var to = g_prodCfg["nodes"][edge.to];
-    //var path1 = edge.label.split('\n\n')[0];
-    //var path2 = edge.label.split('\n\n')[1];
+    //console.log(`from = ${JSON.stringify(from)}`);
+    //console.log(`to = ${JSON.stringify(to)}`);
+    //console.log(`edge = ${JSON.stringify(edge)}`);
 
-    //vscode.postMessage({
-    //    command:"highlight",
-    //    from: from,
-    //    to: to,
-    //    path1: path1,
-    //    path2: path2
-    //});
+    vscode.postMessage({
+        command:"highlight",
+        from: from,
+        to: to,
+        edge: edge,
+        src_nodeMap: g_src_nodeMap,
+        dst_nodeMap: g_dst_nodeMap
+    });
 });
 
 network.on('deselectEdge', function(properties) {

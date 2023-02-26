@@ -532,7 +532,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
     const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-    const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
+    //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
+    const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
 
     // Set the webview content
 
@@ -556,11 +557,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           case "highlight":
             panel_src_code.webview.postMessage({
               command: "highlight",
-              path: message.path1
+              path: message.edge.src_edge,
+              nodeMap: message.src_nodeMap
             });
             panel_dst_code.webview.postMessage({
               command: "highlight",
-              path: message.path2
+              path: message.edge.dst_edge,
+              nodeMap: message.dst_nodeMap
             });
             break;
           case "clear":

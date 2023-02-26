@@ -364,142 +364,6 @@ function drawPointOnNode(node, unroll){
     }
 }
 
-function drawEdgeBetweenPoints(node1, node2, dashed){
-    // node1 is predecessor
-    // node2 is successor
-    // Draw edge between node1 and node2
-
-    let pattern = [];
-    if(dashed){
-        pattern = [4, 2];
-    }
-
-
-
-    node1 = node1.split("_");
-    node2 = node2.split("_");
-
-    
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
-    
-    let styles = window.getComputedStyle(document.getElementById("code"));
-    
-    let deltaY = styles.lineHeight.replace("px", "") * 1;
-    let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
-    
-    // console.log(node2);
-    if(node1[0] === "start"){
-        node1 = ["start", 1, 1];
-    }
-    else if(node1[0] === "end"){
-        node1 = ["end", canvas.height/deltaY, 1];
-    }
-
-    if(node2[0] === "start"){
-        node2 = ["start", 1, 1];
-    }
-    else if(node2[0] === "end"){
-        node2 = ["end", canvas.height/deltaY, 1];
-    }
-
-    if(node1.length === 2){
-        node1.push(2);
-    }
-    if(node2.length === 2){
-        node2.push(2);
-    }
-
-    let x1 = (node1[2]-1) * 1 * deltaX;
-    let y1 = node1[1] * 1 * deltaY - deltaY/4;
-    let x2 = (node2[2]-1) * 1 * deltaX;
-    let y2 = node2[1] * 1 * deltaY - deltaY/4;
-
-    let color1 = 'rgb(255, 0, 0)';
-    let color2 = 'rgb(52, 58, 235, 0.8)';
-    let theta = angleFromXAxis(x1, y1, x2, y2);
-    
-    if(x1 === x2 && y1 === y2){
-        let radius = deltaX*3;
-        // drawCircle(x1, y1, 2, color1);
-        drawArc(ctx, x1 + radius, y1, radius, 0, 2*Math.PI, false, color2, pattern);
-        drawArrowHead(ctx, x1 + 2*radius, y1, 3*Math.PI/2, color1);
-        // drawCircle(x2, y2, 2, color1);
-        return;
-    }
-
-    if(y1 > y2 || (y1 === y2 && x1 > x2)){
-        if (x1 >= x2) {
-            var loc = 1;
-            var anticlockwise = true;
-        }
-        else {
-            var loc = -1;
-            var anticlockwise = false;
-        }
-        var m1 = -1 * (x2 - x1) / (y2 - y1);
-
-        var coord1 = {x:x1, y:y1};
-        var coord2 = {x:x2, y:y2};
-
-        var dist = Math.sqrt((coord1.x - coord2.x) ** 2 + (coord1.y - coord2.y) ** 2);
-        if(dist < 30){
-            dist = 0;
-        }
-        else{
-            dist = Math.tan(1.309) * dist / 2;
-        }
-        var c1 = { x: (coord1.x + coord2.x) / 2, y: (coord1.y + coord2.y) / 2 };
-
-
-        var c2 = coordAtDist(c1.x, c1.y, m1, -1 * loc * dist);
-
-        if(y1 === y2){
-            c2 = {x: c1.x, y: c1.y + loc*dist};
-        }
-
-        var theta1 = Math.atan((coord1.y - c2.y) / (coord1.x - c2.x));
-        var theta2 = Math.atan((coord2.y - c2.y) / (coord2.x - c2.x));
-        var r = Math.sqrt((coord1.x - c2.x) ** 2 + (coord1.y - c2.y) ** 2);
-
-        if (loc === -1) {
-            theta1 = Math.PI + theta1;
-            theta2 = Math.PI + theta2;
-        }
-        theta1 = angleFromXAxis(c2.x, c2.y, coord1.x, coord1.y);
-        theta2 = angleFromXAxis(c2.x, c2.y, coord2.x, coord2.y);
-
-        var p = coordAtDist(c1.x, c1.y, m1, loc * (r - dist));
-
-        if(y1 === y2){
-            p = {x:c2.x, y:(c2.y - r)};
-        }
-
-        var ntheta = angleFromXAxis(c2.x, c2.y, p.x, p.y);
-        if(loc === -1){
-            ntheta = Math.PI/2 + ntheta;
-        }
-        else{
-            ntheta = ntheta - Math.PI/2;
-        }
-
-        // drawCircle(ctx, x1, y1, 2, color1);
-        drawArc(ctx, c2.x, c2.y, r, theta1, theta2, anticlockwise, color2, pattern);
-        drawArrowHead(ctx, p.x, p.y, ntheta, color1);
-        // drawCircle(ctx, x2, y2, 2, color1);
-
-    }
-    else if(y1 <= y2){
-        // drawCircle(ctx, x1, y1, 2, color1);
-        drawLine(ctx, x1, y1, x2, y2, color2, pattern);
-        drawArrowHead(ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
-        // drawArrowHead(ctx, x1, y1, theta, color1);
-        // drawArrowHead(ctx, x2, y2, theta, color1);
-        // drawCircle(ctx, x2, y2, 2, color1);
-    }
-    
-}
-
 function drawText(ctx, x, y, text, color){
     ctx.fillStyle = color;
     ctx.font = "16px Arial";
@@ -521,47 +385,6 @@ function drawLine(ctx, x1, y1, x2, y2, color, pattern) {
     ctx.lineTo(x2, y2);
     ctx.strokeStyle = color;
     ctx.stroke();
-}
-
-function drawArc(ctx, cx, cy, radius, theta1, theta2, anticlockwise, color, pattern) {
-    ctx.beginPath();
-    ctx.setLineDash(pattern);
-    ctx.arc(cx, cy, radius, theta1, theta2, anticlockwise);
-    ctx.strokeStyle = color;
-    ctx.stroke();
-}
-
-
-function drawArrowHead(ctx, x, y, theta, color) {
-
-    let h = 10;
-    let w = 8;
-    
-    let dir = Math.tan(theta);
-    let normal = -1 / dir;
-
-    if(theta <= Math.PI/2 || theta > Math.PI * 3/2){
-        var back = -1;
-    }
-    else{
-        var back = 1;
-    }
-
-
-    let baseCen = coordAtDist(x, y, dir, back * h/2);
-    let baseStart = coordAtDist(x, y, dir, -1 * back * h/2);
-
-    let coord1 = coordAtDist(baseCen.x, baseCen.y, normal, w/2);
-    let coord2 = coordAtDist(baseCen.x, baseCen.y, normal, -1 * w/2);
-
-
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(coord1.x, coord1.y);
-    ctx.lineTo(coord2.x, coord2.y);
-    ctx.lineTo(baseStart.x, baseStart.y);
-    ctx.fill();
-    ctx.closePath();
 }
 
 export function clearCanvas(canvas, ctx){
@@ -627,4 +450,16 @@ function parsePathString(path){
             break;
         } 
     }
+}
+
+export function arrayUnique(array) {
+    var a = array.concat();
+    for(var i=0; i<a.length; ++i) {
+        for(var j=i+1; j<a.length; ++j) {
+            if(a[i] === a[j])
+                a.splice(j--, 1);
+        }
+    }
+
+    return a;
 }

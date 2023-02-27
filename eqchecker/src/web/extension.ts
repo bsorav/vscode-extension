@@ -82,7 +82,7 @@ class Eqchecker {
 
   public static fetchFailed(err, url)
   {
-    vscode.window.showInformationMessage(`Connection failed to eqcheck server: ${err}: URL ${url}`);
+    vscode.window.showInformationMessage(`Connection failed to eqcheck server URL ${url}: error ='${err}'`);
   }
 
   public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages) : boolean

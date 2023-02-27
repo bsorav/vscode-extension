@@ -168,8 +168,8 @@ function drawPointOnNode(node, unroll)
         ctx.lineWidth = 1;
         drawArc(ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
         drawArrowHead(ctx, x1, y1-r, 0, color);
-        let x = x1 + r*Math.cos(Math.PI/4);
-        let y = y1 - r*Math.sin(Math.PI/4);
+        let x = x1 + 2*r*Math.cos(Math.PI/4);
+        let y = y1 - 2*r*Math.sin(Math.PI/4);
         const textcolor = "rgb(3, 3, 255)";
         drawText(ctx, x, y, "" + unroll, textcolor);
     } else {

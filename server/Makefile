@@ -1,2 +1,2 @@
 run::
-	node app.js --host workstation.cse.iitd.ac.in --port 8080 --superoptInstall ${HOME}/superopt-project/usr/local --tmpDir /tmp
+	node app.js --host vayu.cse.iitd.ac.in --port 80 --superoptInstall ${HOME}/superopt-project/usr/local --tmpDir /tmp

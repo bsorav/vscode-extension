@@ -63,7 +63,8 @@
   },
   "dependencies": {
     "p5": "^1.4.1",
-    "prismjs": "^1.28.0",
+    "prismjs": "^1.29.0",
+    "highlight.js": "^11.7.0",
     "vis-network": "^9.1.2",
     "vscode-tas-client": "^0.1.63"
   }

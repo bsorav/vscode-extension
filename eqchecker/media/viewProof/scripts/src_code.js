@@ -370,7 +370,13 @@ window.addEventListener('message', async event => {
             break;
         case "data":
             code = message.code;
-            codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+            //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+            if (message.syntax_type === "asm") {
+              //codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');
+              codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+            } else {
+              codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+            }
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
             break;

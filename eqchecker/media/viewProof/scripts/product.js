@@ -144,11 +144,11 @@ function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_as
 function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly)
 {
   var ret = {};
-  if (tfg_llvm === null) {
-    ret["syntax_type"] = "asm";
-  } else {
-    ret["syntax_type"] = "C/llvm";
-  }
+  //if (tfg_llvm === null) {
+  //  ret["syntax_type"] = "asm";
+  //} else {
+  //  ret["syntax_type"] = "C/llvm";
+  //}
   proptree_nodes.forEach(element => {
     var linename, columnname, line_and_column_names;
     if (tfg_llvm === undefined) {

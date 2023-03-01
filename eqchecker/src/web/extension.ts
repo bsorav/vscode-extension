@@ -630,11 +630,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     console.log("Posted proof to panel_prd\n");
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    panel_src_code.webview.postMessage({command: "data", code:src_code});
+    panel_src_code.webview.postMessage({command: "data", code:src_code, syntax_type: "c/llvm"});
     if (dst_assembly === "") {
-      panel_dst_code.webview.postMessage({command: "data", code:dst_code});
+      panel_dst_code.webview.postMessage({command: "data", code:dst_code, syntax_type: "c/llvm"});
     } else {
-      panel_dst_code.webview.postMessage({command: "data", code:dst_assembly});
+      panel_dst_code.webview.postMessage({command: "data", code:dst_assembly, syntax_type: "asm"});
     }
   }
 

@@ -33,10 +33,8 @@ function node_convert_to_xy(pc, pc_unroll, nodeMap)
   if (pc === 'L0%0%d') {
     return { type: "entry" };
   } else if (pc.charAt(0) === 'L') {
-    const linename_prefix = "line ";
-    const columnname_prefix = " at column ";
-    const linename = nodeMap[pc].linename.substring(linename_prefix.length);
-    const columnname = nodeMap[pc].columnname.substring(columnname_prefix.length);
+    const linename = nodeMap[pc].linename;
+    const columnname = nodeMap[pc].columnname;
     return { type: "L", pc: pc, x: columnname, y: linename, unroll: pc_unroll.unroll };
   } else {
     return { type: "exit" };

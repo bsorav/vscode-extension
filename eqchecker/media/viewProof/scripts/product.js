@@ -67,15 +67,22 @@ function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc)
 
   const src_index = src_pc.split('%')[0];
   if (src_pc === 'L0%0%d') {
-    src_linename = 'entry';
-    src_columnname = "";
-    src_line_and_column_names = src_linename;
+    src_linename = ""; //unused
+    src_columnname = ""; //unused
+    src_line_and_column_names = src_linename; //unused
   } else if (src_index.charAt(0) === 'L') {
     var pc_components = src_pc.split('%');
     pc_components[2] = "d";
     const src_pc_default_subsubindex = pc_components.join('%');
+
+    const linename_prefix = "line ";
     src_linename = line_column_map_get_value_for_pc(src_linename_map, src_pc_default_subsubindex, "linename");
+    src_linename = src_linename.substring(linename_prefix.length);
+
+    const columnname_prefix = " at column ";
     src_columnname = line_column_map_get_value_for_pc(src_columnname_map, src_pc_default_subsubindex, "columnname");
+    src_columnname = src_columnname.substring(columnname_prefix.length);
+
     src_line_and_column_names = line_column_map_get_value_for_pc(src_line_and_column_names_map, src_pc_default_subsubindex, "line_and_column_names");
     //if (src_linename === undefined) {
     //  console.log(`src_pc_default_subsubindex = ${src_pc_default_subsubindex}\n`);
@@ -85,40 +92,67 @@ function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc)
     //  }
     //}
   } else {
-    src_linename = 'exit';
-    src_columnname = "";
-    src_line_and_column_names = src_linename;
+    src_linename = ""; //unused
+    src_columnname = ""; //unused
+    src_line_and_column_names = src_linename; //unused
   }
   return [src_linename, src_columnname, src_line_and_column_names];
 }
 
-function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc)
+function assembly_code_compute_index_to_line_map(assembly_code)
 {
+  const lines = assembly_code.split('\n');
+  console.log(`assembly_code = ${assembly_code}\n`);
+  console.log(`lines= ${lines}\n`);
+  var ret = {};
+  var l = 0;
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].match(/^\s*.L/)) {
+      continue;
+    }
+    if (lines[i].match(/^\s*nop$/)) {
+      continue;
+    }
+    ret[l] = i;
+    l++;
+  }
+  return ret;
+}
+
+function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly)
+{
+  const index_to_line_map = assembly_code_compute_index_to_line_map(dst_assembly);
   var dst_linename, dst_columnname, dst_line_and_column_names;
   const dst_index = dst_pc.split('%')[0];
   if (dst_pc === 'L0%0%d') {
-    dst_linename = 'entry';
-    dst_columnname = "";
-    dst_line_and_column_names = dst_linename;
+    dst_linename = ""; //unused
+    dst_columnname = ""; //unused
+    dst_line_and_column_names = dst_linename; //unused
   } else if (dst_index.charAt(0) === 'L') {
-    dst_linename = dst_index.substring(1);
-    dst_columnname = "0"
-    dst_line_and_column_names = dst_linename + "c0";
+    const default_columnname_for_assembly = 4;
+    dst_linename = index_to_line_map[dst_index.substring(1)];
+    dst_columnname = default_columnname_for_assembly;
+    dst_line_and_column_names = dst_linename + dst_columnname;
   } else {
-    dst_linename = 'exit';
-    dst_columnname = "";
-    dst_line_and_column_names = dst_linename;
+    dst_linename = ""; //unused
+    dst_columnname = ""; //unused
+    dst_line_and_column_names = dst_linename; //unused
   }
   return [dst_linename, dst_columnname, dst_line_and_column_names];
 }
 
-function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm)
+function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly)
 {
   var ret = {};
+  if (tfg_llvm === null) {
+    ret["syntax_type"] = "asm";
+  } else {
+    ret["syntax_type"] = "C/llvm";
+  }
   proptree_nodes.forEach(element => {
     var linename, columnname, line_and_column_names;
     if (tfg_llvm === undefined) {
-      [linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc);
+      [linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly);
     } else {
       [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
     }
@@ -133,7 +167,7 @@ function getEdgeId(from_pc, to_pc)
   return `${from_pc} -> ${to_pc}`;
 }
 
-function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm)
+function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly)
 {
   var nodeMap = {};
   var nodeIdMap = {};
@@ -150,7 +184,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
     if (dst_tfg_llvm === undefined) {
-      [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc);
+      [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly);
     } else {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
     }
@@ -173,8 +207,8 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     idx++;
   });
 
-  const src_nodeMap = get_src_dst_node_map(src_nodes, src_tfg_llvm, undefined);
-  const dst_nodeMap = get_src_dst_node_map(dst_nodes, dst_tfg_llvm, dst_tfg_asm);
+  const src_nodeMap = get_src_dst_node_map(src_nodes, src_tfg_llvm, undefined, undefined);
+  const dst_nodeMap = get_src_dst_node_map(dst_nodes, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
 
   cg_edges.forEach(element => {
     const from_pc = element.edge.from_pc;
@@ -225,16 +259,50 @@ function drawNetwork(cfg) {
     const dst_tfg_llvm = dst_tfg["tfg_llvm"];
     const dst_tfg_asm = dst_tfg["tfg_asm"];
 
-    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_nodeMap, g_dst_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm);
+    const eqcheck_info = corr_graph["eqcheck_info"];
+    const dst_assembly = eqcheck_info["dst_assembly"];
+
+    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_nodeMap, g_dst_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
 
     //console.log(`g_nodeMap = ${JSON.stringify(g_nodeMap)}`);
-
-    var nodes = new vis.DataSet(nodes_in.map(function(node) {return {id:g_nodeMap[node.pc].idx, label:g_nodeMap[node.pc].label};}));
+    var nodes = new vis.DataSet(nodes_in.map(function(node) {
+      const label_orig = g_nodeMap[node.pc].label;
+      console.log(`label_orig = ${label_orig}`);
+      var label = "";
+      if (node.pc === 'L0%0%d_L0%0%d') {
+        label = "entry";
+      } else if (node.pc.charAt(0) !== 'L') {
+        label = "exit";
+      }
+      return {id:g_nodeMap[node.pc].idx, label: label};
+    }));
     var edges = new vis.DataSet(edges_in.map(function(edge) {
       const from_idx = g_nodeMap[edge.from_pc].idx;
       const to_idx = g_nodeMap[edge.to_pc].idx;
+      const src_linename_from = g_nodeMap[edge.from_pc].src_node.linename;
+      const dst_linename_from = g_nodeMap[edge.from_pc].dst_node.linename;
+      const src_columnname_from = g_nodeMap[edge.from_pc].src_node.columnname;
+      const dst_columnname_from = g_nodeMap[edge.from_pc].dst_node.columnname;
+
+      const src_linename_to = g_nodeMap[edge.to_pc].src_node.linename;
+      const dst_linename_to = g_nodeMap[edge.to_pc].dst_node.linename;
+      const src_columnname_to = g_nodeMap[edge.to_pc].src_node.columnname;
+      const dst_columnname_to = g_nodeMap[edge.to_pc].dst_node.columnname;
+
+      var from_label = `(${src_linename_from}c${src_columnname_from}, ${dst_linename_from}c${dst_columnname_from})`;
+      var to_label = `(${src_linename_to}c${src_columnname_to},${dst_linename_to}c${dst_columnname_to})`;
+
+      if (edge.from_pc === 'L0%0%d_L0%0%d') {
+        from_label = "entry";
+      }
+      if (edge.to_pc.charAt(0) !== 'L') {
+        to_label = "exit";
+      }
+
+      const label = `${from_label} -> ${to_label}`;
+
       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
-      return {from: from_idx, to: to_idx, label:`${from_idx} -> ${to_idx}`};
+      return {from: from_idx, to: to_idx, label: label};
     }));
 
     var network = new vis.Network(document.getElementById('cfg'), {
@@ -259,10 +327,13 @@ function drawNetwork(cfg) {
                 enabled: true,
                 type: "continuous",
                 roundness: 0.5,
-                forceDirection: "vertical"
+                //forceDirection: "vertical"
             },
             font: {
                 align: 'horizontal',
+                color: '#000000',
+                background: '#ffffff',
+                size: 16
             },
             chosen: {
                 edge:   function(values, id, selected, hovering) {

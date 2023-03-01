@@ -491,6 +491,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     var proof = await Eqchecker.obtainProofFromServer(dirPath);
     //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
+    const graph_hierarchy = proof["graph-hierarchy"];
+    const corr_graph = graph_hierarchy["corr_graph"];
+    const eqcheck_info = corr_graph["eqcheck_info"];
+    const dst_assembly = eqcheck_info["dst_assembly"];
+
     //vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
     const panel_prd =
       vscode.window.createWebviewPanel(
@@ -626,7 +631,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     panel_src_code.webview.postMessage({command: "data", code:src_code});
-    panel_dst_code.webview.postMessage({command: "data", code:dst_code});
+    if (dst_assembly === "") {
+      panel_dst_code.webview.postMessage({command: "data", code:dst_code});
+    } else {
+      panel_dst_code.webview.postMessage({command: "data", code:dst_assembly});
+    }
   }
 
   public resolveWebviewView(

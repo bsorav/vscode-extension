@@ -1,8 +1,9 @@
 {
   "name": "eqchecker",
   "displayName": "Eqchecker",
+  "publisher": "CompilerAI",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.54.0"
   },

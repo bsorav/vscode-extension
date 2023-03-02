@@ -269,7 +269,7 @@ class Eqchecker {
       let asmSources = [];
       let textDocuments = await vscode.workspace.textDocuments;
       textDocuments.forEach(async function(entry) {
-        console.log('fileName = ' + entry.fileName);
+        //console.log('textDocument fileName = ' + entry.fileName);
         //console.log('\n');
         if (entry.fileName.endsWith(".c")) {
           cSources.push({ Uri: entry.fileName, Text: entry.getText() });
@@ -284,9 +284,10 @@ class Eqchecker {
 
         if (entry.input instanceof vscode.TabInputText) {
           let entryUri = uri2str((entry.input as vscode.TabInputText).uri);
+          //console.log('tab entry Uri = ' + entryUri);
           let alreadyExists = false;
-          cSources.forEach(function(f) { if (f === entryUri) alreadyExists = true; });
-          asmSources.forEach(function(f) { if (f === entryUri) alreadyExists = true; });
+          cSources.forEach(function(f) { if (f.Uri === entryUri) alreadyExists = true; });
+          asmSources.forEach(function(f) { if (f.Uri === entryUri) alreadyExists = true; });
 
           if (!alreadyExists && entryUri.endsWith(".c")) {
             cSources.push({ Uri: entryUri });
@@ -408,6 +409,7 @@ class Eqchecker {
           /*if (cSource2.input instanceof vscode.TabInputText) */{
             //let cSource2Uri = uri2str((cSource2.input as vscode.TabInputText).uri);
             let cSource2Uri = cSource2.Uri;
+            //console.log("cSource2Uri = " + cSource2Uri);
             if (cSource1Uri !== cSource2Uri) {
               ret.push({ source1Uri: cSource1Uri,
                          source1Name: posix.basename(cSource1Uri, undefined),

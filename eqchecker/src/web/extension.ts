@@ -255,30 +255,42 @@ class Eqchecker {
   public static async checkEq()
   {
       // Get labels of opened files in all groups
-          let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
+      let tabs = vscode.window.tabGroups.all.flatMap(({ tabs }) => tabs);
         //console.log("tabs size = ");
       //console.log(tabs.length);
-      let cSources : (typeof tabs) = [];
-      let asmSources : (typeof tabs) = [];
+      //let textEditors = vscode.window.visibleTextEditors;
+      let cSources = [];
+      let asmSources = [];
+      //let textDocuments = await vscode.workspace.textDocuments;
+      //textDocuments.forEach(async function(entry) {
+      //  console.log('fileName = ' + entry.fileName);
+      //  //console.log('\n');
+      //  if (entry.fileName.endsWith(".c")) {
+      //    cSources.push(entry);
+      //  } else if (entry.fileName.endsWith(".s")) {
+      //    asmSources.push(entry);
+      //  }
+      //  //c_sources.push(tab);
+      //});
       tabs.forEach(async function(entry) {
-        //console.log('label = ' + entry.label);
-        //console.log('isActive = ' + entry.isActive);
-        //console.log('isDirty = ' + entry.isDirty);
-        //console.log('isPinned = ' + entry.isPinned);
-        //console.log('isPreview = ' + entry.isPreview);
-        //console.log('groupViewColumn = ' + entry.group.viewColumn);
+        //console.log('fileName = ' + entry.fileName);
         //console.log('\n');
-        if (entry.label.endsWith(".c")) {
-          cSources.push(entry);
-        } else if (entry.label.endsWith(".s")) {
-          asmSources.push(entry);
+
+        if (entry.input instanceof vscode.TabInputText) {
+          let entryUri = uri2str((entry.input as vscode.TabInputText).uri);
+          if (entryUri.endsWith(".c")) {
+            cSources.push({ Uri: entryUri });
+          } else if (entryUri.endsWith(".s")) {
+            asmSources.push({ Uri: entryUri });
+          }
         }
         //c_sources.push(tab);
       });
+
       console.log("Printing C sources:");
-      cSources.forEach(function(cSource) { console.log("label = " + cSource.label); });
+      cSources.forEach(function(cSource) { console.log("fileName = " + cSource.Uri); });
       console.log("Printing ASM sources:");
-      asmSources.forEach(function(asmSource) { console.log("label = " + asmSource.label); });
+      asmSources.forEach(function(asmSource) { console.log("fileName = " + asmSource.Uri); });
       let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
       console.log("eqcheckPairs size " + eqcheckPairs.length);
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
@@ -353,37 +365,44 @@ class Eqchecker {
              functionName: "*" };
   }
 
-  private static genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[]) : eqcheckMenuEntry[]
+  private static genLikelyEqcheckPairs(cSources, asmSources) : eqcheckMenuEntry[]
   {
     let ret : eqcheckMenuEntry[] = [];
     let i = 0;
-    cSources.forEach(function (cSource1 : vscode.Tab) {
-      console.log("cSource1Label = " + cSource1.label);
-      if (cSource1.input instanceof vscode.TabInputText) {
-        let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
+    cSources.forEach(function (cSource1) {
+      //console.log("cSource1Label = " + cSource1.fileName);
+      /*if (cSource1.input instanceof vscode.TabInputText) */{
+        //let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
+        let cSource1Uri = cSource1.Uri;
         console.log("cSource1Uri = " + cSource1Uri);
         asmSources.forEach(function (asmSource) {
-          console.log("asmSourceLabel = " + asmSource.label);
-          if (asmSource.input instanceof vscode.TabInputText) {
-            let asmSourceUri = uri2str((asmSource.input as vscode.TabInputText).uri);
-            console.log("asmSource1Uri = " + asmSourceUri);
+          //console.log("asmSourceLabel = " + asmSource.fileName);
+          /*if (asmSource.input instanceof vscode.TabInputText) */{
+            //let asmSourceUri = uri2str((asmSource.input as vscode.TabInputText).uri);
+            let asmSourceUri = asmSource.Uri;
+            console.log("asmSourceUri = " + asmSourceUri);
             ret.push({ source1Uri: cSource1Uri,
-                       source1Name: cSource1.label,
+                       source1Name: posix.basename(cSource1Uri, undefined),
+                       //source1Text: cSource1.getText(),
                        source2Uri: asmSourceUri,
-                       source2Name: asmSource.label,
+                       source2Name: posix.basename(asmSourceUri, undefined),
+                       //source2Text: asmSource.getText(),
                        functionName: "*"});
             //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
             //ret.push(pr);
           }
         });
         cSources.forEach(function (cSource2) {
-          if (cSource2.input instanceof vscode.TabInputText) {
-            let cSource2Uri = uri2str((cSource2.input as vscode.TabInputText).uri);
-            if (!(cSource1 === cSource2)) {
+          /*if (cSource2.input instanceof vscode.TabInputText) */{
+            //let cSource2Uri = uri2str((cSource2.input as vscode.TabInputText).uri);
+            let cSource2Uri = cSource2.Uri;
+            if (cSource1Uri !== cSource2Uri) {
               ret.push({ source1Uri: cSource1Uri,
-                         source1Name: cSource1.label,
+                         source1Name: posix.basename(cSource1Uri, undefined),
+                         //source1Text: cSource1.getText(),
                          source2Uri: cSource2Uri,
-                         source2Name: cSource2.label,
+                         source2Name: posix.basename(cSource2Uri, undefined),
+                         //source2Text: cSource2.getText(),
                          functionName: "*"});
               //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
               //ret.push(pr);
@@ -392,6 +411,7 @@ class Eqchecker {
         });
       }
     });
+    console.log(`genLikelyEqcheckPairs returning ${JSON.stringify(ret)}`);
     return ret;
   }
 

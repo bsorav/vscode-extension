@@ -18,7 +18,9 @@
     document.getElementById('eqcheck-view-proof').addEventListener('click', () => {
         //console.log('ViewProof clicked');
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
-        vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheckRightClickMenu.eqcheck});
+        const eqcheck = eqcheckRightClickMenu.eqcheck;
+        hideRightClickMenu(eqcheck);
+        vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
     });
 
     // Handle messages sent from the extension to the webview

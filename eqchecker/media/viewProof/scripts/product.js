@@ -113,7 +113,7 @@ function assembly_code_compute_index_to_line_map(assembly_code)
     if (lines[i].match(/^\s*nop$/)) {
       continue;
     }
-    ret[l] = i;
+    ret[l] = i + 1;
     l++;
   }
   return ret;

@@ -202,7 +202,7 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
 
     // console.log(node2);
     if (node1.type === "entry"){
-      node1 = {type: "entry", y: 1, x: 1};
+      node1 = {type: "entry", y: 0, x: 0};
     }
 
     if (node2.type === "exit"){
@@ -221,6 +221,13 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     if (node2.x === undefined) {
       node2.x = 2;
     }
+
+    if (node1.x === node2.x && node1.y === node2.y) {
+      console.log(`Ignoring the edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
+      return;
+    }
+
+    console.log(`Drawing an edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
 
     let x1 = (node1.x - 1) * 1 * deltaX;
     let y1 = node1.y * 1 * deltaY - deltaY/4;

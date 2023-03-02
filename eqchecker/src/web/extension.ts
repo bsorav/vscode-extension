@@ -430,7 +430,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-  public static getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri) {
+  public static getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, highlight_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/src_code.html')).toString();
     //return eval('`' + html + '`');
 
@@ -444,6 +444,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href=${prism_css}>
         <link rel="stylesheet" href="${prism_ln_css}">
         <script type="module" src=${prism_ln_script}></script>
+        <script type="module" src=${highlight_script}></script>
     </head>
     <body class="full-view">
         <div class=" full-view">
@@ -457,7 +458,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-  public static getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri) {
+  public static getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, highlight_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/dst_code.html')).toString();
     //return eval('`' + html + '`');
 
@@ -472,6 +473,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <link rel="stylesheet" href=${prism_css}>
     <link rel="stylesheet" href="${prism_ln_css}">
     <script type="module" src=${prism_ln_script}></script>
+    <script type="module" src=${highlight_script}></script>
 </head>
 
 <body class="full-view">
@@ -535,6 +537,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const prism_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/themes/prism.css'));
     const prism_ln_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css'));
     const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
+    const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
     const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
@@ -543,8 +546,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     // Set the webview content
 
     panel_prd.webview.html = EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network);
-    panel_src_code.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
-    panel_dst_code.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script);
+    panel_src_code.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, highlight_script);
+    panel_dst_code.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, highlight_script);
 
     let panel_prd_loaded = false;
     let panel_src_code_loaded = false;

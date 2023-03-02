@@ -200,6 +200,9 @@ class Eqchecker {
     //console.log("addEqcheck() called\n");
     //var source : string;
     //var optimized : string;
+    if (entry.source1Uri === undefined || entry.source2Uri === undefined) {
+      return false;
+    }
     console.log("calling openTextDocument");
     await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
       console.log("opened source1Uri");
@@ -248,6 +251,7 @@ class Eqchecker {
     return proof;
   }
 
+
   public static async checkEq()
   {
       // Get labels of opened files in all groups
@@ -278,8 +282,15 @@ class Eqchecker {
       let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
       console.log("eqcheckPairs size " + eqcheckPairs.length);
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
-      if (await Eqchecker.addEqcheck(eqcheckPairs[result]) === true) {
-        vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPairs[result].source1Uri} -> ${eqcheckPairs[result].source2Uri}`);
+      console.log(`result = ${result}`);
+      var eqcheckPair;
+      if (result >= eqcheckPairs.length) {
+        eqcheckPair = await Eqchecker.openSourceFiles();
+      } else {
+        eqcheckPair = eqcheckPairs[result];
+      }
+      if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
+        vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPair.source1Uri} -> ${eqcheckPair.source2Uri}`);
       }
         //console.log(tabs);
       //let url = "http://localhost:3000";
@@ -296,6 +307,50 @@ class Eqchecker {
       placeHolder: servers?.[0],
     });
     Eqchecker.serverURL = result;
+  }
+
+  private static async openSourceFiles() : Promise<eqcheckMenuEntry>
+  {
+    const options = {
+      canSelectMany: true,
+      openLabel: 'Open Source and Destination Code Files',
+      filters: {
+        'Source Code': ['c', 's'],
+      }
+    };
+
+    let srcFileUri, dstFileUri, srcFileName, dstFileName;
+
+    // Ask the user to select the first source code file.
+    const firstFileUris = await vscode.window.showOpenDialog(options);
+    if (firstFileUris && firstFileUris[0]) {
+      srcFileUri = firstFileUris[0];
+      srcFileName = posix.basename(srcFileUri.fsPath, undefined);
+      const firstSourceCode = await vscode.workspace.openTextDocument(srcFileUri);
+      await vscode.window.showTextDocument(firstSourceCode, { viewColumn: vscode.ViewColumn.One });
+
+      if (!firstFileUris[1]) {
+        // Ask the user to select the next source code file.
+        options.openLabel = 'Open Destination Code File';
+        options.filters = {
+          'Source Code': ['s', 'c'],
+        };
+        const dstFileUris = await vscode.window.showOpenDialog(options);
+        if (dstFileUris && dstFileUris[0]) {
+          dstFileUri = dstFileUris[0];
+        }
+      } else {
+        dstFileUri = firstFileUris[1];
+      }
+      dstFileName = posix.basename(dstFileUri.fsPath, undefined);
+      const nextSourceCode = await vscode.workspace.openTextDocument(dstFileUri);
+      await vscode.window.showTextDocument(nextSourceCode, { viewColumn: vscode.ViewColumn.Two });
+    }
+    return { source1Uri: srcFileUri,
+             source1Name: srcFileName,
+             source2Uri: dstFileUri,
+             source2Name: dstFileName,
+             functionName: "*" };
   }
 
   private static genLikelyEqcheckPairs(cSources : vscode.Tab[], asmSources : vscode.Tab[]) : eqcheckMenuEntry[]
@@ -364,6 +419,7 @@ class Eqchecker {
     let ret = menuItems.map(function (menuItem) {
                 return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
               });
+    ret.push('Pick source/assembly files from the filesystem');
     //console.log("returned from menuItems.map(). ret.length = " + ret.length.toString());
     return ret;
   }
@@ -408,7 +464,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       <link rel="stylesheet" href=${index_css}>
       <script type="text/javascript" src=${vis_network}></script>
     </head>
-    
+
     <body class="full-view"">
         <div class=" full-view" id="prod-div-outermost">
       <div class="header">Product Graph</div>
@@ -424,7 +480,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       </div>
       </div>
     </body>
-    
+
     </html>`;
 
     return eval('`' + html + '`');

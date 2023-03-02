@@ -85,6 +85,11 @@ function getNodesEdgesFromPathAndNodeMap(path, nodeMap)
   return getNodesEdgesFromPathAndNodeMap_recursive(path, nodeMap);
 }
 
+function identifyFirstNodeWithCycle(path)
+{
+  return path.from_pc; //XXX : TODO: FIXME: find the first entry to a cycle
+}
+
 export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
 {
   // canvas -> <canvas> element in HTML DOM
@@ -112,13 +117,26 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
 
   let topNode = canvas.height*1;
 
+  console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
+  var node_with_mu_annotation;
+  if (path.unroll_factor_mu != path.unroll_factor_delta) {
+    node_with_mu_annotation = identifyFirstNodeWithCycle(path);
+    console.log(`node_with_mu_annotation = ${node_with_mu_annotation}\n`);
+  }
+
   NODES.forEach(element => {
+      //var unroll_mu = 1;
       var unroll = 1;
+      var unroll_is_only_mu = false;
       //console.log(`element.pc = ${element.pc}, path.to_pc = ${path.to_pc}\n`);
-      if (element.pc === path.to_pc) {
+      if (element.pc === node_with_mu_annotation) {
         unroll = path.unroll_factor_mu;
+        unroll_is_only_mu = true;
+      } else if (element.pc === path.to_pc) {
+        //unroll_mu = path.unroll_factor_mu;
+        unroll = path.unroll_factor_delta;
       }
-      drawPointOnNode(element, unroll);
+      drawPointOnNode(element, unroll, unroll_is_only_mu);
       topNode = Math.min(topNode, element.y * 1 * deltaY);
   });
 
@@ -152,11 +170,11 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node, unroll)
+function drawPointOnNode(node, unroll, unroll_is_only_mu)
 {
     //node = node.split("_");
 
-    //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
+    console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
 
@@ -179,7 +197,11 @@ function drawPointOnNode(node, unroll)
         let x = x1 + 2*r*Math.cos(Math.PI/4);
         let y = y1 - 2*r*Math.sin(Math.PI/4);
         const textcolor = "rgb(3, 3, 255)";
-        drawText(ctx, x, y, "" + unroll, textcolor);
+        var prefix_to_unroll = "";
+        if (unroll_is_only_mu) {
+          prefix_to_unroll = "<=";
+        }
+        drawText(ctx, x, y, prefix_to_unroll + unroll, textcolor);
     } else {
         color = "rgb(255, 0, 0)";
         drawCircle(ctx, x1, y1, 3, color);

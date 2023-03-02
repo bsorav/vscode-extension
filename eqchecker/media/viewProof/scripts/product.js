@@ -102,8 +102,8 @@ function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc)
 function assembly_code_compute_index_to_line_map(assembly_code)
 {
   const lines = assembly_code.split('\n');
-  console.log(`assembly_code = ${assembly_code}\n`);
-  console.log(`lines= ${lines}\n`);
+  //console.log(`assembly_code = ${assembly_code}\n`);
+  //console.log(`lines= ${lines}\n`);
   var ret = {};
   var l = 0;
   for (var i = 0; i < lines.length; i++) {
@@ -214,18 +214,21 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const from_pc = element.edge.from_pc;
     const to_pc = element.edge.to_pc;
 
+    //console.log(`element.dst_edge = ${JSON.stringify(element.dst_edge)}\n`);
     const dst_from_pc = element.dst_edge.from_pc;
     const dst_to_pc = element.dst_edge.to_pc;
     const dst_unroll_factor_mu = element.dst_edge.unroll_factor_mu;
+    const dst_unroll_factor_delta = element.dst_edge.unroll_factor_delta.unroll;
     const dst_ec = element.dst_edge.graph_ec;
 
     const src_from_pc = element.src_edge.from_pc;
     const src_to_pc = element.src_edge.to_pc;
     const src_unroll_factor_mu = element.src_edge.unroll_factor_mu;
+    const src_unroll_factor_delta = element.src_edge.unroll_factor_delta.unroll;
     const src_ec = element.src_edge.graph_ec;
 
-    const src_entry = { from_pc: src_from_pc, to_pc: src_to_pc, unroll_factor_mu: src_unroll_factor_mu, ec: src_ec };
-    const dst_entry = { from_pc: dst_from_pc, to_pc: dst_to_pc, unroll_factor_mu: dst_unroll_factor_mu, ec: dst_ec };
+    const src_entry = { from_pc: src_from_pc, to_pc: src_to_pc, unroll_factor_mu: src_unroll_factor_mu, unroll_factor_delta: src_unroll_factor_delta, ec: src_ec };
+    const dst_entry = { from_pc: dst_from_pc, to_pc: dst_to_pc, unroll_factor_mu: dst_unroll_factor_mu, unroll_factor_delta: dst_unroll_factor_delta, ec: dst_ec };
 
     const edgeId = getEdgeId(from_pc, to_pc);
     const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
@@ -267,7 +270,7 @@ function drawNetwork(cfg) {
     //console.log(`g_nodeMap = ${JSON.stringify(g_nodeMap)}`);
     var nodes = new vis.DataSet(nodes_in.map(function(node) {
       const label_orig = g_nodeMap[node.pc].label;
-      console.log(`label_orig = ${label_orig}`);
+      //console.log(`label_orig = ${label_orig}`);
       var label = "";
       if (node.pc === 'L0%0%d_L0%0%d') {
         label = "entry";

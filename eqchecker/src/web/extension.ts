@@ -18,8 +18,10 @@ const commandObtainProof = 'obtainProof';
 interface eqcheckMenuEntry {
   source1Uri: string;
   source1Name: string;
+  source1Text: string;
   source2Uri: string;
   source2Name: string;
+  source2Text: string;
   functionName: string;
 }
 
@@ -203,17 +205,21 @@ class Eqchecker {
     if (entry.source1Uri === undefined || entry.source2Uri === undefined) {
       return false;
     }
-    console.log("calling openTextDocument");
-    await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
-      console.log("opened source1Uri");
-      if (doc.isDirty) {}
-      entry.source1Text = doc.getText();
-    });
-    await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
-      console.log("opened source2Uri");
-      if (doc.isDirty) {}
-      entry.source2Text = doc.getText();
-    });
+    if (entry.source1Text === undefined) {
+      console.log("calling openTextDocument");
+      await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
+        console.log("opened source1Uri");
+        if (doc.isDirty) {}
+        entry.source1Text = doc.getText();
+      });
+    }
+    if (entry.source2Text === undefined) {
+      await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
+        console.log("opened source2Uri");
+        if (doc.isDirty) {}
+        entry.source2Text = doc.getText();
+      });
+    }
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
     var request =
@@ -261,26 +267,30 @@ class Eqchecker {
       //let textEditors = vscode.window.visibleTextEditors;
       let cSources = [];
       let asmSources = [];
-      //let textDocuments = await vscode.workspace.textDocuments;
-      //textDocuments.forEach(async function(entry) {
-      //  console.log('fileName = ' + entry.fileName);
-      //  //console.log('\n');
-      //  if (entry.fileName.endsWith(".c")) {
-      //    cSources.push(entry);
-      //  } else if (entry.fileName.endsWith(".s")) {
-      //    asmSources.push(entry);
-      //  }
-      //  //c_sources.push(tab);
-      //});
+      let textDocuments = await vscode.workspace.textDocuments;
+      textDocuments.forEach(async function(entry) {
+        console.log('fileName = ' + entry.fileName);
+        //console.log('\n');
+        if (entry.fileName.endsWith(".c")) {
+          cSources.push({ Uri: entry.fileName, Text: entry.getText() });
+        } else if (entry.fileName.endsWith(".s")) {
+          asmSources.push({ Uri: entry.fileName, Text: entry.getText() });
+        }
+        //c_sources.push(tab);
+      });
       tabs.forEach(async function(entry) {
         //console.log('fileName = ' + entry.fileName);
         //console.log('\n');
 
         if (entry.input instanceof vscode.TabInputText) {
           let entryUri = uri2str((entry.input as vscode.TabInputText).uri);
-          if (entryUri.endsWith(".c")) {
+          let alreadyExists = false;
+          cSources.forEach(function(f) { if (f === entryUri) alreadyExists = true; });
+          asmSources.forEach(function(f) { if (f === entryUri) alreadyExists = true; });
+
+          if (!alreadyExists && entryUri.endsWith(".c")) {
             cSources.push({ Uri: entryUri });
-          } else if (entryUri.endsWith(".s")) {
+          } else if (!alreadyExists && entryUri.endsWith(".s")) {
             asmSources.push({ Uri: entryUri });
           }
         }
@@ -331,15 +341,15 @@ class Eqchecker {
       }
     };
 
-    let srcFileUri, dstFileUri, srcFileName, dstFileName;
+    let srcFileUri, dstFileUri, srcFileName, dstFileName, srcText, dstText;
 
     // Ask the user to select the first source code file.
     const firstFileUris = await vscode.window.showOpenDialog(options);
     if (firstFileUris && firstFileUris[0]) {
       srcFileUri = firstFileUris[0];
       srcFileName = posix.basename(srcFileUri.fsPath, undefined);
-      const firstSourceCode = await vscode.workspace.openTextDocument(srcFileUri);
-      await vscode.window.showTextDocument(firstSourceCode, { viewColumn: vscode.ViewColumn.One });
+      srcText = await vscode.workspace.openTextDocument(srcFileUri);
+      await vscode.window.showTextDocument(srcText, { viewColumn: vscode.ViewColumn.One });
 
       if (!firstFileUris[1]) {
         // Ask the user to select the next source code file.
@@ -355,13 +365,15 @@ class Eqchecker {
         dstFileUri = firstFileUris[1];
       }
       dstFileName = posix.basename(dstFileUri.fsPath, undefined);
-      const nextSourceCode = await vscode.workspace.openTextDocument(dstFileUri);
-      await vscode.window.showTextDocument(nextSourceCode, { viewColumn: vscode.ViewColumn.Two });
+      dstText = await vscode.workspace.openTextDocument(dstFileUri);
+      await vscode.window.showTextDocument(dstText, { viewColumn: vscode.ViewColumn.Two });
     }
     return { source1Uri: srcFileUri,
              source1Name: srcFileName,
+             source1Text: srcText,
              source2Uri: dstFileUri,
              source2Name: dstFileName,
+             source2Text: dstText,
              functionName: "*" };
   }
 
@@ -383,10 +395,10 @@ class Eqchecker {
             console.log("asmSourceUri = " + asmSourceUri);
             ret.push({ source1Uri: cSource1Uri,
                        source1Name: posix.basename(cSource1Uri, undefined),
-                       //source1Text: cSource1.getText(),
+                       source1Text: cSource1.Text,
                        source2Uri: asmSourceUri,
                        source2Name: posix.basename(asmSourceUri, undefined),
-                       //source2Text: asmSource.getText(),
+                       source2Text: asmSource.Text,
                        functionName: "*"});
             //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
             //ret.push(pr);
@@ -399,10 +411,10 @@ class Eqchecker {
             if (cSource1Uri !== cSource2Uri) {
               ret.push({ source1Uri: cSource1Uri,
                          source1Name: posix.basename(cSource1Uri, undefined),
-                         //source1Text: cSource1.getText(),
+                         source1Text: cSource1.Text,
                          source2Uri: cSource2Uri,
                          source2Name: posix.basename(cSource2Uri, undefined),
-                         //source2Text: cSource2.getText(),
+                         source2Text: cSource2.Text,
                          functionName: "*"});
               //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
               //ret.push(pr);

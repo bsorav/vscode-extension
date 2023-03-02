@@ -30,14 +30,21 @@ function setupCanvas(){
 
 function node_convert_to_xy(pc, pc_unroll, nodeMap)
 {
+  let canvas = document.getElementById("canvas");
+  let styles = window.getComputedStyle(document.getElementById("code"));
+  let deltaY = styles.lineHeight.replace("px", "") * 1;
+  let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
+
+  const [entryX, entryY, exitX, exitY] = [0, 0, 0, canvas.height / deltaY];
+
   if (pc === 'L0%0%d') {
-    return { type: "entry" };
+    return { type: "exit", pc: pc, y: entryY, x: entryX };
   } else if (pc.charAt(0) === 'L') {
     const linename = nodeMap[pc].linename;
     const columnname = nodeMap[pc].columnname;
     return { type: "L", pc: pc, x: columnname, y: linename, unroll: pc_unroll.unroll };
   } else {
-    return { type: "exit" };
+    return { type: "exit", pc: pc, y: exitY, x: exitX };
   }
 }
 
@@ -100,12 +107,14 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
   });
 
   //let scrollHeight = window.scrollHeight;
-  let styles = window.getComputedStyle(code);
-  let deltaY = parseInt(styles.getPropertyValue("line-height"));
+  const styles = window.getComputedStyle(code);
+  const deltaY = parseInt(styles.getPropertyValue("line-height"));
+
   let topNode = canvas.height*1;
 
   NODES.forEach(element => {
       var unroll = 1;
+      //console.log(`element.pc = ${element.pc}, path.to_pc = ${path.to_pc}\n`);
       if (element.pc === path.to_pc) {
         unroll = path.unroll_factor_mu;
       }
@@ -147,6 +156,7 @@ function drawPointOnNode(node, unroll)
 {
     //node = node.split("_");
 
+    //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
 
@@ -201,13 +211,13 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
 
     // console.log(node2);
-    if (node1.type === "entry"){
-      node1 = {type: "entry", y: 0, x: 0};
-    }
+    //if (node1.type === "entry"){
+    //  node1 = {type: "entry", y: 0, x: 0};
+    //}
 
-    if (node2.type === "exit"){
-      node2 = {type: "exit", y: canvas.height/deltaY, x: 1};
-    }
+    //if (node2.type === "exit"){
+    //  node2 = {type: "exit", y: canvas.height/deltaY, x: 1};
+    //}
 
     //if (node1.length === 2){
     //  node1.push(2);
@@ -223,11 +233,11 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     }
 
     if (node1.x === node2.x && node1.y === node2.y) {
-      console.log(`Ignoring the edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
+      //console.log(`Ignoring the edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
       return;
     }
 
-    console.log(`Drawing an edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
+    //console.log(`Drawing an edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
 
     let x1 = (node1.x - 1) * 1 * deltaX;
     let y1 = node1.y * 1 * deltaY - deltaY/4;

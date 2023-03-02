@@ -372,8 +372,8 @@ window.addEventListener('message', async event => {
             code = message.code;
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             if (message.syntax_type === "asm") {
-              //codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');
-              codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+              codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');
+              //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             } else {
               codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             }

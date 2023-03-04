@@ -14,6 +14,7 @@ const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
 const commandPingEqcheck = 'pingEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
+const commandGetRunningStatus = 'getRunningStatus';
 
 interface eqcheckMenuEntry {
   source1Uri: string;

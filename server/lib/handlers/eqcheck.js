@@ -20,6 +20,7 @@ const defaultUnrollFactor = 64;
 const commandPingEqcheck = 'pingEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
+const commandGetRunningStatus = 'getRunningStatus';
 
 function initialise(/*compilerEnv*/) {
     if (hasSetUpAutoClean) return;
@@ -478,6 +479,16 @@ class EqcheckHandler {
         //console.log('chunkStr =\n' + chunkStr);
         res.end(chunkStr);
         return;
+      //} else if (commandIn === commandGetRunningStatus) {
+      //  const ret = await this.getRunningStatus(dirPathIn);
+      //  var jsonObj;
+      //  xml2js.parseString(ret, {explictArray: false}, function (err, result) {
+      //      //console.dir(result);
+      //      jsonObj = result;
+      //  });
+      //  const str = JSON.stringify({dirPath: dirPathIn, runningStatus: jsonObj});
+      //  res.end(str);
+      //  return;
       } else if (commandIn === commandObtainProof) {
         console.log('ObtainProof received with dirPathIn ', dirPathIn);
         const proof_xml = await this.getProofXML(dirPathIn);

@@ -57,7 +57,10 @@ function edge_with_unroll_convert_to_xy(ec, nodeMap)
 
 function getNodesEdgesFromPathAndNodeMap_recursive(ec, nodeMap)
 {
-  var graph_ec = { edges: [], nodes: [] };
+  if (ec.is_epsilon) {
+    return { is_epsilon: true, edges: [], nodes: [] };
+  }
+  var graph_ec = { is_epsilon: false, edges: [], nodes: [] };
   switch (ec.name) {
     case 'series':
     case 'parallel':
@@ -106,6 +109,13 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
   const graph_ec = getNodesEdgesFromPathAndNodeMap(path.ec, nodeMap);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
+  const is_epsilon = graph_ec.is_epsilon;
+  const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, nodeMap);
+
+  if (is_epsilon) {
+    drawPointOnNode(from_pc_xy, true, undefined, undefined);
+    return;
+  }
 
   EDGES.forEach(element => {
       drawEdgeBetweenPoints(element.from_node, element.to_node/*, element.dashed*/);
@@ -136,16 +146,16 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
         //unroll_mu = path.unroll_factor_mu;
         unroll = path.unroll_factor_delta;
       }
-      drawPointOnNode(element, unroll, unroll_is_only_mu);
+      drawPointOnNode(element, false, unroll, unroll_is_only_mu);
       topNode = Math.min(topNode, element.y * 1 * deltaY);
   });
 
   window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
 }
 
-function drawText(ctx, x, y, text, color){
+function drawText(ctx, x, y, text, size, color){
     ctx.fillStyle = color;
-    ctx.font = "22px Arial";
+    ctx.font = size + "px Arial";
     ctx.fillText(text, x, y);
 }
 
@@ -170,7 +180,7 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node, unroll, unroll_is_only_mu)
+function drawPointOnNode(node, is_epsilon, unroll, unroll_is_only_mu)
 {
     //node = node.split("_");
 
@@ -201,10 +211,17 @@ function drawPointOnNode(node, unroll, unroll_is_only_mu)
         if (unroll_is_only_mu) {
           prefix_to_unroll = "<=";
         }
-        drawText(ctx, x, y, prefix_to_unroll + unroll, textcolor);
+        drawText(ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
     } else {
         color = "rgb(255, 0, 0)";
         drawCircle(ctx, x1, y1, 3, color);
+    }
+    if (is_epsilon) {
+      let r = 5;
+      let x = x1 + r*Math.cos(7*Math.PI/4);
+      let y = y1 - r*Math.sin(7*Math.PI/4);
+      const textcolor = "rgb(255, 0, 0)";
+      drawText(ctx, x, y, "stays still", 10, textcolor);
     }
 }
 

@@ -20,7 +20,6 @@ const defaultUnrollFactor = 64;
 const commandPingEqcheck = 'pingEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
-const commandGetRunningStatus = 'getRunningStatus';
 
 function initialise(/*compilerEnv*/) {
     if (hasSetUpAutoClean) return;
@@ -230,6 +229,12 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.out');
     }
 
+    get_runstatus_filename(dirPath) {
+      //console.log('dirPath ', dirPath);
+      return path.join(dirPath, 'eqcheck.runstatus');
+    }
+
+
     get_errfilename(dirPath) {
       return path.join(dirPath, 'eqcheck.example.err');
     }
@@ -243,6 +248,7 @@ class EqcheckHandler {
         if (sourceError) throw sourceError;
 
         const outFilename = this.get_outfilename(dirPath);
+        const runstatusFilename = this.get_runstatus_filename(dirPath);
         const proofFilename = this.get_proof_filename(dirPath);
         //const errFilename = this.get_errfilename(dirPath);
 
@@ -262,7 +268,7 @@ class EqcheckHandler {
             const dirPath = values[0];
             const sourceFilename = values[1];
             const optimizedFilename = values[2];
-            const redirect = ['-xml-output', outFilename];
+            const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename];
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
@@ -351,6 +357,15 @@ class EqcheckHandler {
       //return [offsetNew, chunk];
       let offsetNew = offset + chunkEnd;
       return [offsetNew, truncatedChunk];
+    }
+
+    async getRunningStatus(dirPath) {
+      const runStatusFilename = this.get_runstatus_filename(dirPath);
+      if (!fs.existsSync(runStatusFilename)) {
+        return "";
+      }
+      const buffer = fs.readFileSync(runStatusFilename);
+      return buffer.toString();
     }
 
     async handle(req, res, next) {
@@ -448,6 +463,7 @@ class EqcheckHandler {
       } else if (commandIn === commandPingEqcheck) {
         console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
         const ret = await this.getOutputChunk(dirPathIn, offsetIn);
+        const runStatusXML = await this.getRunningStatus(dirPathIn);
         const offsetNew = ret[0];
         let chunkXML_orig = ret[1];
         let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
@@ -460,12 +476,17 @@ class EqcheckHandler {
             chunkObj = result;
         });
 
+        var runStatus;
+        xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
+          runStatus = result;
+        });
+
         //const chunkJson = xml2json.toJson(chunkXML, );
         //const chunkObj = JSON.parse(chunkJson);
         //const chunkObj = xml2json.toJson(chunkXML, { object: true, arrayNotation: true });
         //console.log("chunkJson:\n" + chunkJson);
         //console.log("chunkObj:\n" + chunkObj);
-        console.log("JSON.stringify(chunkObj):\n" + JSON.stringify(chunkObj));
+        //console.log("JSON.stringify(chunkObj):\n" + JSON.stringify(chunkObj));
 
         //console.log("chunkJson:\n" + JSON.stringify(chunkJson, null, "    ") );
         //console.log("chunkJson:\n" + JSON.stringify(chunkJson));
@@ -475,8 +496,8 @@ class EqcheckHandler {
         //}
 
         //console.log('chunkNew ', chunkNew);
-        const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj});
-        //console.log('chunkStr =\n' + chunkStr);
+        const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj, runStatus: runStatus});
+        console.log('chunkStr =\n' + chunkStr);
         res.end(chunkStr);
         return;
       //} else if (commandIn === commandGetRunningStatus) {

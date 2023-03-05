@@ -1,5 +1,14 @@
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
+
+const runStateStatusQueued = 'queued';
+const runStateStatusRunning = 'running';
+const runStateStatusFoundProof = 'found_proof';
+const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
+const runStateStatusSafetyCheckFailed = 'safety_check_failed';
+const runStateStatusTimedOut = 'timed_out';
+const runStateStatusTerminated = 'terminated';
+
 (function () {
     const vscode = acquireVsCodeApi();
 
@@ -15,13 +24,13 @@
         clearEqchecks();
     });
 
-    document.getElementById('eqcheck-view-proof').addEventListener('click', () => {
-        //console.log('ViewProof clicked');
-        const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
-        const eqcheck = eqcheckRightClickMenu.eqcheck;
-        hideRightClickMenu(eqcheck);
-        vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
-    });
+    //document.getElementById('eqcheck-view-proof').addEventListener('click', () => {
+    //    //console.log('ViewProof clicked');
+    //    const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+    //    const eqcheck = eqcheckRightClickMenu.eqcheck;
+    //    hideRightClickMenu(eqcheck);
+    //    vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+    //});
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
@@ -30,13 +39,13 @@
             case 'addEqcheckInView':
                 {
                     console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, message.statusMessage, message.runState);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
                 {
-                    //console.log("received message '" + message.type + "'");
-                    updateEqcheckInView(message.origRequest, message.statusMessage, message.runState);
+                    console.log("received message '" + message.type + "'");
+                    updateEqcheckInView(message.origRequest, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
             //case 'clearEqchecks':
@@ -48,15 +57,51 @@
         }
     });
 
+    function getStatusMessage(runState, statusMessage)
+    {
+      if (runState == runStateStatusRunning) {
+        return statusMessage;
+      } else if (runState == runStateStatusQueued) {
+        return "Queued";
+      } else if (runState == runStateStatusFoundProof) {
+        return "Found Proof";
+      } else if (runState == runStateStatusExhaustedSearchSpace) {
+        return "Exhausted Search Space";
+      } else if (runState == runStateStatusTimedOut) {
+        return "Timed Out";
+      } else if (runState == runStateStatusTerminated) {
+        return "Terminated";
+      } else {
+        return "";
+      }
+    }
+
     /**
      * @param {string} runState
      */
     function getBackgroundColorFromRunstate(runState)
     {
-      switch(runState) {
-        case "RunstateRunning": return "006400"; //dark green
-        default: return "000000";
+      console.log(`runState = ${runState}.\n`);
+      if (runState == runStateStatusQueued) {
+        //console.log(`returning red colour\n`);
+        return "rgb(150, 150, 0)";  //yellow
+      } else if (runState == runStateStatusRunning) {
+        //console.log(`returning yellow colour\n`);
+        return "rgb(0, 0, 0)"; //black
+      } else if (runState == runStateStatusFoundProof) {
+        //console.log(`returning green colour\n`);
+        return "rgb(0, 150, 0)"; //green
+      } else {
+        //return "rgb(0,0,0)";
+        console.log(`returning fallback colour\n`);
+        return "rgb(0, 0, 0)"; //yellow
+        //return "#006400"; //dark green
       }
+      //return "006400"; //dark green
+      //switch(runState) {
+      //  case runStateStatusRunning: return "006400"; //dark green
+      //  default: return "000000";
+      //}
     }
 
     /**
@@ -76,7 +121,7 @@
             //const bgColor = '000000';
             const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
             //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
-            eqcheckPreview.style.backgroundColor = `#${bgColor}`;
+            eqcheckPreview.style.backgroundColor = `${bgColor}`;
             eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
                 onEqcheckMouseOver(eqcheck);
             });
@@ -185,6 +230,38 @@
         eqcheckRightClickMenu.style.top = `${mouseY}px`;
         eqcheckRightClickMenu.style.left = `${mouseX}px`;
         eqcheckRightClickMenu.eqcheck = eqcheck;
+
+        var items = eqcheckRightClickMenu.querySelectorAll(".item");
+
+        console.log(`eqcheck.runState = ${eqcheck.runState}`);
+        console.log(`runStateStatusFoundProof = ${runStateStatusFoundProof}`);
+        if (eqcheck.runState == runStateStatusFoundProof) {
+          items[0].innerHTML = 'View Proof';
+          items[0].addEventListener('click', () => {
+            console.log('ViewProof clicked');
+            eqcheckRightClickMenu.style.display = "none";
+            vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+          });
+          items[1].innerHTML = 'View Search Tree';
+        } else if (eqcheck.runState == runStateStatusRunning) {
+          items[0].innerHTML = 'Cancel';
+          items[1].innerHTML = 'View Search Tree';
+        } else if (eqcheck.runState == runStateStatusQueued) {
+          items[0].innerHTML = 'Cancel';
+          items[1].style.display = 'Clear';
+        } else if (eqcheck.runState == runStateExhaustedSearchSpace) {
+          items[0].innerHTML = 'View Search Tree';
+          items[1].innerHTML = 'Clear';
+        } else if (eqcheck.runState == runStateTimedOut) {
+          items[0].innerHTML = 'View Search Tree';
+          items[1].innerHTML = 'Clear';
+        } else if (eqcheck.runState == runStateStatusTerminated) {
+          items[0].innerHTML = 'View Search Tree';
+          items[1].innerHTML = 'Clear';
+        } else {
+          //items[0].removeEventListener("click". arguments.callee);
+        }
+        //console.log(`before eqcheckRightClickMenu = ${JSON.stringify(eqcheckRightClickMenu)}`);
 
         eqcheckRightClickMenu.classList.add("visible");
     }

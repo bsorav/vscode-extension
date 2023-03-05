@@ -15,6 +15,14 @@ const commandPingEqcheck = 'pingEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
 
+const runStateStatusQueued = 'queued';
+const runStateStatusRunning = 'running';
+const runStateStatusFoundProof = 'found_proof';
+const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
+const runStateStatusSafetyCheckFailed = 'safety_check_failed';
+const runStateStatusTimedOut = 'timed_out';
+const runStateStatusTerminated = 'terminated';
+
 interface eqcheckMenuEntry {
   source1Uri: string;
   source1Name: string;
@@ -87,7 +95,7 @@ class Eqchecker {
     vscode.window.showInformationMessage(`Connection failed to eqcheck server URL ${url}: error ='${err}'`);
   }
 
-  public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages) : boolean
+  public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus) : boolean
   {
     if (jsonMessages === null || jsonMessages.messages === undefined) {
       return false;
@@ -107,7 +115,7 @@ class Eqchecker {
         Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
-    const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages);
+    const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
     var request =
         { type: 'updateEqcheckInView',
           //dirPath: dirPath,
@@ -119,9 +127,15 @@ class Eqchecker {
     return lastMessages[0] === EqcheckDoneMessage;
   }
 
-  public static determineEqcheckViewStatusFromLastMessages(lastMessages)
+  public static determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus)
   {
-    const runState = 'RunstateRunning';
+    var runState;
+    console.log(`runStatus = ${runStatus}\n`);
+    if (runStatus === null || runStatus === undefined) {
+     runState = runStateStatusRunning;
+    } else {
+     runState = runStatus.running_status.status_flag;
+    }
     return [lastMessages[0], runState];
   }
 
@@ -175,9 +189,10 @@ class Eqchecker {
         }
         let offset = result.offset;
         let chunk = result.chunk;
+        let runStatus = result.runStatus;
         console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
-        if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk)) {
+        if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
           let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
@@ -234,7 +249,7 @@ class Eqchecker {
           functionName: entry.functionName,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           //bgColor: this.getNewCalicoColor(),
-          runState: 'RunstateRunning',
+          //runState: 'RunstateRunning',
         };
     var jsonRequest = JSON.stringify(request);
     const response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
@@ -846,7 +861,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <ul class="eqcheck-list">
         </ul>
         <div id="eqcheck-right-click-menu" eqcheck="eqcheck-none">
-        <div id="eqcheck-view-proof" class="item"><b>View Proof</b></div>
+        <div id="EqcheckRightClickMenuItem1" class="item"></div>
+        <div id="EqcheckRightClickMenuItem2" class="item"></div>
         </div>
         <button class="clear-eqchecks-button">Clear Eqchecks</button>
         <script nonce="${nonce}" src="${mainScriptUri}"></script>

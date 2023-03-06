@@ -11,7 +11,12 @@ const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
+
+const statusEqcheckPinging = "eqcheckPinging";
+const statusEqcheckCancelled = "eqcheckCancelled";
+
 const commandPingEqcheck = 'pingEqcheck';
+const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
 
@@ -77,12 +82,12 @@ function getNonce() {
 function uri2str(uri : vscode.Uri) : string {
   return uri.fsPath;
 }
-
 class Eqchecker {
   public static context;
   public static extensionUri;
   public static serverURL : string = defaultServerURL;
   public static outputMap: Record<string, string[]> = {};
+  public static statusMap: Record<string, string> = {};
 
   public static initializeEqchecker(context: vscode.ExtensionContext) {
     //console.log("extensionUri = " + context.extensionUri.fsPath);
@@ -130,7 +135,7 @@ class Eqchecker {
   public static determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus)
   {
     var runState;
-    console.log(`runStatus = ${runStatus}\n`);
+    //console.log(`runStatus = ${runStatus}\n`);
     if (runStatus === null || runStatus === undefined) {
      runState = runStateStatusRunning;
     } else {
@@ -182,6 +187,7 @@ class Eqchecker {
           //console.log("first response received.\n");
           origRequest.type = 'addEqcheckInView';
           origRequest.dirPath = dirPath;
+          Eqchecker.statusMap[dirPath] = statusEqcheckPinging;
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
           vscode.window.showInformationMessage(`Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`);
         } else {
@@ -190,18 +196,19 @@ class Eqchecker {
         let offset = result.offset;
         let chunk = result.chunk;
         let runStatus = result.runStatus;
-        console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
+        //console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
         if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
-          let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
-          return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
+	  if (Eqchecker.statusMap[dirPath] === statusEqcheckPinging) {
+            let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
+            return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
+	  }
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
-        } else {
-          console.log("done adding Eqcheck Output.\n");
-          return dirPath;
         }
+        //console.log("done adding Eqcheck Output.\n");
+        return dirPath;
       })
       .catch(function(err) {
         console.log(`Error: ${err}`)
@@ -221,20 +228,21 @@ class Eqchecker {
       return false;
     }
     if (entry.source1Text === undefined) {
-      console.log("calling openTextDocument");
+      //console.log("calling openTextDocument");
       await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
-        console.log("opened source1Uri");
+        //console.log("opened source1Uri");
         if (doc.isDirty) {}
         entry.source1Text = doc.getText();
       });
     }
     if (entry.source2Text === undefined) {
       await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
-        console.log("opened source2Uri");
+        //console.log("opened source2Uri");
         if (doc.isDirty) {}
         entry.source2Text = doc.getText();
       });
     }
+
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
     var request =
@@ -253,12 +261,12 @@ class Eqchecker {
         };
     var jsonRequest = JSON.stringify(request);
     const response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
-    console.log(`response = ${response}.`);
+    //console.log(`response = ${response}.`);
     if (response !== "") {
-      console.log('returning true');
+      //console.log('returning true');
       return true;
     }
-    console.log('returning false');
+    //console.log('returning false');
     return false;
   }
 
@@ -266,12 +274,35 @@ class Eqchecker {
   {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
     const response = await this.RequestResponseForCommand(jsonRequest);
-    console.log("obtainProofFromServer response: ", JSON.stringify(response));
+    //console.log("obtainProofFromServer response: ", JSON.stringify(response));
     const proof = response.proof;
-    console.log("response proof: ", JSON.stringify(proof));
+    //console.log("response proof: ", JSON.stringify(proof));
     return proof;
   }
 
+  public static async stopPinging(dirPath)
+  {
+    Eqchecker.statusMap[dirPath] = statusEqcheckCancelled;
+  }
+
+  public static async eqcheckCancel(webview: vscode.Webview, dirPath)
+  {
+    this.stopPinging(dirPath);
+    var request =
+      { serverCommand: commandCancelEqcheck,
+        dirPathIn: dirPath,
+      };
+    let jsonRequest = JSON.stringify(request);
+    const response = await this.RequestResponseForCommand(jsonRequest);
+    console.log("Cancel Eqcheck response: ", JSON.stringify(response));
+    var request =
+        { type: 'eqcheckCancelled',
+          //dirPath: dirPath,
+          origRequest: {dirPath: dirPath},
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(request);
+    return;
+  }
 
   public static async checkEq()
   {
@@ -313,14 +344,14 @@ class Eqchecker {
         //c_sources.push(tab);
       });
 
-      console.log("Printing C sources:");
-      cSources.forEach(function(cSource) { console.log("fileName = " + cSource.Uri); });
-      console.log("Printing ASM sources:");
-      asmSources.forEach(function(asmSource) { console.log("fileName = " + asmSource.Uri); });
+      //console.log("Printing C sources:");
+      //cSources.forEach(function(cSource) { console.log("fileName = " + cSource.Uri); });
+      //console.log("Printing ASM sources:");
+      //asmSources.forEach(function(asmSource) { console.log("fileName = " + asmSource.Uri); });
       let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
-      console.log("eqcheckPairs size " + eqcheckPairs.length);
+      //console.log("eqcheckPairs size " + eqcheckPairs.length);
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
-      console.log(`result = ${result}`);
+      //console.log(`result = ${result}`);
       var eqcheckPair;
       if (result >= eqcheckPairs.length) {
         eqcheckPair = await Eqchecker.openSourceFiles();
@@ -402,13 +433,13 @@ class Eqchecker {
       /*if (cSource1.input instanceof vscode.TabInputText) */{
         //let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
         let cSource1Uri = cSource1.Uri;
-        console.log("cSource1Uri = " + cSource1Uri);
+        //console.log("cSource1Uri = " + cSource1Uri);
         asmSources.forEach(function (asmSource) {
           //console.log("asmSourceLabel = " + asmSource.fileName);
           /*if (asmSource.input instanceof vscode.TabInputText) */{
             //let asmSourceUri = uri2str((asmSource.input as vscode.TabInputText).uri);
             let asmSourceUri = asmSource.Uri;
-            console.log("asmSourceUri = " + asmSourceUri);
+            //console.log("asmSourceUri = " + asmSourceUri);
             ret.push({ source1Uri: cSource1Uri,
                        source1Name: posix.basename(cSource1Uri, undefined),
                        source1Text: cSource1.Text,
@@ -440,7 +471,7 @@ class Eqchecker {
         });
       }
     });
-    console.log(`genLikelyEqcheckPairs returning ${JSON.stringify(ret)}`);
+    //console.log(`genLikelyEqcheckPairs returning ${JSON.stringify(ret)}`);
     return ret;
   }
 
@@ -451,7 +482,7 @@ class Eqchecker {
     let i = 0;
     //console.log("before getQuickPickItems..() call: menuItems length = " + menuItems.length.toString());
     let items = Eqchecker.getQuickPickItemsFromEqcheckMenuEntries(menuItems);
-    console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
+    //console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
     const result = await vscode.window.showQuickPick(items, {
       placeHolder: items?.[0],
       //onDidSelectItem: item => window.showInformationMessage(`Focus ${++i}: ${item}`)
@@ -667,7 +698,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       message => {
         switch (message.command) {
           case 'loaded':
-            console.log("product-CFG panel loaded.\n");
+            //console.log("product-CFG panel loaded.\n");
             panel_prd_loaded = true;
             //vscode.window.showErrorMessage(message.text);
             break;
@@ -704,7 +735,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       message => {
         switch (message.command) {
           case 'loaded':
-            console.log("src-code panel loaded.\n");
+            //console.log("src-code panel loaded.\n");
             panel_src_code_loaded = true;
             //vscode.window.showErrorMessage(message.text);
             break;
@@ -719,7 +750,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       message => {
         switch (message.command) {
           case 'loaded':
-            console.log("dst-code panel loaded.\n");
+            //console.log("dst-code panel loaded.\n");
             panel_dst_code_loaded = true;
             //vscode.window.showErrorMessage(message.text);
             break;
@@ -731,15 +762,15 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
     async function waitForLoading(){
       while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false) {
-          console.log(`panel_{prd,src_code,dst_code}_loaded ${panel_prd_loaded} ${panel_src_code_loaded} ${panel_dst_code_loaded} is still false`);
+          //console.log(`panel_{prd,src_code,dst_code}_loaded ${panel_prd_loaded} ${panel_src_code_loaded} ${panel_dst_code_loaded} is still false`);
           await Eqchecker.wait(1000);
       }
     }
     await waitForLoading();
     // Message passing to src and dst webview
-    console.log(`Panels loaded. Posting proof to panel_prd. proof = ${JSON.stringify(proof)}\n`);
+    //console.log(`Panels loaded. Posting proof to panel_prd. proof = ${JSON.stringify(proof)}\n`);
     panel_prd.webview.postMessage({command: 'showProof', code: proof});
-    console.log("Posted proof to panel_prd\n");
+    //console.log("Posted proof to panel_prd\n");
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     panel_src_code.webview.postMessage({command: "data", code:src_code, syntax_type: "c/llvm"});
@@ -758,7 +789,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ) {
-    console.log("resolveWebviewView() called\n");
+    //console.log("resolveWebviewView() called\n");
     this._view = webviewView;
     webviewView.webview.options = {
       // Allow scripts in the webview
@@ -772,7 +803,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          console.log(`ViewProof received\n`);
+          //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
           const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, data.eqcheck.source1Text, data.eqcheck.source2Text);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
@@ -783,7 +814,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'eqcheckHideProof': {
-          console.log(`HideProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
+          //console.log(`HideProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
           //console.log(`HideProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
           //console.log(`HideProof received. this.panels[data.eqcheck.dirPath].length = ${this.panels[data.eqcheck.dirPath].length}\n`);
           this.panels[data.eqcheck.dirPath].prd.dispose();
@@ -795,10 +826,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'startEqcheck': {
-          console.log(`startEqcheck received\n`);
+          //console.log(`startEqcheck received\n`);
           Eqchecker.checkEq();
           break;
         }
+        case 'eqcheckCancel': {
+          //console.log(`eqcheckCancel received\n`);
+          await Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
+          break;
+        }
+
 
         default: {
           console.log('Unknown message received from webview: ' + data.type)
@@ -819,7 +856,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    console.log("_getHtmlForWebview() called\n");
+    //console.log("_getHtmlForWebview() called\n");
     // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
     const mainScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
     // Do the same for the stylesheet.

@@ -44,16 +44,21 @@ const viewStateViewSearchTree = 'viewSearchTree';
         switch (message.type) {
             case 'addEqcheckInView':
                 {
-                    console.log("received message '" + message.type + "'");
+                    //console.log("received message '" + message.type + "'");
                     addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
                 {
-                    console.log("received message '" + message.type + "'");
+                    //console.log("received message '" + message.type + "'");
                     updateEqcheckInView(message.origRequest, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
+            case 'eqcheckCancelled':
+                {
+                    updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
+                    break;
+		}
             //case 'clearEqchecks':
             //    {
             //        eqchecks = [];
@@ -116,6 +121,11 @@ const viewStateViewSearchTree = 'viewSearchTree';
     function displayEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
+        console.log("displayEqcheckList:\n");
+	for (const eqcheck of eqchecks) {
+          console.log(`eqcheck = ${eqcheck.dirPath}`);
+        }
+
         if (eqchecks.length == 0) {
           const welcome = document.querySelector('.clear-eqchecks-button');
           welcome.innerHTML = 'Start an Eqcheck'
@@ -307,7 +317,16 @@ const viewStateViewSearchTree = 'viewSearchTree';
         items[0].removeEventListener('click', viewProofListener);
         items[0].removeEventListener('click', hideProofListener);
         items[0].removeEventListener('click', eqcheckCancelListener);
+        items[0].removeEventListener('click', eqcheckClearListener);
 
+        items[1].removeEventListener('click', viewProofListener);
+        items[1].removeEventListener('click', hideProofListener);
+        items[1].removeEventListener('click', eqcheckCancelListener);
+        items[1].removeEventListener('click', eqcheckClearListener);
+
+        items[2].removeEventListener('click', viewProofListener);
+        items[2].removeEventListener('click', hideProofListener);
+        items[2].removeEventListener('click', eqcheckCancelListener);
         items[2].removeEventListener('click', eqcheckClearListener);
 
         items[0].innerHTML = '';
@@ -346,12 +365,15 @@ const viewStateViewSearchTree = 'viewSearchTree';
         } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
           items[0].innerHTML = 'View Search Tree';
           items[1].innerHTML = 'Clear';
+          items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTimedOut) {
           items[0].innerHTML = 'View Search Tree';
           items[1].innerHTML = 'Clear';
+          items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTerminated) {
           items[0].innerHTML = 'View Search Tree';
           items[1].innerHTML = 'Clear';
+          items[1].addEventListener('click', eqcheckClearListener);
         } else {
           items[0].innerHTML = 'Clear';
           items[0].addEventListener('click', eqcheckClearListener);
@@ -406,10 +428,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
     // */
     function updateEqcheckInView(origRequest, statusMessage, runState)
     {
+      //console.log('origRequest.dirPath = ' + origRequest.dirPath+ '\n');
       //console.log('statusMessage = ' + statusMessage + '\n');
       //console.log('runState = ' + runState + '\n');
       for (const eqcheck of eqchecks) {
         if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
+          console.log('match found\n');
           eqcheck.statusMessage = statusMessage;
           eqcheck.runState = runState;
           break;

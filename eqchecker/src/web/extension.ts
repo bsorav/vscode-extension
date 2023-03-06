@@ -794,6 +794,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //}
           break;
         }
+        case 'startEqcheck': {
+          console.log(`startEqcheck received\n`);
+          Eqchecker.checkEq();
+          break;
+        }
+
         default: {
           console.log('Unknown message received from webview: ' + data.type)
         }
@@ -844,8 +850,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="eqcheck-right-click-menu" eqcheck="eqcheck-none">
         <div id="EqcheckRightClickMenuItem1" class="item"></div>
         <div id="EqcheckRightClickMenuItem2" class="item"></div>
+        <div id="EqcheckRightClickMenuItem3" class="item"></div>
         </div>
-        <button class="clear-eqchecks-button">Clear Eqchecks</button>
+        <button class="clear-eqchecks-button"></button>
         <script nonce="${nonce}" src="${mainScriptUri}"></script>
       </body>
       </html>`;

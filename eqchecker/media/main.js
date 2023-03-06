@@ -1,5 +1,20 @@
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
+
+const runStateStatusQueued = 'queued';
+const runStateStatusRunning = 'running';
+const runStateStatusFoundProof = 'found_proof';
+const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
+const runStateStatusSafetyCheckFailed = 'safety_check_failed';
+const runStateStatusTimedOut = 'timed_out';
+const runStateStatusTerminated = 'terminated';
+
+const viewStateBase = 'base';
+const viewStateCancelling = 'cancelling';
+const viewStateViewProof = 'viewProof';
+const viewStateViewSearchTree = 'viewSearchTree';
+
+
 (function () {
     const vscode = acquireVsCodeApi();
 
@@ -12,16 +27,16 @@
     displayEqcheckList(eqchecks);
 
     document.querySelector('.clear-eqchecks-button').addEventListener('click', () => {
-        clearEqchecks();
+        startEqcheck();
     });
 
-    document.getElementById('eqcheck-view-proof').addEventListener('click', () => {
-        //console.log('ViewProof clicked');
-        const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
-        const eqcheck = eqcheckRightClickMenu.eqcheck;
-        hideRightClickMenu(eqcheck);
-        vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
-    });
+    //document.getElementById('eqcheck-view-proof').addEventListener('click', () => {
+    //    //console.log('ViewProof clicked');
+    //    const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+    //    const eqcheck = eqcheckRightClickMenu.eqcheck;
+    //    hideRightClickMenu(eqcheck);
+    //    vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+    //});
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
@@ -29,16 +44,21 @@
         switch (message.type) {
             case 'addEqcheckInView':
                 {
-                    console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, message.statusMessage, message.runState);
+                    //console.log("received message '" + message.type + "'");
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    updateEqcheckInView(message.origRequest, message.statusMessage, message.runState);
+                    updateEqcheckInView(message.origRequest, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
+            case 'eqcheckCancelled':
+                {
+                    updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
+                    break;
+		}
             //case 'clearEqchecks':
             //    {
             //        eqchecks = [];
@@ -48,15 +68,51 @@
         }
     });
 
+    function getStatusMessage(runState, statusMessage)
+    {
+      if (runState == runStateStatusRunning) {
+        return statusMessage;
+      } else if (runState == runStateStatusQueued) {
+        return "Queued";
+      } else if (runState == runStateStatusFoundProof) {
+        return "Found Proof";
+      } else if (runState == runStateStatusExhaustedSearchSpace) {
+        return "Exhausted Search Space";
+      } else if (runState == runStateStatusTimedOut) {
+        return "Timed Out";
+      } else if (runState == runStateStatusTerminated) {
+        return "Terminated";
+      } else {
+        return "";
+      }
+    }
+
     /**
      * @param {string} runState
      */
     function getBackgroundColorFromRunstate(runState)
     {
-      switch(runState) {
-        case "RunstateRunning": return "006400"; //dark green
-        default: return "000000";
+      console.log(`runState = ${runState}.\n`);
+      if (runState == runStateStatusQueued) {
+        //console.log(`returning red colour\n`);
+        return "rgb(150, 150, 0)";  //yellow
+      } else if (runState == runStateStatusRunning) {
+        //console.log(`returning yellow colour\n`);
+        return "rgb(0, 0, 0)"; //black
+      } else if (runState == runStateStatusFoundProof) {
+        //console.log(`returning green colour\n`);
+        return "rgb(0, 150, 0)"; //green
+      } else {
+        //return "rgb(0,0,0)";
+        console.log(`returning fallback colour\n`);
+        return "rgb(0, 0, 0)"; //yellow
+        //return "#006400"; //dark green
       }
+      //return "006400"; //dark green
+      //switch(runState) {
+      //  case runStateStatusRunning: return "006400"; //dark green
+      //  default: return "000000";
+      //}
     }
 
     /**
@@ -65,6 +121,15 @@
     function displayEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
+        console.log("displayEqcheckList:\n");
+	for (const eqcheck of eqchecks) {
+          console.log(`eqcheck = ${eqcheck.dirPath}`);
+        }
+
+        if (eqchecks.length == 0) {
+          const welcome = document.querySelector('.clear-eqchecks-button');
+          welcome.innerHTML = 'Start an Eqcheck'
+        }
         //ul.empty();
         //ul.innerHTML = "";
         for (const eqcheck of eqchecks) {
@@ -76,7 +141,7 @@
             //const bgColor = '000000';
             const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
             //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
-            eqcheckPreview.style.backgroundColor = `#${bgColor}`;
+            eqcheckPreview.style.backgroundColor = `${bgColor}`;
             eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
                 onEqcheckMouseOver(eqcheck);
             });
@@ -177,6 +242,63 @@
 	    //document.getElementById('hoverEqcheckArrow').style.display = 'none';
     }
 
+    function viewProofListener(evt) {
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      //const eqcheck = evt.currentTarget.eqcheck;
+      const eqcheck = eqcheckRightClickMenu.eqcheck;
+      console.log('ViewProof clicked');
+      eqcheck.viewState = viewStateViewProof;
+      eqcheckRightClickMenu.style.display = "none";
+      vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+    };
+
+    function hideProofListener(evt) {
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      //const eqcheck = evt.currentTarget.eqcheck;
+      const eqcheck = eqcheckRightClickMenu.eqcheck;
+      console.log('HideProof clicked');
+      eqcheck.viewState = viewStateBase;
+      eqcheckRightClickMenu.style.display = "none";
+      vscode.postMessage({ type: 'eqcheckHideProof', eqcheck: eqcheck});
+    };
+
+    function eqcheckCancelListener(evt) {
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      //const eqcheck = evt.currentTarget.eqcheck;
+      const eqcheck = eqcheckRightClickMenu.eqcheck;
+      console.log('eqcheckCancel clicked');
+      eqcheckRightClickMenu.style.display = "none";
+      eqcheck.viewState = viewStateCancelling;
+      eqcheck.statusMessage = "Cancelling...";
+      displayEqcheckList(eqchecks);
+      vscode.postMessage({ type: 'eqcheckCancel', eqcheck: eqcheck});
+    };
+
+    function eqcheckClearListener(evt) {
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      //const eqcheck = evt.currentTarget.eqcheck;
+      const eqcheck = eqcheckRightClickMenu.eqcheck;
+
+      console.log('eqcheckClear clicked');
+      eqcheckRightClickMenu.style.display = "none";
+
+      const index = eqchecks.indexOf(eqcheck);
+      if (index > -1) { // only splice array when item is found
+        eqchecks.splice(index, 1); // 2nd parameter means remove one item only
+      }
+      displayEqcheckList(eqchecks);
+    };
+
+    function viewSearchTreeListener(evt) {
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      //const eqcheck = evt.currentTarget.eqcheck;
+      const eqcheck = eqcheckRightClickMenu.eqcheck;
+
+      console.log('viewSearchTree clicked');
+      eqcheckRightClickMenu.style.display = "none";
+    };
+
+
     /**
      * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck, {number} mouseX, {number} mouseY
      */
@@ -186,11 +308,85 @@
         eqcheckRightClickMenu.style.left = `${mouseX}px`;
         eqcheckRightClickMenu.eqcheck = eqcheck;
 
+        var items = eqcheckRightClickMenu.querySelectorAll(".item");
+
+        console.log(`eqcheck.runState = ${eqcheck.runState}`);
+        console.log(`runStateStatusFoundProof = ${runStateStatusFoundProof}`);
+        console.log(`eqcheck.viewState = ${eqcheck.viewState}`);
+
+        items[0].removeEventListener('click', viewProofListener);
+        items[0].removeEventListener('click', hideProofListener);
+        items[0].removeEventListener('click', eqcheckCancelListener);
+        items[0].removeEventListener('click', eqcheckClearListener);
+
+        items[1].removeEventListener('click', viewProofListener);
+        items[1].removeEventListener('click', hideProofListener);
+        items[1].removeEventListener('click', eqcheckCancelListener);
+        items[1].removeEventListener('click', eqcheckClearListener);
+
+        items[2].removeEventListener('click', viewProofListener);
+        items[2].removeEventListener('click', hideProofListener);
+        items[2].removeEventListener('click', eqcheckCancelListener);
+        items[2].removeEventListener('click', eqcheckClearListener);
+
+        items[0].innerHTML = '';
+        items[1].innerHTML = '';
+        items[2].innerHTML = '';
+
+        eqcheckRightClickMenu.style.display = "inline";
+
+        if (eqcheck.runState == runStateStatusFoundProof) {
+          items[0].removeEventListener('click', eqcheckCancelListener);
+          if (eqcheck.viewState != viewStateViewProof) {
+            items[0].innerHTML = 'View Proof';
+            items[0].addEventListener('click', viewProofListener);
+          } else {
+            //console.log(`adding HideProof to the menu`);
+            items[0].innerHTML = 'Hide Proof';
+            items[0].addEventListener('click', hideProofListener);
+          }
+          items[1].innerHTML = 'View Search Tree';
+          items[2].innerHTML = 'Clear';
+          items[2].addEventListener('click', eqcheckClearListener);
+        } else if (eqcheck.runState == runStateStatusRunning) {
+          if (eqcheck.viewState != viewStateCancelling) {
+            items[0].innerHTML = 'Cancel';
+            items[0].addEventListener('click', eqcheckCancelListener);
+            items[1].innerHTML = 'View Search Tree';
+          } else {
+            items[0].innerHTML = 'Clear';
+            items[0].addEventListener('click', eqcheckClearListener);
+            items[1].innerHTML = 'ViewSearchTree';
+            items[1].addEventListener('click', viewSearchTreeListener);
+          }
+        } else if (eqcheck.runState == runStateStatusQueued) {
+          items[0].innerHTML = 'Cancel';
+          items[1].innerHTML = 'Cancel and Clear';
+        } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
+          items[0].innerHTML = 'View Search Tree';
+          items[1].innerHTML = 'Clear';
+          items[1].addEventListener('click', eqcheckClearListener);
+        } else if (eqcheck.runState == runStateStatusTimedOut) {
+          items[0].innerHTML = 'View Search Tree';
+          items[1].innerHTML = 'Clear';
+          items[1].addEventListener('click', eqcheckClearListener);
+        } else if (eqcheck.runState == runStateStatusTerminated) {
+          items[0].innerHTML = 'View Search Tree';
+          items[1].innerHTML = 'Clear';
+          items[1].addEventListener('click', eqcheckClearListener);
+        } else {
+          items[0].innerHTML = 'Clear';
+          items[0].addEventListener('click', eqcheckClearListener);
+          //items[0].removeEventListener("click". arguments.callee);
+        }
+        //console.log(`before eqcheckRightClickMenu = ${JSON.stringify(eqcheckRightClickMenu)}`);
+
         eqcheckRightClickMenu.classList.add("visible");
     }
 
     function hideRightClickMenu() {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+        eqcheckRightClickMenu.style.display = "none";
         eqcheckRightClickMenu.classList.remove("visible");
     }
 
@@ -232,10 +428,12 @@
     // */
     function updateEqcheckInView(origRequest, statusMessage, runState)
     {
+      //console.log('origRequest.dirPath = ' + origRequest.dirPath+ '\n');
       //console.log('statusMessage = ' + statusMessage + '\n');
       //console.log('runState = ' + runState + '\n');
       for (const eqcheck of eqchecks) {
         if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
+          console.log('match found\n');
           eqcheck.statusMessage = statusMessage;
           eqcheck.runState = runState;
           break;
@@ -283,14 +481,12 @@
         functionName: _functionName,
         statusMessage : _statusMessage,
         runState: _runState,
+        viewState: viewStateBase,
       });
       displayEqcheckList(eqchecks);
     }
 
-    function clearEqchecks() {
-        //eqchecks.push({ value: getNewCalicoColor() });
-        eqchecks = [];
-        //console.log('clearEqchecks Called');
-        displayEqcheckList(eqchecks);
+    function startEqcheck() {
+      vscode.postMessage({ type: 'startEqcheck'});
     }
 }());

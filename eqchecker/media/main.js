@@ -314,10 +314,6 @@ const viewStateViewSearchTree = 'viewSearchTree';
         items[1].innerHTML = '';
         items[2].innerHTML = '';
 
-        if (eqcheck.viewState == viewStateFreeze) {
-          return;
-        }
-
         eqcheckRightClickMenu.style.display = "inline";
 
         if (eqcheck.runState == runStateStatusFoundProof) {
@@ -347,16 +343,18 @@ const viewStateViewSearchTree = 'viewSearchTree';
         } else if (eqcheck.runState == runStateStatusQueued) {
           items[0].innerHTML = 'Cancel';
           items[1].innerHTML = 'Cancel and Clear';
-        } else if (eqcheck.runState == runStateExhaustedSearchSpace) {
+        } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
           items[0].innerHTML = 'View Search Tree';
           items[1].innerHTML = 'Clear';
-        } else if (eqcheck.runState == runStateTimedOut) {
+        } else if (eqcheck.runState == runStateStatusTimedOut) {
           items[0].innerHTML = 'View Search Tree';
           items[1].innerHTML = 'Clear';
         } else if (eqcheck.runState == runStateStatusTerminated) {
           items[0].innerHTML = 'View Search Tree';
           items[1].innerHTML = 'Clear';
         } else {
+          items[0].innerHTML = 'Clear';
+          items[0].addEventListener('click', eqcheckClearListener);
           //items[0].removeEventListener("click". arguments.callee);
         }
         //console.log(`before eqcheckRightClickMenu = ${JSON.stringify(eqcheckRightClickMenu)}`);

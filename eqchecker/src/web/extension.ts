@@ -748,7 +748,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     } else {
       panel_dst_code.webview.postMessage({command: "data", code:dst_assembly, syntax_type: "asm"});
     }
-    const new_panels = { prd: panel_prd, src_code: panel_src_code, dst_code: panel_dst_code};
+    const new_panels = { prd: panel_prd, src_code: panel_src_code, dst_code: panel_dst_code };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
     return new_panels;
   }

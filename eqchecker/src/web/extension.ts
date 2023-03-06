@@ -201,10 +201,10 @@ class Eqchecker {
         if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus)) {
           //console.log("added to Eqcheck Output, not done yet.\n");
           await Eqchecker.wait(500);
-	  if (Eqchecker.statusMap[dirPath] === statusEqcheckPinging) {
+          if (Eqchecker.statusMap[dirPath] === statusEqcheckPinging) {
             let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
             return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
-	  }
+          }
           //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
         }
         //console.log("done adding Eqcheck Output.\n");

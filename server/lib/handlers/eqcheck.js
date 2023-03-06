@@ -10,7 +10,8 @@ const temp = require('temp'),
     which = require('which'),
     Sentry = require('@sentry/node'),
     xml2js = require('xml2js'),
-    assert = require('assert')
+    assert = require('assert'),
+    tree_kill = require('tree-kill')
 ;
 
 temp.track();
@@ -369,6 +370,15 @@ class EqcheckHandler {
       return buffer.toString();
     }
 
+    pidIsRunning(pid) {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch(e) {
+        return false;
+      }
+    }
+
     async handle(req, res, next) {
       //console.log('eqchecker handler called');
       //const eqchecker = this.get_eqchecker();
@@ -482,6 +492,13 @@ class EqcheckHandler {
           runStatus = result;
         });
 
+        if (runStatus !== undefined && runStatus !== null) {
+          const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
+          if (!pidRunning) {
+            runStatus.running_status.status_flag = "terminated";
+          }
+        }
+
         //const chunkJson = xml2json.toJson(chunkXML, );
         //const chunkObj = JSON.parse(chunkJson);
         //const chunkObj = xml2json.toJson(chunkXML, { object: true, arrayNotation: true });
@@ -528,6 +545,18 @@ class EqcheckHandler {
         return;
       } else if (commandIn === commandCancelEqcheck) {
         console.log('CancelEqcheck received with dirPathIn ', dirPathIn);
+        const runStatusXML = await this.getRunningStatus(dirPathIn);
+
+        var runStatus;
+        xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
+          runStatus = result;
+        });
+
+        if (runStatus !== undefined && runStatus !== null) {
+          console.log(`killing runStatus.pid = ${runStatus.running_status.pid}\n`);
+          tree_kill(runStatus.running_status.pid, 'SIGKILL');
+        }
+
         const chunkStr = JSON.stringify({dirPath: dirPathIn, serverStatus: "cancelled"});
         res.end(chunkStr);
         return;

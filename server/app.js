@@ -20,6 +20,7 @@ const opts = nopt({
   host: [String],
   port: [Number],
   superoptInstall: [String],
+  serverInstall: [String],
   tmpDir: [String]
 });
 
@@ -27,6 +28,7 @@ const defArgs = {
   hostname: opts.host || 'localhost',
   port: opts.port || 80,
   superoptInstall: opts.superoptInstall || '/usr/local',
+  serverInstall: opts.serverInstall || '/usr/local',
   tmpDir: opts.tmpDir || '/tmp',
 };
 
@@ -137,12 +139,12 @@ function startListening(server) {
     //logger.info("=======================================");
     //server.listen(_port, defArgs.hostname);
 
-    const httpsServer = https.createServer({
-      key: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.key'),
-      cert: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.crt'),
-    }, server);
-    httpsServer.listen(_port,  () => {
-      logger.info(`HTTPS server started on port ${_port}`);
+    //const httpServer = http.createServer({
+    //  //key: fs.readFileSync(defArgs.serverInstall + '/certificates/ssl.key'),
+    //  //cert: fs.readFileSync(defArgs.serverInstall + '/certificates/ssl.crt'),
+    //}, server);
+    server.listen(_port,  () => {
+      logger.info(`HTTP server started on port ${_port}`);
       logger.info("=======================================");
     });
 }

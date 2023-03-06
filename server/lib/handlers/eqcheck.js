@@ -18,6 +18,7 @@ temp.track();
 let hasSetUpAutoClean = false;
 const defaultUnrollFactor = 64;
 const commandPingEqcheck = 'pingEqcheck';
+const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
 
@@ -467,7 +468,7 @@ class EqcheckHandler {
         const offsetNew = ret[0];
         let chunkXML_orig = ret[1];
         let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
-        console.log("chunkXML:\n" + chunkXML);
+        //console.log("chunkXML:\n" + chunkXML);
 
         //var xml = "<root>Hello xml2js!</root>"
         var chunkObj;
@@ -497,7 +498,7 @@ class EqcheckHandler {
 
         //console.log('chunkNew ', chunkNew);
         const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj, runStatus: runStatus});
-        console.log('chunkStr =\n' + chunkStr);
+        //console.log('chunkStr =\n' + chunkStr);
         res.end(chunkStr);
         return;
       //} else if (commandIn === commandGetRunningStatus) {
@@ -522,8 +523,13 @@ class EqcheckHandler {
         });
 
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj});
-        console.log("proofStr:\n" + proofStr);
+        //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
+        return;
+      } else if (commandIn === commandCancelEqcheck) {
+        console.log('CancelEqcheck received with dirPathIn ', dirPathIn);
+        const chunkStr = JSON.stringify({dirPath: dirPathIn, serverStatus: "cancelled"});
+        res.end(chunkStr);
         return;
       } else {
         assert(false, "Invalid Command " + commandIn);

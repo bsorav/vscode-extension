@@ -491,6 +491,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'eqchecker.eqcheckView';
   public static provider : EqcheckViewProvider;
   private _view?: vscode.WebviewView;
+  private panels;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -747,6 +748,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     } else {
       panel_dst_code.webview.postMessage({command: "data", code:dst_assembly, syntax_type: "asm"});
     }
+    const new_panels = { prd: panel_prd, src_code: panel_src_code, dst_code: panel_dst_code};
+    //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
+    return new_panels;
   }
 
   public resolveWebviewView(
@@ -764,53 +768,30 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       ]
     };
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-    webviewView.webview.onDidReceiveMessage(data => {
+    this.panels = {};
+    webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
         case 'eqcheckViewProof': {
-          console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
-          this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, data.eqcheck.source1Text, data.eqcheck.source2Text);
-          //var request =
-          //  { serverCommand: commandObtainProof,
-          //    source1Uri: entry.source1Uri,
-          //    source1Name: entry.source1Name,
-          //    source2Uri: entry.source2Uri,
-          //    source2Name: entry.source2Name,
-          //    functionName: entry.functionName,
-          //    statusMessage: EQCHECK_STATUS_MESSAGE_START,
-          //    //bgColor: this.getNewCalicoColor(),
-          //    runState: 'RunstateRunning',
-          //    source : source,
-          //    optimized : optimized,
-          //  };
-          //const panel_prd = vscode.window.createWebviewPanel(
-          //  'productCFG', // Identifies the type of the webview. Used internally
-          //  'Product Control Flow Graph', // Title of the panel displayed to the user
-          //  vscode.ViewColumn.Two, // Editor column to show the new webview panel in.
-          //  {
-          //    enableScripts: true,
-          //    retainContextWhenHidden: true,
-          //  } // Webview options.
-          //);
-          //const panel_src_code = vscode.window.createWebviewPanel(
-          //  'src_code', // Identifies the type of the webview. Used internally
-          //  'Source Code', // Title of the panel displayed to the user
-          //  vscode.ViewColumn.One, // Editor column to show the new webview panel in.
-          //  {
-          //    enableScripts: true,
-          //    retainContextWhenHidden: true,
-          //  } // Webview options.
-          //);
-          //const panel_dst_code = vscode.window.createWebviewPanel(
-          //  'dst_code', // Identifies the type of the webview. Used internally
-          //  'Destination Code', // Title of the panel displayed to the user
-          //  vscode.ViewColumn.Three, // Editor column to show the new webview panel in.
-          //  {
-          //    enableScripts: true,
-          //    retainContextWhenHidden: true,
-          //  } // Webview options.
-          //);
-          //const styleProductCFGUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'productCFG.css'));
-          //const productCFGScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'productCFG.js'));
+          console.log(`ViewProof received\n`);
+          //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
+          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, data.eqcheck.source1Text, data.eqcheck.source2Text);
+          //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
+
+          this.panels[data.eqcheck.dirPath] = new_panels;
+          //console.log(`ViewProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
+          //console.log(`ViewProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
+          break;
+        }
+        case 'eqcheckHideProof': {
+          console.log(`HideProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
+          //console.log(`HideProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
+          //console.log(`HideProof received. this.panels[data.eqcheck.dirPath].length = ${this.panels[data.eqcheck.dirPath].length}\n`);
+          this.panels[data.eqcheck.dirPath].prd.dispose();
+          this.panels[data.eqcheck.dirPath].src_code.dispose();
+          this.panels[data.eqcheck.dirPath].dst_code.dispose();
+          //for (let i = 0; i < this.panels[data.eqcheck.dirPath].length; i++) {
+          //  this.panels[data.eqcheck.dirPath][i].dispose();
+          //}
           break;
         }
         default: {

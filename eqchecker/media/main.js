@@ -271,11 +271,13 @@ const viewStateViewSearchTree = 'viewSearchTree';
     };
 
     function eqcheckCancel(eqcheck) {
-      console.log('eqcheckCancel clicked');
-      eqcheck.viewState = viewStateCancelling;
-      eqcheck.statusMessage = "Cancelling...";
-      displayEqcheckList(eqchecks);
-      vscode.postMessage({ type: 'eqcheckCancel', eqcheck: eqcheck});
+      console.log('eqcheckCancel called');
+      if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusQueued) {
+        eqcheck.viewState = viewStateCancelling;
+        eqcheck.statusMessage = "Cancelling...";
+        displayEqcheckList(eqchecks);
+        vscode.postMessage({ type: 'eqcheckCancel', eqcheck: eqcheck});
+      }
     }
 
     function eqcheckCancelListener(evt) {
@@ -290,6 +292,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       //const eqcheck = evt.currentTarget.eqcheck;
       const eqcheck = eqcheckRightClickMenu.eqcheck;
+      eqcheckCancel(eqcheck);
 
       console.log('eqcheckClear clicked');
       eqcheckRightClickMenu.style.display = "none";
@@ -398,8 +401,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
             items[1].addEventListener('click', viewSearchTreeListener);
           }
         } else if (eqcheck.runState == runStateStatusQueued) {
-          items[0].innerHTML = 'Cancel';
-          items[1].innerHTML = 'Cancel and Clear';
+          items[0].innerHTML = 'Clear';
+          items[0].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
           items[0].innerHTML = 'View Search Tree';
           items[1].innerHTML = 'Clear';

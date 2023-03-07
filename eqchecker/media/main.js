@@ -126,10 +126,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
           console.log(`eqcheck = ${eqcheck.dirPath}`);
         }
 
-        if (eqchecks.length == 0) {
-          const welcome = document.querySelector('.clear-eqchecks-button');
-          welcome.innerHTML = 'Start an Eqcheck'
-        }
+        const welcome = document.querySelector('.clear-eqchecks-button');
+        welcome.innerHTML = 'Start an Eqcheck'
         //ul.empty();
         //ul.innerHTML = "";
         for (const eqcheck of eqchecks) {
@@ -187,6 +185,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
             eqcheckPreview.appendChild(t);
             //eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}<br>${eqcheck.statusMessage}`;
             li.appendChild(eqcheckPreview);
+            var hr = document.createElement("hr");
+            li.appendChild(hr);
 
             //const input = document.createElement('input');
             //input.className = 'eqcheck-input';

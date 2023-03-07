@@ -23,6 +23,14 @@ const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
 
+const runStateStatusQueued = 'queued';
+const runStateStatusRunning = 'running';
+const runStateStatusFoundProof = 'found_proof';
+const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
+const runStateStatusSafetyCheckFailed = 'safety_check_failed';
+const runStateStatusTimedOut = 'timed_out';
+const runStateStatusTerminated = 'terminated';
+
 function initialise(/*compilerEnv*/) {
     if (hasSetUpAutoClean) return;
     hasSetUpAutoClean = true;
@@ -494,8 +502,14 @@ class EqcheckHandler {
 
         if (runStatus !== undefined && runStatus !== null) {
           const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
-          if (!pidRunning) {
-            runStatus.running_status.status_flag = "terminated";
+          if (runStatus.running_status.status_flag === runStateStatusRunning) {
+            const runStatusXML = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
+            xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
+              runStatus = result;
+            });
+            if (runStatus.running_status.status_flag === runStateStatusRunning && !pidRunning) {
+              runStatus.running_status.status_flag = "terminated";
+            }
           }
         }
 

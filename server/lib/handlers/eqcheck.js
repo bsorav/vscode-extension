@@ -388,6 +388,32 @@ class EqcheckHandler {
       }
     }
 
+    eqcheck_error(error, res) {
+                    console.log('found error');
+                    if (typeof (error) !== "string") {
+                        if (error.stack) {
+                            logger.error("Error during equivalence check: ", error);
+                            Sentry.captureException(error);
+                        } else if (error.code) {
+                            logger.error("Error during equivalence check: ", error.code);
+                            if (typeof (error.stderr) === "string") {
+                                error.stdout = utils.parseOutput(error.stdout);
+                                error.stderr = utils.parseOutput(error.stderr);
+                            }
+                            res.end(JSON.stringify(error));
+                            return;
+                        } else {
+                            logger.error("Error during equivalence check: ", error);
+                        }
+
+                        error = `Internal Compiler Explorer error: ${error.stack || error}`;
+                    } else {
+                        logger.error("Error during equivalence check: ", {error});
+                    }
+                    //res.end(JSON.stringify({code: -1, stderr: [{text: error}]}));
+                    res.end(JSON.stringify({retcode: -1, stderr: [{text: error}]}));
+    }
+
     async handle(req, res, next) {
       //console.log('eqchecker handler called');
       //const eqchecker = this.get_eqchecker();
@@ -433,51 +459,10 @@ class EqcheckHandler {
         this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName)
             .then(
                 result => {
-                    //console.log('found result', result);
-                    //if (req.accepts(['text', 'json']) === 'json') {
-                    //    //console.log('found json result');
-                    //    res.send(result);
-                    //} else {
-                    //    console.log('found plain result');
-                    //    res.set('Content-Type', 'text/plain');
-                    //    try {
-                    //        if (!_.isEmpty(this.textBanner)) res.write('# ' + this.textBanner + "\n");
-                    //        res.write(textify(result.asm));
-                    //        if (result.code !== 0) res.write("\n# Eqchecker exited with result code " + result.code);
-                    //        if (!_.isEmpty(result.stdout)) res.write("\nStandard out:\n" + textify(result.stdout));
-                    //        if (!_.isEmpty(result.stderr)) res.write("\nStandard error:\n" + textify(result.stderr));
-                    //    } catch (ex) {
-                    //        Sentry.captureException(ex);
-                    //        res.write(`Error handling request: ${ex}`);
-                    //    }
-                    //    res.end('\n');
-                    //}
                     res.end(JSON.stringify({retcode: 0}));
                 },
                 error => {
-                    console.log('found error');
-                    if (typeof (error) !== "string") {
-                        if (error.stack) {
-                            logger.error("Error during equivalence check: ", error);
-                            Sentry.captureException(error);
-                        } else if (error.code) {
-                            logger.error("Error during equivalence check: ", error.code);
-                            if (typeof (error.stderr) === "string") {
-                                error.stdout = utils.parseOutput(error.stdout);
-                                error.stderr = utils.parseOutput(error.stderr);
-                            }
-                            res.end(JSON.stringify(error));
-                            return;
-                        } else {
-                            logger.error("Error during equivalence check: ", error);
-                        }
-
-                        error = `Internal Compiler Explorer error: ${error.stack || error}`;
-                    } else {
-                        logger.error("Error during equivalence check: ", {error});
-                    }
-                    //res.end(JSON.stringify({code: -1, stderr: [{text: error}]}));
-                    res.end(JSON.stringify({retcode: -1, stderr: [{text: error}]}));
+                    eqcheck_error(error, res);
                 });
         res.end(JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''}));
       } else if (commandIn === commandPingEqcheck) {

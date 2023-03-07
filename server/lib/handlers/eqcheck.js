@@ -18,10 +18,13 @@ temp.track();
 
 let hasSetUpAutoClean = false;
 const defaultUnrollFactor = 64;
+
 const commandPingEqcheck = 'pingEqcheck';
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
+const commandPrepareEqcheck = 'prepareEqcheck';
 const commandObtainProof = 'obtainProof';
+const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -250,7 +253,7 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.err');
     }
 
-    run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName) {
+    run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, dryRun) {
         //console.log('run_eqcheck called. source = ', source);
         //console.log('run_eqcheck called. optimized = ', optimized);
         //const optionsError = this.checkOptions(options);
@@ -282,8 +285,12 @@ class EqcheckHandler {
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename];
+            var dryRunArg = [];
+            if (dryRun) {
+              dryRunArg = ['--dry-run'];
+            }
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
-            const eq32_args = ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(proof).concat(unroll);
+            const eq32_args = ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(proof).concat(unroll).concat(dryRunArg);
             console.log('calling eq32 ' + eq32_args);
             return exec.execute(this.superoptInstall + "/bin/eq32", eq32_args);
         }).then( result => {
@@ -414,6 +421,33 @@ class EqcheckHandler {
                     res.end(JSON.stringify({retcode: -1, stderr: [{text: error}]}));
     }
 
+    dryRunInfoGetFunctions(fmap) {
+      //console.log(`fmap = ${JSON.stringify(fmap)}\n`);
+      var ret = [];
+      var vals = [];
+      const ls = fmap.function_dry_run_info_entry_pair;
+      //console.log(`ls = ${JSON.stringify(ls)}`);
+      if (ls === undefined) {
+        return [];
+      }
+      for (let i = 0; i < ls.length; i++) {
+        const e = ls[i];
+        //console.log(`entry = ${JSON.stringify(e)}`);
+        const src_loc = e.dry_run_info_entry[0].src_lines_of_code;
+        const dst_loc = e.dry_run_info_entry[0].dst_lines_of_code;
+        const metric = dst_loc;
+        vals.push({ function_name: e.function_name, metric: metric});
+      }
+      //console.log(`before sort, vals = ${JSON.stringify(vals)}`);
+      vals.sort(function (a, b) { return a.metric - b.metric });
+      //console.log(`after sort, vals = ${JSON.stringify(vals)}`);
+      for (let i = 0; i < vals.length; i++) {
+        ret.push(vals[i].function_name);
+      }
+      //console.log(`ret = ${ret}`);
+      return ret;
+    }
+
     async handle(req, res, next) {
       //console.log('eqchecker handler called');
       //const eqchecker = this.get_eqchecker();
@@ -435,7 +469,7 @@ class EqcheckHandler {
       //    return;
       //}
       //console.log("commandIn = " + commandIn);
-      if (commandIn === commandSubmitEqcheck) {
+      if (commandIn === commandSubmitEqcheck || commandIn === commandPrepareEqcheck) {
         if (source === undefined) {
             logger.warn("No body found in request: source code missing", req);
             return next(new Error("Bad request"));
@@ -447,7 +481,9 @@ class EqcheckHandler {
         }
 
         const dirPath =  await this.newTempDir();
-        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName)
+        const dryRun = (commandIn === commandPrepareEqcheck);
+
+        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, dryRun)
             .then(
                 result => {
                     res.end(JSON.stringify({retcode: 0}));
@@ -485,7 +521,8 @@ class EqcheckHandler {
               runStatus = result;
             });
             if (runStatus.running_status.status_flag === runStateStatusRunning && !pidRunning) {
-              runStatus.running_status.status_flag = "terminated";
+              console.log(`Setting status_flag to terminated`);
+              runStatus.running_status.status_flag = runStateStatusTerminated;
             }
           }
         }
@@ -509,16 +546,24 @@ class EqcheckHandler {
         //console.log('chunkStr =\n' + chunkStr);
         res.end(chunkStr);
         return;
-      //} else if (commandIn === commandGetRunningStatus) {
-      //  const ret = await this.getRunningStatus(dirPathIn);
-      //  var jsonObj;
-      //  xml2js.parseString(ret, {explictArray: false}, function (err, result) {
-      //      //console.dir(result);
-      //      jsonObj = result;
-      //  });
-      //  const str = JSON.stringify({dirPath: dirPathIn, runningStatus: jsonObj});
-      //  res.end(str);
-      //  return;
+      } else if (commandIn === commandObtainFunctionListsAfterPreparePhase) {
+        console.log('obtainFunctionListsAfterPreparePhase received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
+        const runStatusXML = await this.getRunningStatus(dirPathIn);
+        var runStatus;
+        xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
+          runStatus = result;
+        });
+        console.log(`runStatus = ${JSON.stringify(runStatus)}\n`);
+        console.log(`running_status = ${JSON.stringify(runStatus.running_status)}`);
+        console.log(`dry_run_info = ${JSON.stringify(runStatus.running_status.dry_run_info)}`);
+        console.log(`common_functions = ${JSON.stringify(runStatus.running_status.dry_run_info[0].common_functions)}`);
+        const common = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].common_functions[0]);
+        const src_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].src_only_functions[0]);
+        const dst_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].dst_only_functions[0]);
+        console.log(`common = ${common}, src_only = ${src_only}, dst_only = ${dst_only}`);
+        const responseStr = JSON.stringify({ common: common, src_only: src_only, dst_only: dst_only });
+        res.end(responseStr);
+        return;
       } else if (commandIn === commandObtainProof) {
         console.log('ObtainProof received with dirPathIn ', dirPathIn);
         const proof_xml = await this.getProofXML(dirPathIn);

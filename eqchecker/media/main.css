@@ -72,3 +72,28 @@ body {
 #eqcheck-right-click-menu .item:hover {
 	background: #543434;
 }
+
+#start-button-right-click-menu {
+	position: fixed;
+	z-index: 10000;
+	width: 100px;
+	background: #00008b;
+    border-radius: 5px;
+	display: none;
+}
+
+#start-button-right-click-menu.visible {
+	display: block;
+}
+
+#start-button-right-click-menu .item {
+	padding: 8px 10px;
+	font-size: 10px;
+	color: #eee;
+	cursor: pointer;
+	border-radius: inherit;
+}
+
+#start-button-right-click-menu .item:hover {
+	background: #44448b;
+}

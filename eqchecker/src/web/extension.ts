@@ -20,6 +20,7 @@ const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
 
+const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';
@@ -137,7 +138,7 @@ class Eqchecker {
     var runState;
     //console.log(`runStatus = ${runStatus}\n`);
     if (runStatus === null || runStatus === undefined) {
-     runState = runStateStatusRunning;
+     runState = runStateStatusPreparing;
     } else {
      runState = runStatus.running_status.status_flag;
     }

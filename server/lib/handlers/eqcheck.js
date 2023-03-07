@@ -23,6 +23,7 @@ const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
 
+const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';

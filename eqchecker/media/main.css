@@ -76,7 +76,7 @@ body {
 #start-button-right-click-menu {
 	position: fixed;
 	z-index: 10000;
-	width: 150px;
+	width: 100px;
 	background: #00008b;
     border-radius: 5px;
 	display: none;

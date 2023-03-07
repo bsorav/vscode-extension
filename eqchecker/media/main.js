@@ -343,7 +343,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     /**
      * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck, {number} mouseX, {number} mouseY
      */
-    function showRightClickMenu(eqcheck, mouseX, mouseY) {
+    function showEqcheckRightClickMenu(eqcheck, mouseX, mouseY) {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
         eqcheckRightClickMenu.style.top = `${mouseY}px`;
         eqcheckRightClickMenu.style.left = `${mouseX}px`;
@@ -438,7 +438,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
         event.preventDefault();
         const { clientX: mouseX, clientY: mouseY } = event;
 
-        showRightClickMenu(eqcheck, mouseX, mouseY);
+        const eqcheckRightClickMenu = document.getElementById('eqcheck-right-click-menu');
+        if (eqcheckRightClickMenu.style.display !== "inline") {
+          showEqcheckRightClickMenu(eqcheck, mouseX, mouseY);
+        } else {
+          hideEqcheckRightClickMenu();
+        }
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
@@ -447,7 +452,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
       event.preventDefault();
       const { clientX: mouseX, clientY: mouseY } = event;
 
-      showStartButtonRightClickMenu(mouseX, mouseY);
+      const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
+      if (startButtonRightClickMenu.style.display !== "inline") {
+        showStartButtonRightClickMenu(mouseX, mouseY);
+      } else {
+        hideStartButtonRightClickMenu();
+      }
     }
 
     /**

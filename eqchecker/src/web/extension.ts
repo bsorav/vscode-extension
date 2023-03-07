@@ -295,12 +295,12 @@ class Eqchecker {
     let jsonRequest = JSON.stringify(request);
     const response = await this.RequestResponseForCommand(jsonRequest);
     console.log("Cancel Eqcheck response: ", JSON.stringify(response));
-    var request =
+    var viewRequest =
         { type: 'eqcheckCancelled',
           //dirPath: dirPath,
           origRequest: {dirPath: dirPath},
         };
-    EqcheckViewProvider.provider.viewProviderPostMessage(request);
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
     return;
   }
 
@@ -882,6 +882,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <title>Equivalence Checks</title>
       </head>
       <body>
+        <button class="clear-eqchecks-button"></button>
+        <hr>
         <ul class="eqcheck-list">
         </ul>
         <div id="eqcheck-right-click-menu" eqcheck="eqcheck-none">
@@ -889,7 +891,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="EqcheckRightClickMenuItem2" class="item"></div>
         <div id="EqcheckRightClickMenuItem3" class="item"></div>
         </div>
-        <button class="clear-eqchecks-button"></button>
         <script nonce="${nonce}" src="${mainScriptUri}"></script>
       </body>
       </html>`;

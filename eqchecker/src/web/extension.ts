@@ -224,7 +224,7 @@ class Eqchecker {
     //console.log("addEqcheck() called\n");
     //var source : string;
     //var optimized : string;
-    if (entry.source1Uri === undefined || entry.source2Uri === undefined) {
+    if (entry === undefined || entry.source1Uri === undefined || entry.source2Uri === undefined) {
       return false;
     }
     if (entry.source1Text === undefined) {
@@ -883,6 +883,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       </head>
       <body>
         <button class="clear-eqchecks-button"></button>
+        <div id="start-button-right-click-menu">
+        <div id="StartButtonRightClickMenuItem1" class="item"></div>
+        </div>
         <hr>
         <ul class="eqcheck-list">
         </ul>

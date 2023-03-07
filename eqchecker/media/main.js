@@ -55,7 +55,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
             case 'addEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, getStatusMessage(message.runState, message.statusMessage), message.runState);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
@@ -64,17 +64,16 @@ const viewStateViewSearchTree = 'viewSearchTree';
                     updateEqcheckInView(message.origRequest, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
+            case 'removeEqcheckInView':
+                {
+                    removeEqcheckInView(message.origRequest);
+                    break;
+                }
             case 'eqcheckCancelled':
                 {
                     updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
                     break;
                 }
-            //case 'clearEqchecks':
-            //    {
-            //        eqchecks = [];
-            //        updateEqcheckList(eqchecks);
-            //        break;
-            //    }
         }
     });
 
@@ -128,7 +127,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     /**
-     * @param {Array<{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }>} eqchecks
+     * @param {Array<{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }>} eqchecks
      */
     function displayEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
@@ -181,7 +180,11 @@ const viewStateViewSearchTree = 'viewSearchTree';
             var thd = document.createElement("td");
             //var thd_text = document.createTextNode(`${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`);
             //thd.appendChild(thd_text);
-            thd.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
+            if (eqcheck.functionName === undefined) {
+              thd.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
+            } else {
+              thd.innerHTML = `${eqcheck.functionName}: ${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
+            }
             th.appendChild(thd);
             t.appendChild(th);
 
@@ -226,7 +229,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseOver(eqcheck) {
         //do nothing for now. Should display the URIs
@@ -238,14 +241,14 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseOut(eqcheck) {
         //do nothing for now. Should display the URIs
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckMouseLeave(eqcheck) {
             //document.getElementById('hoverEqcheckSource1Uri').style.display='none';
@@ -283,6 +286,13 @@ const viewStateViewSearchTree = 'viewSearchTree';
       }
     }
 
+    function removeEqcheck(eqcheck) {
+      const index = eqchecks.indexOf(eqcheck);
+      if (index > -1) { // only splice array when item is found
+        eqchecks.splice(index, 1); // 2nd parameter means remove one item only
+      }
+    }
+
     function eqcheckCancelListener(evt) {
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       eqcheckRightClickMenu.style.display = "none";
@@ -300,10 +310,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       console.log('eqcheckClear clicked');
       eqcheckRightClickMenu.style.display = "none";
 
-      const index = eqchecks.indexOf(eqcheck);
-      if (index > -1) { // only splice array when item is found
-        eqchecks.splice(index, 1); // 2nd parameter means remove one item only
-      }
+      removeEqcheck(eqcheck);
       displayEqcheckList(eqchecks);
     };
 
@@ -322,6 +329,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         eqcheckCancel(eqcheck);
       }
       eqchecks = [];
+      displayEqcheckList(eqchecks);
     }
 
     function showStartButtonRightClickMenu(mouseX, mouseY) {
@@ -344,7 +352,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck, {number} mouseX, {number} mouseY
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck, {number} mouseX, {number} mouseY
      */
     function showEqcheckRightClickMenu(eqcheck, mouseX, mouseY) {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
@@ -435,7 +443,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckRightClick(eqcheck, event) {
         event.preventDefault();
@@ -464,28 +472,28 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckDoubleClick(eqcheck) {
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
     }
 
     /**
-     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, runState: string }} eqcheck
+     * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     //function getHoverMessage(eqcheck) {
     //  return `${eqcheck.source1Uri} &#x2192 ${eqcheck.source2Uri} : ${eqcheck.functionName}`;
     //}
 
     ///**
-    // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
+    // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
     // */
     function updateEqcheckInView(origRequest, statusMessage, runState)
     {
@@ -494,7 +502,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       //console.log('runState = ' + runState + '\n');
       for (const eqcheck of eqchecks) {
         if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
-          console.log('match found\n');
+          //console.log('match found\n');
           eqcheck.statusMessage = statusMessage;
           eqcheck.runState = runState;
           break;
@@ -503,8 +511,23 @@ const viewStateViewSearchTree = 'viewSearchTree';
       displayEqcheckList(eqchecks);
     }
 
+    function removeEqcheckInView(origRequest)
+    {
+      var eqcheckToRemove;
+      for (const eqcheck of eqchecks) {
+        if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
+          eqcheckToRemove = eqcheck;
+          break;
+        }
+      }
+      if (eqcheckToRemove !== undefined) {
+        removeEqcheck(eqcheckToRemove);
+        displayEqcheckList(eqchecks);
+      }
+    }
+
     ///**
-    // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
+    // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} eqcheck, dirName: string, statusMessage: string, runState: string
     // */
     function eqcheckMatchesOrigRequest(eqcheck, origRequest)
     {
@@ -516,7 +539,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     /**
-     * @param _dirPath : string, _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _statusMessage: string, _runState: string
+     * @param _dirPath : string, _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _statusMessage: string, _runState: string
      */
     function addEqcheckInView(
         _dirPath,
@@ -526,6 +549,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         _source2Uri,
         _source2Name,
         _source2Text,
+        _functionName,
         _statusMessage,
         _runState
     ) {
@@ -538,6 +562,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         source2Uri: _source2Uri,
         source2Name: _source2Name,
         source2Text: _source2Text,
+        functionName: _functionName,
         statusMessage : _statusMessage,
         runState: _runState,
         viewState: viewStateBase,

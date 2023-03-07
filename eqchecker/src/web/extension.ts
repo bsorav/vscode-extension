@@ -18,8 +18,9 @@ const statusEqcheckCancelled = "eqcheckCancelled";
 const commandPingEqcheck = 'pingEqcheck';
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
-const commandPrepareEqcheck = 'submitEqcheck';
+const commandPrepareEqcheck = 'prepareEqcheck';
 const commandObtainProof = 'obtainProof';
+const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -188,8 +189,8 @@ class Eqchecker {
           //console.log("first response received.\n");
           origRequest.type = 'addEqcheckInView';
           origRequest.dirPath = dirPath;
-          Eqchecker.statusMap[dirPath] = statusEqcheckPinging;
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
+          Eqchecker.statusMap[dirPath] = statusEqcheckPinging;
           vscode.window.showInformationMessage(`Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`);
         } else {
           //console.log("response received.\n");
@@ -216,9 +217,18 @@ class Eqchecker {
         return "";
       });
     //console.log("calling await prom");
-    var ret = await prom;
+    //var ret = await prom;
     //console.log(`returning ${ret}`);
-    return ret;
+    return prom;
+  }
+
+  private static createWarningMessageFromFunctionList(name, ls)
+  {
+    var msg = `The following functions are present only in the ${name} program:`;
+    for (let fname in ls) {
+      msg += ` ${fname}`;
+    }
+    return msg;
   }
 
   public static async addEqcheck(entry) {
@@ -247,7 +257,7 @@ class Eqchecker {
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
     var request =
-        { serverCommand: commandSubmitEqcheck,
+        { serverCommand: commandPrepareEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
           source1Text: entry.source1Text,
@@ -255,19 +265,63 @@ class Eqchecker {
           source2Name: entry.source2Name,
           source2Text: entry.source2Text,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
-          //bgColor: this.getNewCalicoColor(),
-          //runState: 'RunstateRunning',
+          dirPath: undefined,
+          functionName: undefined,
         };
     var jsonRequest = JSON.stringify(request);
-    var response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
 
-
-    //console.log(`response = ${response}.`);
-    if (response === "") {
+    if (dirPath === "") {
       //console.log('returning false');
       return false;
     }
-    //console.log('returning true');
+
+    request.dirPath = dirPath;
+
+    const {common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+
+    if (common.length === 0) {
+      const msg = `ERROR: No common function in files given for eqcheck`;
+      var viewRequest =
+          { type: 'updateEqcheckInView',
+            origRequest: request,
+            statusMessage: msg,
+            runState: runStateStatusTerminated,
+          };
+      EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
+      vscode.window.showInformationMessage(msg);
+      return false;
+    }
+    if (src_only.length > 0) {
+      const msg = this.createWarningMessageFromFunctionList('first', src_only);
+      vscode.window.showInformationMessage(msg);
+    }
+    if (dst_only.length > 0) {
+      const msg = this.createWarningMessageFromFunctionList('second', dst_only);
+      vscode.window.showInformationMessage(msg);
+    }
+    var viewRequestRemove =
+        { type: 'removeEqcheckInView',
+          origRequest: request,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+
+    var dirPathFunctions = {};
+    for (let i = 0; i < common.length; i++) {
+      const functionName = common[i];
+      const funRequest = request;
+      funRequest.serverCommand = commandSubmitEqcheck;
+      funRequest.dirPath = undefined;
+      funRequest.functionName = functionName;
+      const jsonRequest = JSON.stringify(funRequest);
+      dirPathFunctions[functionName] = Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    }
+
+    await Object.entries(dirPathFunctions).forEach( async (entry) => {
+      const [functionName, prom] = entry;
+      await prom;
+    });
+
     return true;
   }
 
@@ -279,6 +333,13 @@ class Eqchecker {
     const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
     return proof;
+  }
+
+  private static async obtainFunctionListsAfterPreparePhase(dirPathIn)
+  {
+    let jsonRequest = JSON.stringify({serverCommand: commandObtainFunctionListsAfterPreparePhase, dirPathIn: dirPathIn});
+    let response = await this.RequestResponseForCommand(jsonRequest);
+    return response;
   }
 
   public static async stopPinging(dirPath)

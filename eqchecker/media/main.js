@@ -103,7 +103,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
      */
     function getBackgroundColorFromRunstate(runState)
     {
-      console.log(`runState = ${runState}.\n`);
+      //console.log(`runState = ${runState}.\n`);
       if (runState == runStateStatusQueued) {
         //console.log(`returning red colour\n`);
         return "rgb(150, 150, 0)";  //yellow
@@ -115,7 +115,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         return "rgb(0, 150, 0)"; //green
       } else {
         //return "rgb(0,0,0)";
-        console.log(`returning fallback colour\n`);
+        //console.log(`returning fallback colour\n`);
         return "rgb(0, 0, 0)"; //yellow
         //return "#006400"; //dark green
       }
@@ -132,10 +132,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
     function displayEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
-        console.log("displayEqcheckList:\n");
-        for (const eqcheck of eqchecks) {
-          console.log(`eqcheck = ${eqcheck.dirPath}`);
-        }
+        //console.log("displayEqcheckList:\n");
+        //for (const eqcheck of eqchecks) {
+        //  console.log(`eqcheck = ${eqcheck.dirPath}`);
+        //}
         //ul.empty();
         //ul.innerHTML = "";
         for (const eqcheck of eqchecks) {
@@ -287,6 +287,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     }
 
     function removeEqcheck(eqcheck) {
+      //console.log(`removing eqcheck =\n${JSON.stringify(eqcheck)}`);
       const index = eqchecks.indexOf(eqcheck);
       if (index > -1) { // only splice array when item is found
         eqchecks.splice(index, 1); // 2nd parameter means remove one item only
@@ -553,8 +554,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         _statusMessage,
         _runState
     ) {
-      console.log(`runState = ${_runState}`);
-      eqchecks.push({
+      const eqcheck = {
         dirPath: _dirPath,
         source1Uri: _source1Uri,
         source1Name: _source1Name,
@@ -566,7 +566,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
         statusMessage : _statusMessage,
         runState: _runState,
         viewState: viewStateBase,
-      });
+      }
+      console.log(`adding eqcheck.functionName \n${JSON.stringify(eqcheck.functionName)}`);
+      eqchecks.push(eqcheck);
       displayEqcheckList(eqchecks);
     }
 

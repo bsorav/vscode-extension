@@ -156,10 +156,10 @@ class Eqchecker {
     return lastMessages;
   }
 
-  public static async RequestResponseForCommand(jsonRequest) {
+  public static async RequestResponseForCommand(jsonRequest) : Promise<any> {
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
     //console.log("jsonRequest =\n" + jsonRequest);
-    return await
+    return new Promise((resolve, reject) => {
       fetch(url, {
         method: 'POST',
         mode: 'cors',
@@ -171,19 +171,26 @@ class Eqchecker {
         }
       })
       .then(function (response) {
-        return response.json();
+        console.log(`response = ${JSON.stringify(response)}\n`);
+        resolve(response.json());
       })
       .catch(function(err) {
+        console.log(`error = ${JSON.stringify(err)}\n`);
         Eqchecker.fetchFailed(err, url);
+        reject();
       })
-    ;
+    });
   }
 
-  public static async RequestNextChunk(jsonRequest, origRequest, firstRequest:boolean) : Promise<string> {
-    var dirPath : string;
-    var prom =
-      this.RequestResponseForCommand(jsonRequest)
-      .then(async function(result) {
+  public static async RequestNextChunk(jsonRequest, origRequest, firstRequest:boolean) {
+    return new Promise ((resolve, reject) => {
+      this.RequestResponseForCommand(jsonRequest).then(async function(result) {
+        console.log(`response received for function ${origRequest.functionName}`);
+        //console.log(`result = ${JSON.stringify(result)}`);
+        //if (result === undefined) {
+        //  console.log(`jsonRequest = ${jsonRequest}`);
+        //  console.log(`result = ${JSON.stringify(result)}`);
+        //}
         let dirPath = result.dirPath;
         if (firstRequest) {
           //console.log("first response received.\n");
@@ -200,26 +207,24 @@ class Eqchecker {
         let runStatus = result.runStatus;
         //console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
-        if (!Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus)) {
-          //console.log("added to Eqcheck Output, not done yet.\n");
-          await Eqchecker.wait(500);
+        const done = Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus);
+        if (!done) {
           if (Eqchecker.statusMap[dirPath] === statusEqcheckPinging) {
+            await Eqchecker.wait(500);
             let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
-            return Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false);
+            resolve(Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false));
+          } else {
+            resolve(dirPath);
           }
-          //timeoutId = setTimeout(ajaxFn, 500); //set the timeout again of 0.5 seconds
+        } else {
+          resolve(dirPath);
         }
-        //console.log("done adding Eqcheck Output.\n");
-        return dirPath;
       })
-      .catch(function(err) {
-        console.log(`Error: ${err}`)
-        return "";
-      });
-    //console.log("calling await prom");
-    //var ret = await prom;
-    //console.log(`returning ${ret}`);
-    return prom;
+    });
+      //.catch(function(err) {
+      //  console.log(`Error: ${err}`)
+      //  return "";
+      //});
   }
 
   private static createWarningMessageFromFunctionList(name, ls)
@@ -280,6 +285,8 @@ class Eqchecker {
 
     const {common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
 
+    //console.log(`common = ${common}`);
+
     if (common.length === 0) {
       const msg = `ERROR: No common function in files given for eqcheck`;
       var viewRequest =
@@ -307,20 +314,23 @@ class Eqchecker {
     EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
 
     var dirPathFunctions = {};
+    var funRequests = [];
     for (let i = 0; i < common.length; i++) {
       const functionName = common[i];
-      const funRequest = request;
-      funRequest.serverCommand = commandSubmitEqcheck;
-      funRequest.dirPath = undefined;
-      funRequest.functionName = functionName;
-      const jsonRequest = JSON.stringify(funRequest);
-      dirPathFunctions[functionName] = Eqchecker.RequestNextChunk(jsonRequest, request, true);
+      funRequests[i] = request;
+
+      //console.log(`functionName = ${functionName}\n`);
+      funRequests[i].serverCommand = commandSubmitEqcheck;
+      funRequests[i].dirPath = undefined;
+      funRequests[i].functionName = functionName;
+      const jsonRequest = JSON.stringify(funRequests[i]);
+      dirPathFunctions[functionName] = await Eqchecker.RequestNextChunk(jsonRequest, funRequests[i], true);
     }
 
-    await Object.entries(dirPathFunctions).forEach( async (entry) => {
-      const [functionName, prom] = entry;
-      await prom;
-    });
+    //await Object.entries(dirPathFunctions).forEach( async (entry) => {
+    //  const [functionName, prom] = entry;
+    //  await prom;
+    //});
 
     return true;
   }

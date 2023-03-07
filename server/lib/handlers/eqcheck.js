@@ -446,15 +446,6 @@ class EqcheckHandler {
             return next(new Error("Bad request"));
         }
 
-        //console.log('source = ', source);
-        //console.log('assembly = ', assembly);
-
-        function textify(array) {
-            return _.pluck(array || [], 'text').join("\n");
-        }
-
-        //console.log('calling run_eqcheck in handler');
-            //
         const dirPath =  await this.newTempDir();
         this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName)
             .then(

@@ -101,7 +101,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName;
+        let commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName, functionName;
         if (req.is('json')) {
             // JSON-style request
             //console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -131,6 +131,7 @@ class EqcheckHandler {
             offsetIn = req.body.offsetIn;
             srcName = "src.".concat(req.body.source1Name);
             optName = "opt.".concat(req.body.source2Name);
+            functionName = req.body.functionName;
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -152,6 +153,7 @@ class EqcheckHandler {
             offsetIn = req.offsetIn;
             srcName = "src.".concat(req.source1Name);
             optName = "opt.".concat(req.source2Name);
+            functionName = req.functionName;
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();
@@ -181,7 +183,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName};
+        return {commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName, functionName};
     }
 
     //splitArguments(options) {
@@ -253,7 +255,7 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.err');
     }
 
-    run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, dryRun) {
+    run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, functionName, dryRun) {
         //console.log('run_eqcheck called. source = ', source);
         //console.log('run_eqcheck called. optimized = ', optimized);
         //const optionsError = this.checkOptions(options);
@@ -270,32 +272,26 @@ class EqcheckHandler {
             //console.log('dirPath = ', dirPath);
             const sourceFilename = path.join(dirPath, srcName);
             fs.writeFileSync(sourceFilename, source);
-            resolve([dirPath,sourceFilename]);
-        }).then( values => {
-             const dirPath = values[0];
-             const sourceFilename = values[1];
-             //console.log('sourceFilename = ', sourceFilename);
-             const optimizedFilename = path.join(dirPath, optName);
-             fs.writeFileSync(optimizedFilename, optimized)
-             return [dirPath,sourceFilename,optimizedFilename];
-        }).then( values => {
-            const dirPath = values[0];
-            const sourceFilename = values[1];
-            const optimizedFilename = values[2];
+            //console.log('sourceFilename = ', sourceFilename);
+            const optimizedFilename = path.join(dirPath, optName);
+            fs.writeFileSync(optimizedFilename, optimized)
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename];
             var dryRunArg = [];
             if (dryRun) {
               dryRunArg = ['--dry-run'];
+            } else {
+              console.log(`functionName = ${functionName}`);
+              if (functionName !== undefined && functionName !== null) {
+                dryRunArg = ['-f', functionName];
+              }
             }
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
             const eq32_args = ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(proof).concat(unroll).concat(dryRunArg);
             console.log('calling eq32 ' + eq32_args);
-            return exec.execute(this.superoptInstall + "/bin/eq32", eq32_args);
-        }).then( result => {
-            return result;
-        })
+            resolve(exec.execute(this.superoptInstall + "/bin/eq32", eq32_args));
+        });
         //result.stdout = result.stdout.split('\n');
         //result.stderr = result.stderr.split('\n');
         //return { stdout: [ {line: 1, text: sourceFilename}], stderr: [{line: 2, text: assemblyFilename}] };
@@ -342,7 +338,17 @@ class EqcheckHandler {
       //let chunkBuf = Buffer.alloc(max_chunksize);
 
       outFilename = this.get_outfilename(dirPath);
-      let outfd = await fs.open(outFilename, 'r');
+
+      if (!fs.existsSync(outFilename)) {
+        return [offset, ""];
+      }
+      let outfd;
+      try {
+        outfd = await fs.open(outFilename, 'r');
+      } catch (err) {
+        console.log(`file not found ${outFilename}`);
+        console.error(err);
+      }
 
       let stats = fs.fstatSync(outfd);
       //console.log("stats.size = " + stats.size);
@@ -457,7 +463,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       const {
-          commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName
+          commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName, functionName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -483,7 +489,7 @@ class EqcheckHandler {
         const dirPath =  await this.newTempDir();
         const dryRun = (commandIn === commandPrepareEqcheck);
 
-        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, dryRun)
+        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, functionName, dryRun)
             .then(
                 result => {
                     res.end(JSON.stringify({retcode: 0}));
@@ -571,7 +577,7 @@ class EqcheckHandler {
 
         var proofObj;
         xml2js.parseString(proof_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
-            console.dir(result);
+            //console.dir(result);
             proofObj = result;
         });
 

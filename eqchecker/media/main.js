@@ -80,7 +80,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
     function getStatusMessage(runState, statusMessage)
     {
-      if (runState == runStateStatusRunning) {
+      if (runState == runStateStatusPreparing) {
+        return "Preparing";
+      } else if (runState == runStateStatusRunning) {
         return statusMessage;
       } else if (runState == runStateStatusQueued) {
         return "Queued";
@@ -106,7 +108,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       if (runState == runStateStatusQueued) {
         //console.log(`returning red colour\n`);
         return "rgb(150, 150, 0)";  //yellow
-      } else if (runState == runStateStatusRunning) {
+      } else if (runState == runStateStatusRunning || runState == runStateStatusPreparing) {
         //console.log(`returning yellow colour\n`);
         return "rgb(0, 0, 0)"; //black
       } else if (runState == runStateStatusFoundProof) {
@@ -273,7 +275,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
     function eqcheckCancel(eqcheck) {
       console.log('eqcheckCancel called');
-      if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusQueued) {
+      if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusQueued) {
         eqcheck.viewState = viewStateCancelling;
         eqcheck.statusMessage = "Cancelling...";
         displayEqcheckList(eqchecks);
@@ -390,7 +392,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
           items[1].innerHTML = 'View Search Tree';
           items[2].innerHTML = 'Clear';
           items[2].addEventListener('click', eqcheckClearListener);
-        } else if (eqcheck.runState == runStateStatusRunning) {
+        } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';
             items[0].addEventListener('click', eqcheckCancelListener);

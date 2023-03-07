@@ -18,6 +18,7 @@ const statusEqcheckCancelled = "eqcheckCancelled";
 const commandPingEqcheck = 'pingEqcheck';
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
+const commandPrepareEqcheck = 'submitEqcheck';
 const commandObtainProof = 'obtainProof';
 
 const runStateStatusPreparing = 'preparing';
@@ -36,7 +37,6 @@ interface eqcheckMenuEntry {
   source2Uri: string;
   source2Name: string;
   source2Text: string;
-  functionName: string;
 }
 
 // This method is called when your extension is activated
@@ -248,27 +248,27 @@ class Eqchecker {
     //console.log('optimized = ' + optimized);
     var request =
         { serverCommand: commandSubmitEqcheck,
-          type: commandSubmitEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
           source1Text: entry.source1Text,
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
           source2Text: entry.source2Text,
-          functionName: entry.functionName,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           //bgColor: this.getNewCalicoColor(),
           //runState: 'RunstateRunning',
         };
     var jsonRequest = JSON.stringify(request);
-    const response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    var response = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+
+
     //console.log(`response = ${response}.`);
-    if (response !== "") {
-      //console.log('returning true');
-      return true;
+    if (response === "") {
+      //console.log('returning false');
+      return false;
     }
-    //console.log('returning false');
-    return false;
+    //console.log('returning true');
+    return true;
   }
 
   public static async obtainProofFromServer(dirPathIn)
@@ -421,8 +421,7 @@ class Eqchecker {
              source1Text: srcText,
              source2Uri: dstFileUri,
              source2Name: dstFileName,
-             source2Text: dstText,
-             functionName: "*" };
+             source2Text: dstText};
   }
 
   private static genLikelyEqcheckPairs(cSources, asmSources) : eqcheckMenuEntry[]
@@ -446,8 +445,7 @@ class Eqchecker {
                        source1Text: cSource1.Text,
                        source2Uri: asmSourceUri,
                        source2Name: posix.basename(asmSourceUri, undefined),
-                       source2Text: asmSource.Text,
-                       functionName: "*"});
+                       source2Text: asmSource.Text});
             //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
             //ret.push(pr);
           }
@@ -463,8 +461,7 @@ class Eqchecker {
                          source1Text: cSource1.Text,
                          source2Uri: cSource2Uri,
                          source2Name: posix.basename(cSource2Uri, undefined),
-                         source2Text: cSource2.Text,
-                         functionName: "*"});
+                         source2Text: cSource2.Text});
               //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
               //ret.push(pr);
             }

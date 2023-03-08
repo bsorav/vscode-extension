@@ -156,10 +156,10 @@ class Eqchecker {
     return lastMessages;
   }
 
-  public static async RequestResponseForCommand(jsonRequest/*, extra = undefined*/) : Promise<any> {
+  public static async RequestResponseForCommand(jsonRequest) : Promise<any> {
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
-    //console.log("jsonRequest =\n" + jsonRequest);
-    return new Promise((resolve, reject) => {
+    //console.log("extra =\n" + JSON.stringify(extra));
+    return new Promise((resolve, reject) =>
       fetch(url, {
         method: 'POST',
         mode: 'cors',
@@ -171,24 +171,27 @@ class Eqchecker {
         }
       })
       .then(function (response) {
-        console.log(`response = ${JSON.stringify(response)}\n`);
-        //resolve({result: response.json(), extra: extra});
-        resolve(response.json());
+	resolve(response.json());
       })
       .catch(function(err) {
         console.log(`error = ${JSON.stringify(err)}\n`);
         Eqchecker.fetchFailed(err, url);
         reject();
       })
-    });
+    );
   }
 
-  public static async RequestNextChunk(jsonRequest, origRequest/*In*/, firstRequest/*In*/:boolean) {
+  public static async RequestNextChunk(jsonRequest, origRequestIn, firstRequestIn:boolean) {
     return new Promise ((resolve, reject) => {
-      this.RequestResponseForCommand(jsonRequest/*, {origRequest: origRequestIn, firstRequest: firstRequestIn}*/).then(async function(result) {
+      const origRequest = origRequestIn;
+      const firstRequest = firstRequestIn;
+      console.log(`requesting response for function ${origRequest.functionName}`);
+      this.RequestResponseForCommand(jsonRequest).then(async function(result) {
         //const result = res.result;
-        //const origRequest = res.extra.origRequest;
-        //const firstRequest = res.extra.firstRequest;
+        //const origRequest = result.extra.origRequest;
+        //const firstRequest = result.extra.firstRequest;
+        //console.log("result =\n" + JSON.stringify(result));
+        //console.log("extra =\n" + JSON.stringify(result.extra));
         let dirPath = result.dirPath;
         console.log(`response received for function ${origRequest.functionName}, dirPath ${dirPath}`);
         if (firstRequest) {
@@ -315,17 +318,17 @@ class Eqchecker {
     var funRequestPromises = [];
     for (let i = 0; i < common.length; i++) {
       const functionName = common[i];
-      var funRequest = request;
+      var funRequest = { ...request};
 
       //console.log(`functionName = ${functionName}\n`);
       funRequest.serverCommand = commandSubmitEqcheck;
       funRequest.dirPath = undefined;
       funRequest.functionName = functionName;
       const jsonRequest = JSON.stringify(funRequest);
-      funRequestPromises.push(await Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));
+      funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));
     }
 
-    //Promise.all(funRequestPromises);
+    Promise.all(funRequestPromises);
 
     return true;
   }

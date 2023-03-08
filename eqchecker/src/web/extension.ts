@@ -104,7 +104,7 @@ class Eqchecker {
 
   public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus) : boolean
   {
-    if (jsonMessages === null || jsonMessages.messages === undefined) {
+    if (jsonMessages === null || jsonMessages === undefined || jsonMessages.messages === undefined) {
       return false;
     }
     let messages = jsonMessages.messages.MSG;
@@ -156,7 +156,7 @@ class Eqchecker {
     return lastMessages;
   }
 
-  public static async RequestResponseForCommand(jsonRequest) : Promise<any> {
+  public static async RequestResponseForCommand(jsonRequest/*, extra = undefined*/) : Promise<any> {
     var url = Eqchecker.serverURL + "/api/eqchecker/submit_eqcheck";
     //console.log("jsonRequest =\n" + jsonRequest);
     return new Promise((resolve, reject) => {
@@ -172,6 +172,7 @@ class Eqchecker {
       })
       .then(function (response) {
         console.log(`response = ${JSON.stringify(response)}\n`);
+        //resolve({result: response.json(), extra: extra});
         resolve(response.json());
       })
       .catch(function(err) {
@@ -182,16 +183,14 @@ class Eqchecker {
     });
   }
 
-  public static async RequestNextChunk(jsonRequest, origRequest, firstRequest:boolean) {
+  public static async RequestNextChunk(jsonRequest, origRequest/*In*/, firstRequest/*In*/:boolean) {
     return new Promise ((resolve, reject) => {
-      this.RequestResponseForCommand(jsonRequest).then(async function(result) {
-        console.log(`response received for function ${origRequest.functionName}`);
-        //console.log(`result = ${JSON.stringify(result)}`);
-        //if (result === undefined) {
-        //  console.log(`jsonRequest = ${jsonRequest}`);
-        //  console.log(`result = ${JSON.stringify(result)}`);
-        //}
+      this.RequestResponseForCommand(jsonRequest/*, {origRequest: origRequestIn, firstRequest: firstRequestIn}*/).then(async function(result) {
+        //const result = res.result;
+        //const origRequest = res.extra.origRequest;
+        //const firstRequest = res.extra.firstRequest;
         let dirPath = result.dirPath;
+        console.log(`response received for function ${origRequest.functionName}, dirPath ${dirPath}`);
         if (firstRequest) {
           //console.log("first response received.\n");
           origRequest.type = 'addEqcheckInView';
@@ -313,24 +312,20 @@ class Eqchecker {
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
 
-    var dirPathFunctions = {};
-    var funRequests = [];
+    var funRequestPromises = [];
     for (let i = 0; i < common.length; i++) {
       const functionName = common[i];
-      funRequests[i] = request;
+      var funRequest = request;
 
       //console.log(`functionName = ${functionName}\n`);
-      funRequests[i].serverCommand = commandSubmitEqcheck;
-      funRequests[i].dirPath = undefined;
-      funRequests[i].functionName = functionName;
-      const jsonRequest = JSON.stringify(funRequests[i]);
-      dirPathFunctions[functionName] = await Eqchecker.RequestNextChunk(jsonRequest, funRequests[i], true);
+      funRequest.serverCommand = commandSubmitEqcheck;
+      funRequest.dirPath = undefined;
+      funRequest.functionName = functionName;
+      const jsonRequest = JSON.stringify(funRequest);
+      funRequestPromises.push(await Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));
     }
 
-    //await Object.entries(dirPathFunctions).forEach( async (entry) => {
-    //  const [functionName, prom] = entry;
-    //  await prom;
-    //});
+    //Promise.all(funRequestPromises);
 
     return true;
   }
@@ -338,7 +333,7 @@ class Eqchecker {
   public static async obtainProofFromServer(dirPathIn)
   {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
-    const response = await this.RequestResponseForCommand(jsonRequest);
+    const response = (await this.RequestResponseForCommand(jsonRequest));
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
     const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
@@ -365,7 +360,7 @@ class Eqchecker {
         dirPathIn: dirPath,
       };
     let jsonRequest = JSON.stringify(request);
-    const response = await this.RequestResponseForCommand(jsonRequest);
+    const response = (await this.RequestResponseForCommand(jsonRequest));
     console.log("Cancel Eqcheck response: ", JSON.stringify(response));
     var viewRequest =
         { type: 'eqcheckCancelled',

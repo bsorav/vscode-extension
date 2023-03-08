@@ -7,18 +7,17 @@ body {
 	padding: 0;
 }
 
-.eqcheck-entry {
-	width: 100%;
+.eqcheck-list .li {
+	width: 80%;
 	font-size: 10px;
 	text-align: center;
 	display: flex;
 	border: 0.1px solid var(--vscode-input-border);
+	margin: 5px auto;
 }
 
 
 .eqcheck-preview {
-	width: 20em;
-	height: 5.6em;
 }
 
 .eqcheck-preview:hover {
@@ -38,7 +37,7 @@ body {
 .clear-eqchecks-button {
 	display: block;
 	border: none;
-	margin: 0 auto;
+	margin: 5 auto;
 }
 
 .hoverEqcheckArrow {
@@ -72,4 +71,29 @@ body {
 
 #eqcheck-right-click-menu .item:hover {
 	background: #543434;
+}
+
+#start-button-right-click-menu {
+	position: fixed;
+	z-index: 10000;
+	width: 100px;
+	background: #00008b;
+    border-radius: 5px;
+	display: none;
+}
+
+#start-button-right-click-menu.visible {
+	display: block;
+}
+
+#start-button-right-click-menu .item {
+	padding: 8px 10px;
+	font-size: 10px;
+	color: #eee;
+	cursor: pointer;
+	border-radius: inherit;
+}
+
+#start-button-right-click-menu .item:hover {
+	background: #44448b;
 }

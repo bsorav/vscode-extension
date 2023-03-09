@@ -587,6 +587,17 @@ class Eqchecker {
   public static wait(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
   }
+
+  public static Text2String(text)
+  {
+    var arr = [];
+    for (let i in text) {
+      arr.push(text[i]);
+    }
+    const dec = new TextDecoder("utf-8");
+    return dec.decode(new Uint8Array(arr));
+  }
+
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
@@ -878,7 +889,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         case 'eqcheckViewProof': {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
-          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, data.eqcheck.source1Text, data.eqcheck.source2Text);
+          console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
+          const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
+          const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
+          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, source1Str, source2Str);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
           this.panels[data.eqcheck.dirPath] = new_panels;

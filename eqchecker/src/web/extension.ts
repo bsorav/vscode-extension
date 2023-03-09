@@ -245,20 +245,24 @@ class Eqchecker {
     if (entry === undefined || entry.source1Uri === undefined || entry.source2Uri === undefined) {
       return false;
     }
-    if (entry.source1Text === undefined) {
+    /*if (entry.source1Text === undefined) */{
       //console.log("calling openTextDocument");
-      await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
-        //console.log("opened source1Uri");
-        if (doc.isDirty) {}
-        entry.source1Text = doc.getText();
-      });
+      entry.source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
+      //console.log(`source1Text = ${entry.source1Text}\n`);
+      //await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
+      //  //console.log("opened source1Uri");
+      //  if (doc.isDirty) {}
+      //  entry.source1Text = doc.getText();
+      //});
     }
-    if (entry.source2Text === undefined) {
-      await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
-        //console.log("opened source2Uri");
-        if (doc.isDirty) {}
-        entry.source2Text = doc.getText();
-      });
+    /*if (entry.source2Text === undefined) */{
+      entry.source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
+      //console.log(`source2Text = ${entry.source2Text}\n`);
+      //await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
+      //  //console.log("opened source2Uri");
+      //  if (doc.isDirty) {}
+      //  entry.source2Text = doc.getText();
+      //});
     }
 
     //console.log('source = ' + source);
@@ -276,6 +280,7 @@ class Eqchecker {
           functionName: undefined,
         };
     var jsonRequest = JSON.stringify(request);
+    //console.log(`jsonRequest = ${jsonRequest}\n`);
     const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
 
     if (dirPath === "") {
@@ -428,6 +433,7 @@ class Eqchecker {
       } else {
         eqcheckPair = eqcheckPairs[result];
       }
+      console.log(`eqcheckPair = ${eqcheckPair}\n`);
       if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
         vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPair.source1Uri} -> ${eqcheckPair.source2Uri}`);
       }
@@ -452,9 +458,9 @@ class Eqchecker {
   {
     const options = {
       canSelectMany: true,
-      openLabel: 'Open Source and Destination Code Files',
+      openLabel: 'Open Source Code File(s)',
       filters: {
-        'Source Code': ['c', 's'],
+        'Source Code': ['c'],
       }
     };
 
@@ -465,32 +471,30 @@ class Eqchecker {
     if (firstFileUris && firstFileUris[0]) {
       srcFileUri = firstFileUris[0];
       srcFileName = posix.basename(srcFileUri.fsPath, undefined);
-      srcText = await vscode.workspace.openTextDocument(srcFileUri);
-      await vscode.window.showTextDocument(srcText, { viewColumn: vscode.ViewColumn.One });
+      //srcText = await vscode.workspace.openTextDocument(srcFileUri);
+      //await vscode.window.showTextDocument(srcText, { viewColumn: vscode.ViewColumn.One });
+      //console.log(`srcText = ${JSON.stringify(srcText)}\n`);
 
-      if (!firstFileUris[1]) {
-        // Ask the user to select the next source code file.
-        options.openLabel = 'Open Destination Code File';
-        options.filters = {
-          'Source Code': ['s', 'c'],
-        };
-        const dstFileUris = await vscode.window.showOpenDialog(options);
-        if (dstFileUris && dstFileUris[0]) {
-          dstFileUri = dstFileUris[0];
-        }
-      } else {
-        dstFileUri = firstFileUris[1];
+      // Ask the user to select the next source code file.
+      var dst_options = {
+        canSelectMany: true,
+        openLabel: 'Open Destination Code File(s)',
+      };
+
+      const dstFileUris = await vscode.window.showOpenDialog(dst_options);
+      if (dstFileUris && dstFileUris[0]) {
+        dstFileUri = dstFileUris[0];
       }
       dstFileName = posix.basename(dstFileUri.fsPath, undefined);
-      dstText = await vscode.workspace.openTextDocument(dstFileUri);
-      await vscode.window.showTextDocument(dstText, { viewColumn: vscode.ViewColumn.Two });
+      //dstText = await vscode.workspace.openTextDocument(dstFileUri);
+      //await vscode.window.showTextDocument(dstText, { viewColumn: vscode.ViewColumn.Two });
     }
     return { source1Uri: srcFileUri,
              source1Name: srcFileName,
-             source1Text: srcText,
+             //source1Text: srcText,
              source2Uri: dstFileUri,
              source2Name: dstFileName,
-             source2Text: dstText};
+             /*source2Text: dstText*/};
   }
 
   private static genLikelyEqcheckPairs(cSources, asmSources) : eqcheckMenuEntry[]
@@ -511,10 +515,10 @@ class Eqchecker {
             //console.log("asmSourceUri = " + asmSourceUri);
             ret.push({ source1Uri: cSource1Uri,
                        source1Name: posix.basename(cSource1Uri, undefined),
-                       source1Text: cSource1.Text,
+                       //source1Text: cSource1.Text,
                        source2Uri: asmSourceUri,
                        source2Name: posix.basename(asmSourceUri, undefined),
-                       source2Text: asmSource.Text});
+                       /*source2Text: asmSource.Text*/});
             //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
             //ret.push(pr);
           }
@@ -527,10 +531,10 @@ class Eqchecker {
             if (cSource1Uri !== cSource2Uri) {
               ret.push({ source1Uri: cSource1Uri,
                          source1Name: posix.basename(cSource1Uri, undefined),
-                         source1Text: cSource1.Text,
+                         //source1Text: cSource1.Text,
                          source2Uri: cSource2Uri,
                          source2Name: posix.basename(cSource2Uri, undefined),
-                         source2Text: cSource2.Text});
+                         /*source2Text: cSource2.Text*/});
               //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
               //ret.push(pr);
             }

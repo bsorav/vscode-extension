@@ -491,10 +491,10 @@ class Eqchecker {
     }
     return { source1Uri: srcFileUri,
              source1Name: srcFileName,
-             //source1Text: srcText,
+             source1Text: undefined/*srcText*/,
              source2Uri: dstFileUri,
              source2Name: dstFileName,
-             /*source2Text: dstText*/};
+             source2Text: undefined/*dstText*/};
   }
 
   private static genLikelyEqcheckPairs(cSources, asmSources) : eqcheckMenuEntry[]
@@ -515,10 +515,10 @@ class Eqchecker {
             //console.log("asmSourceUri = " + asmSourceUri);
             ret.push({ source1Uri: cSource1Uri,
                        source1Name: posix.basename(cSource1Uri, undefined),
-                       //source1Text: cSource1.Text,
+                       source1Text: undefined/*cSource1.Text*/,
                        source2Uri: asmSourceUri,
                        source2Name: posix.basename(asmSourceUri, undefined),
-                       /*source2Text: asmSource.Text*/});
+                       source2Text: undefined/*asmSource.Text*/});
             //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
             //ret.push(pr);
           }
@@ -531,10 +531,10 @@ class Eqchecker {
             if (cSource1Uri !== cSource2Uri) {
               ret.push({ source1Uri: cSource1Uri,
                          source1Name: posix.basename(cSource1Uri, undefined),
-                         //source1Text: cSource1.Text,
+                         source1Text: undefined/*cSource1.Text*/,
                          source2Uri: cSource2Uri,
                          source2Name: posix.basename(cSource2Uri, undefined),
-                         /*source2Text: cSource2.Text*/});
+                         source2Text: undefined/*cSource2.Text*/});
               //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
               //ret.push(pr);
             }

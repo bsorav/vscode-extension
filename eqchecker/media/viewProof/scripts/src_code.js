@@ -38,7 +38,7 @@ function node_convert_to_xy(pc, pc_unroll, nodeMap)
   const [entryX, entryY, exitX, exitY] = [0, 0, 0, canvas.height / deltaY];
 
   if (pc === 'L0%0%d') {
-    return { type: "exit", pc: pc, y: entryY, x: entryX };
+    return { type: "entry", pc: pc, y: entryY, x: entryX };
   } else if (pc.charAt(0) === 'L') {
     const linename = nodeMap[pc].linename;
     const columnname = nodeMap[pc].columnname;
@@ -113,7 +113,7 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, nodeMap);
 
   if (is_epsilon) {
-    drawPointOnNode(from_pc_xy, true, undefined, undefined);
+    drawPointOnNode(from_pc_xy, "stays still", undefined, undefined);
     return;
   }
 
@@ -146,7 +146,7 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
         //unroll_mu = path.unroll_factor_mu;
         unroll = path.unroll_factor_delta;
       }
-      drawPointOnNode(element, false, unroll, unroll_is_only_mu);
+      drawPointOnNode(element, undefined, unroll, unroll_is_only_mu);
       topNode = Math.min(topNode, element.y * 1 * deltaY);
   });
 
@@ -180,10 +180,9 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node, is_epsilon, unroll, unroll_is_only_mu)
+function drawPointOnNode(node, text, unroll, unroll_is_only_mu)
 {
     //node = node.split("_");
-
     console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
@@ -216,12 +215,12 @@ function drawPointOnNode(node, is_epsilon, unroll, unroll_is_only_mu)
         color = "rgb(255, 0, 0)";
         drawCircle(ctx, x1, y1, 3, color);
     }
-    if (is_epsilon) {
+    if (text !== undefined) {
       let r = 5;
       let x = x1 + r*Math.cos(7*Math.PI/4);
       let y = y1 - r*Math.sin(7*Math.PI/4);
       const textcolor = "rgb(255, 0, 0)";
-      drawText(ctx, x, y, "stays still", 10, textcolor);
+      drawText(ctx, x, y, text, 10, textcolor);
     }
 }
 
@@ -234,12 +233,6 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     // Draw edge between node1 and node2
 
     let pattern = [];
-    //if(dashed){
-    //    pattern = [4, 2];
-    //}
-
-    //node1 = node1.split("_");
-    //node2 = node2.split("_");
 
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
@@ -247,23 +240,9 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     let styles = window.getComputedStyle(document.getElementById("code"));
 
     let deltaY = styles.lineHeight.replace("px", "") * 1;
+    const delta2Y = parseInt(styles.getPropertyValue("line-height"));
     let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
 
-    // console.log(node2);
-    //if (node1.type === "entry"){
-    //  node1 = {type: "entry", y: 0, x: 0};
-    //}
-
-    //if (node2.type === "exit"){
-    //  node2 = {type: "exit", y: canvas.height/deltaY, x: 1};
-    //}
-
-    //if (node1.length === 2){
-    //  node1.push(2);
-    //}
-    //if (node2.length === 2){
-    //  node2.push(2);
-    //}
     if (node1.x === undefined) {
       node1.x = 2;
     }
@@ -276,7 +255,13 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
       return;
     }
 
-    //console.log(`Drawing an edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
+    if (node2.type === "exit") {
+      node2.x = node1.x;
+      node2.y = (node1.y*1) + 0.5;
+      drawPointOnNode(node2, "EXIT", undefined, undefined);
+    }
+
+    //console.log(`Drawing an edge: (${node1.type},${node1.x},${node1.y}) -> (${node2.type},${node2.x},${node2.y})`);
 
     let x1 = (node1.x - 1) * 1 * deltaX;
     let y1 = node1.y * 1 * deltaY - deltaY/4;

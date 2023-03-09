@@ -14,7 +14,9 @@ let preEl = document.getElementById("pre-code");
 preEl.style.minWidth = "100%";
 
 const entryNodeX = 1;
-
+const defaultNodeX = 2;
+const entryLabelGap = 0.5;
+const exitLabelGap = 1.0;
 
 function setupCanvas(){
     codeEl = document.getElementById("code");;
@@ -249,10 +251,10 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
 
     if (node1.x === undefined) {
-      node1.x = 2;
+      node1.x = defaultNodeX;
     }
     if (node2.x === undefined) {
-      node2.x = 2;
+      node2.x = defaultNodeX;
     }
 
     if (node1.x === node2.x && node1.y === node2.y) {
@@ -262,12 +264,12 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
 
     if (node1.type === "entry") {
       var label_node = node1;
-      label_node.y = (node1.y*1) - 0.5;
+      label_node.y = (node1.y*1) - entryLabelGap;
       drawPointOnNode(label_node, "ENTRY", undefined, undefined);
     }
     if (node2.type === "exit") {
       node2.x = node1.x;
-      node2.y = (node1.y*1) + 0.5;
+      node2.y = (node1.y*1) + exitLabelGap;
       drawPointOnNode(node2, "EXIT", undefined, undefined);
     }
 

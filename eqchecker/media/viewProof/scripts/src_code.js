@@ -30,6 +30,29 @@ function setupCanvas(){
     canvas.width = rect.width;
     canvas.style.left = rect.left + "px";
     canvas.style.top = rect.top + "px";
+
+    let startX, startY;
+
+    var onMouseMove = function (event) {
+      const deltaX = event.clientX - startX;
+      const deltaY = event.clientY - startY;
+
+      window.scrollBy(deltaX, deltaY);
+
+      startX = event.clientX;
+      startY = event.clientY;
+    };
+
+    canvas.addEventListener('mousedown', function(event) {
+      startX = event.clientX;
+      startY = event.clientY;
+
+      document.addEventListener('mousemove', onMouseMove);
+    });
+
+    document.addEventListener('mouseup', function(event) {
+      document.removeEventListener('mousemove', onMouseMove);
+    });
 }
 
 function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)

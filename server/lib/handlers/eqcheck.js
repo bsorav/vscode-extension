@@ -277,7 +277,7 @@ class EqcheckHandler {
             fs.writeFileSync(optimizedFilename, optimized)
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename];
             const unroll = ['-unroll-factor', unrollFactor];
-            const proof = ['-proof', proofFilename];
+            const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
             var dryRunArg = [];
             if (dryRun) {
               dryRunArg = ['--dry-run'];
@@ -497,7 +497,9 @@ class EqcheckHandler {
                 error => {
                     eqcheck_error(error, res);
                 });
-        res.end(JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''}));
+        const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''});
+        console.log(`response = ${response}\n`);
+        res.end(response);
       } else if (commandIn === commandPingEqcheck) {
         console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
         const ret = await this.getOutputChunk(dirPathIn, offsetIn);

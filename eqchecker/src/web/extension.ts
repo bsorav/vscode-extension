@@ -469,8 +469,8 @@ class Eqchecker {
     // Ask the user to select the first source code file.
     const firstFileUris = await vscode.window.showOpenDialog(options);
     if (firstFileUris && firstFileUris[0]) {
-      srcFileUri = firstFileUris[0];
-      srcFileName = posix.basename(srcFileUri.fsPath, undefined);
+      srcFileUri = firstFileUris[0].fsPath;
+      srcFileName = posix.basename(srcFileUri, undefined);
       //srcText = await vscode.workspace.openTextDocument(srcFileUri);
       //await vscode.window.showTextDocument(srcText, { viewColumn: vscode.ViewColumn.One });
       //console.log(`srcText = ${JSON.stringify(srcText)}\n`);
@@ -483,9 +483,9 @@ class Eqchecker {
 
       const dstFileUris = await vscode.window.showOpenDialog(dst_options);
       if (dstFileUris && dstFileUris[0]) {
-        dstFileUri = dstFileUris[0];
+        dstFileUri = dstFileUris[0].fsPath;
+        dstFileName = posix.basename(dstFileUri, undefined);
       }
-      dstFileName = posix.basename(dstFileUri.fsPath, undefined);
       //dstText = await vscode.workspace.openTextDocument(dstFileUri);
       //await vscode.window.showTextDocument(dstText, { viewColumn: vscode.ViewColumn.Two });
     }

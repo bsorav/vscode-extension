@@ -773,11 +773,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             panel_src_code.webview.postMessage({
               command: "highlight",
               path: message.edge.src_edge,
+              subprogram_info: message.src_subprogram_info,
               nodeMap: message.src_nodeMap
             });
             panel_dst_code.webview.postMessage({
               command: "highlight",
               path: message.edge.dst_edge,
+              subprogram_info: message.dst_subprogram_info,
               nodeMap: message.dst_nodeMap
             });
             break;

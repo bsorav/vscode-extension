@@ -9,6 +9,8 @@ var g_prodCfg = null;
 var g_nodeMap = null;
 var g_nodeIdMap = null;
 var g_edgeMap = null;
+var g_src_subprogram_info = null;
+var g_dst_subprogram_info = null;
 var g_src_nodeMap = null;
 var g_dst_nodeMap = null;
 
@@ -55,6 +57,16 @@ function line_column_map_get_value_for_pc(proptree, p, key)
     }
   }
   return undefined;
+}
+
+function tfg_llvm_obtain_subprogram_info(tfg_llvm)
+{
+  return tfg_llvm["llvm_subprogram_debug_info"];
+}
+
+function tfg_asm_obtain_subprogram_info(tfg_asm, assembly)
+{
+  return {line: 0, scope_line: 0};
 }
 
 function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc)
@@ -175,6 +187,14 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
   //var src_nodeMap = {};
   //var dst_nodeMap = {};
 
+  const src_subprogram_info = tfg_llvm_obtain_subprogram_info(src_tfg_llvm);
+  var dst_subprogram_info;
+  if (dst_tfg_llvm === undefined) {
+    dst_subprogram_info = tfg_asm_obtain_subprogram_info(dst_tfg_asm, dst_assembly);
+  } else {
+    dst_subprogram_info = tfg_llvm_obtain_subprogram_info(dst_tfg_llvm);
+  }
+
   var idx = 0;
   nodes_in.forEach(element => {
     const src_pc = element.pc.split('_')[0];
@@ -236,7 +256,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
   });
 
-  return [nodeMap, nodeIdMap, edgeMap, src_nodeMap, dst_nodeMap];
+  return [nodeMap, nodeIdMap, edgeMap, src_subprogram_info, dst_subprogram_info, src_nodeMap, dst_nodeMap];
 }
 
 function drawNetwork(cfg) {
@@ -265,7 +285,7 @@ function drawNetwork(cfg) {
     const eqcheck_info = corr_graph["eqcheck_info"];
     const dst_assembly = eqcheck_info["dst_assembly"];
 
-    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_nodeMap, g_dst_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
+    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_subprogram_info, g_dst_subprogram_info, g_src_nodeMap, g_dst_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
 
     //console.log(`g_nodeMap = ${JSON.stringify(g_nodeMap)}`);
     var nodes = new vis.DataSet(nodes_in.map(function(node) {
@@ -395,6 +415,8 @@ network.on('selectEdge', function(properties) {
         from: from,
         to: to,
         edge: edge,
+        src_subprogram_info: g_src_subprogram_info,
+        dst_subprogram_info: g_dst_subprogram_info,
         src_nodeMap: g_src_nodeMap,
         dst_nodeMap: g_dst_nodeMap
     });

@@ -11,7 +11,8 @@ const temp = require('temp'),
     Sentry = require('@sentry/node'),
     xml2js = require('xml2js'),
     assert = require('assert'),
-    tree_kill = require('tree-kill')
+    tree_kill = require('tree-kill')//,
+    //textEncoding = require('text-encoding')
 ;
 
 temp.track();
@@ -255,12 +256,30 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.err');
     }
 
-    run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, functionName, dryRun) {
-        //console.log('run_eqcheck called. source = ', source);
+    run_eqcheck(sourceJSON, optimizedJSON, unrollFactor, dirPath, srcName, optName, functionName, dryRun) {
+        //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
+
+        var sourceArr = [];
+        for (var i in sourceJSON) {
+          sourceArr.push(sourceJSON[i]);
+        }
+        var optimizedArr = [];
+        for (var i in optimizedJSON) {
+          optimizedArr.push(optimizedJSON[i]);
+        }
+        const source = new Uint8Array(sourceArr);
+        const optimized = new Uint8Array(optimizedArr);
+
+        //console.log(`run_eqcheck called. source (type ${typeof source}) = ${source}`);
+        //console.log(`run_eqcheck called. optimized (type ${typeof source}) = ${source}`);
+
         //console.log('run_eqcheck called. optimized = ', optimized);
         //const optionsError = this.checkOptions(options);
         //if (optionsError) throw optionsError;
-        const sourceError = this.checkSource(source);
+        const decoder = new TextDecoder();
+        const sourceTxt = decoder.decode(source);
+        //console.log(`sourceTxt = ${sourceTxt}\n`);
+        const sourceError = this.checkSource(sourceTxt);
         if (sourceError) throw sourceError;
 
         const outFilename = this.get_outfilename(dirPath);
@@ -271,7 +290,7 @@ class EqcheckHandler {
         return new Promise((resolve, reject) => {
             //console.log('dirPath = ', dirPath);
             const sourceFilename = path.join(dirPath, srcName);
-            fs.writeFileSync(sourceFilename, source);
+            fs.writeFileSync(sourceFilename, sourceTxt);
             //console.log('sourceFilename = ', sourceFilename);
             const optimizedFilename = path.join(dirPath, optName);
             fs.writeFileSync(optimizedFilename, optimized)

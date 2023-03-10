@@ -24,7 +24,10 @@ const commandPingEqcheck = 'pingEqcheck';
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
+const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandObtainSrcFiles = 'obtainSrcFiles';
+const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
 
 const runStateStatusPreparing = 'preparing';
@@ -256,7 +259,7 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.err');
     }
 
-    run_eqcheck(sourceJSON, optimizedJSON, unrollFactor, dirPath, srcName, optName, functionName, dryRun) {
+    run_eqcheck(sourceJSON, optimizedJSON, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only) {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
         var sourceArr = [];
@@ -306,6 +309,9 @@ class EqcheckHandler {
                 dryRunArg = ['-f', functionName];
               }
             }
+            if (llvm2tfg_only) {
+              dryRunArg.push('--llvm2tfg-only');
+            }
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
             const eq32_args = ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(proof).concat(unroll).concat(dryRunArg);
             console.log('calling eq32 ' + eq32_args);
@@ -327,7 +333,26 @@ class EqcheckHandler {
         });
     }
 
-    readBuffer(fd, start, bufferSize, max_chunksize) {
+    async readBuffer(filename, start = 0, bufferSize = undefined, max_chunksize = 8192) {
+      let fd;
+      try {
+        fd = await fs.open(filename, 'r');
+      } catch (err) {
+        console.log(`file not found ${filename}`);
+        console.error(err);
+        return "";
+      }
+      let stats = fs.fstatSync(fd);
+      if (stats.size === undefined) {
+        await fs.close(fd);
+        return "";
+      }
+      if (bufferSize === undefined) {
+        bufferSize = stats.size - start;
+      }
+      if (bufferSize <= 0) {
+        return "";
+      }
       var buffer = Buffer.alloc(bufferSize);
       var bytesRead = 0;
 
@@ -336,20 +361,46 @@ class EqcheckHandler {
         var read = fs.readSync(fd, buffer, bytesRead, size, start + bytesRead);
         bytesRead += read;
       }
+      await fs.close(fd);
       return buffer;
     }
 
     async getProofXML(dirPath) {
       let proofFilename = this.get_proof_filename(dirPath) + ".xml";
-
-      let fd = await fs.open(proofFilename, 'r');
-      let stats = fs.fstatSync(fd);
-      if (stats.size === undefined) {
-        return "";
-      }
-      var buffer = this.readBuffer(fd, 0, stats.size, 8192);
-      await fs.close(fd);
+      var buffer = this.readBuffer(proofFilename);
       return buffer.toString();
+    }
+
+    async getSrcFiles(dirPath) {
+      const srcFilename = this.get_src_filename(dirPath);
+      const irFilename = this.get_ir_filename(dirPath, "src");
+      const etfgFilename = this.get_etfg_filename(dirPath, "src");
+
+      const src = this.readBuffer(srcFilename);
+      const ir = this.readBuffer(irFilename);
+      const etfg = this.readBuffer(etfgFilename);
+      return { src: src, ir: ir, etfg: etfg };
+    }
+
+    async getDstFiles(dirPath) {
+      let dstFilename = this.get_dst_filename(dirPath);
+      const dst = this.readBuffer(dstFilename);
+
+      let harvestFilename = this.get_harvest_filename(dirPath);
+      if (fs.existsSync(harvestFilename)) {
+        var tfgFilename = this.get_tfg_filename(dirPath);
+
+        const harvest = this.readBuffer(harvest);
+        const tfg = this.readBuffer(tfgFilename);
+        return { dst: dst, harvest: harvest, tfg: tfg };
+      } else {
+        let irFilename = this.get_ir_filename(dirPath, "opt");
+        let etfgFilename = this.get_etfg_filename(dirPath, "opt");
+
+        const ir = this.readBuffer(irFilename);
+        const etfg = this.readBuffer(etfgFilename);
+        return { dst: dst, ir: ir, etfg: etfg };
+      }
     }
 
     async getOutputChunk(dirPath, offset) {
@@ -361,30 +412,30 @@ class EqcheckHandler {
       if (!fs.existsSync(outFilename)) {
         return [offset, ""];
       }
-      let outfd;
-      try {
-        outfd = await fs.open(outFilename, 'r');
-      } catch (err) {
-        console.log(`file not found ${outFilename}`);
-        console.error(err);
-      }
+      //let outfd;
+      //try {
+      //  outfd = await fs.open(outFilename, 'r');
+      //} catch (err) {
+      //  console.log(`file not found ${outFilename}`);
+      //  console.error(err);
+      //}
 
-      let stats = fs.fstatSync(outfd);
+      //let stats = fs.fstatSync(outfd);
       //console.log("stats.size = " + stats.size);
       //console.log("offset = " + offset);
-      if (stats.size === undefined) {
-        return [offset, ""];
-      }
-      var bufferSize = stats.size - offset;
-      if (bufferSize === 0) {
-        return [offset, ""];
-      }
+      //if (stats.size === undefined) {
+      //  return [offset, ""];
+      //}
+      //var bufferSize = stats.size - offset;
+      //if (bufferSize === 0) {
+      //  return [offset, ""];
+      //}
       //const max_chunksize = 8192; //8192-byte intervals
-      var buffer = this.readBuffer(outfd, offset, bufferSize, 8192);
+      var buffer = this.readBuffer(outFilename, offset);
 
       //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
-      let chunkBuf = buffer.slice(0, bufferSize);
-      let chunk = chunkBuf.toString();
+      //let chunkBuf = buffer.slice(0, bufferSize);
+      let chunk = buffer.toString();
       const end_of_message_marker = "</MSG>";
 
       let lastMessage = chunk.lastIndexOf(end_of_message_marker);
@@ -395,7 +446,7 @@ class EqcheckHandler {
       let truncatedChunk = chunk.substring(0, chunkEnd);
 
       //console.log('numread = ', numread, ", chunk ", chunk);
-      await fs.close(outfd);
+      //await fs.close(outfd);
       //let offsetNew = offset + numread;
       //return [offsetNew, chunk];
       let offsetNew = offset + chunkEnd;
@@ -494,7 +545,7 @@ class EqcheckHandler {
       //    return;
       //}
       //console.log("commandIn = " + commandIn);
-      if (commandIn === commandSubmitEqcheck || commandIn === commandPrepareEqcheck) {
+      if (commandIn === commandSubmitEqcheck || commandIn === commandPrepareEqcheck || commandIn === commandPointsToAnalysis) {
         if (source === undefined) {
             logger.warn("No body found in request: source code missing", req);
             return next(new Error("Bad request"));
@@ -507,8 +558,9 @@ class EqcheckHandler {
 
         const dirPath =  await this.newTempDir();
         const dryRun = (commandIn === commandPrepareEqcheck);
+        const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
 
-        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, functionName, dryRun)
+        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only)
             .then(
                 result => {
                     res.end(JSON.stringify({retcode: 0}));
@@ -605,6 +657,16 @@ class EqcheckHandler {
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
+        return;
+      } else if (commandIn === commandObtainSrcFiles) {
+        const src_files_json = await getSrcFiles(this.dirPathIn);
+        const src_files_str = JSON.stringify(src_file_json);
+        res.end(src_files_str);
+        return;
+      } else if (commandIn === commandObtainDstFiles) {
+        const dst_files_json = await getDstFiles(this.dirPathIn);
+        const dst_files_str = JSON.stringify(dst_file_json);
+        res.end(dst_files_str);
         return;
       } else if (commandIn === commandCancelEqcheck) {
         console.log('CancelEqcheck received with dirPathIn ', dirPathIn);

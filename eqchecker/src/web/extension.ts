@@ -141,7 +141,7 @@ class Eqchecker {
   {
     var runState;
     //console.log(`runStatus = ${runStatus}\n`);
-    if (runStatus === null || runStatus === undefined) {
+    if (runStatus === null || runStatus === undefined || runStatus.running_status === undefined) {
      runState = runStateStatusPreparing;
     } else {
      runState = runStatus.running_status.status_flag;
@@ -323,10 +323,11 @@ class Eqchecker {
 
     request.serverCommand = commandPointsToAnalysis;
     const jsonRequest2 = JSON.stringify(request);
-    await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
+    const dirPath2 = await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
 
-    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath});
-    const response = (await this.RequestResponseForCommand(jsonRequest));
+    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath2});
+    const response = (await this.RequestResponseForCommand(jsonRequest3));
+    console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
     const etfg = response.etfg;
 
     var viewRequestRemove =

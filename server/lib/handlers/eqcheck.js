@@ -15,7 +15,7 @@ const temp = require('temp'),
     //textEncoding = require('text-encoding')
 ;
 
-temp.track();
+//temp.track();
 
 let hasSetUpAutoClean = false;
 const defaultUnrollFactor = 64;
@@ -105,7 +105,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName, functionName;
+        let commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, object, harvest, unrollFactor, srcName, optName, functionName;
         if (req.is('json')) {
             // JSON-style request
             //console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -127,8 +127,11 @@ class EqcheckHandler {
             //console.log('source:\n' + JSON.stringify(req.source));
             //console.log('source1Uri:\n' + JSON.stringify(req.source1Uri));
             source = req.body.source1Text;
+            src_etfg = req.body.src_etfg;
             //console.log('source:\n' + source);
             optimized = req.body.source2Text;
+            object = req.body.object;
+            harvest = req.body.harvest;
             unrollFactor = req.body.unrollFactor || defaultUnrollFactor;
             commandIn = req.body.serverCommand;
             dirPathIn = req.body.dirPathIn;
@@ -150,7 +153,10 @@ class EqcheckHandler {
             // API-style
             //console.log('API-style parseRequest');
             source = req.source1Text;
+            src_etfg = req.src_etfg;
             optimized = req.source2Text;
+            object = req.object;
+            harvest = req.harvest;
             unrollFactor = req.unrollFactor || defaultUnrollFactor;
             commandIn = req.serverCommand;
             dirPathIn = req.dirPathIn;
@@ -187,7 +193,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName, functionName};
+        return {commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, object, harvest, unrollFactor, srcName, optName, functionName};
     }
 
     //splitArguments(options) {
@@ -244,6 +250,12 @@ class EqcheckHandler {
     }
 
 
+    get_srcfilename(dirPath) {
+      //console.log('dirPath ', dirPath);
+      return path.join(dirPath, 'eqcheck.example.out');
+    }
+
+
     get_outfilename(dirPath) {
       //console.log('dirPath ', dirPath);
       return path.join(dirPath, 'eqcheck.example.out');
@@ -259,19 +271,41 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.err');
     }
 
-    run_eqcheck(sourceJSON, optimizedJSON, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only) {
+    readFileObjectToUint8Array(jsonObject)
+    {
+      if (jsonObject === undefined) {
+        return undefined;
+      }
+      var arr = [];
+      for (var i in jsonObject) {
+        arr.push(jsonObject[i]);
+      }
+      return new Uint8Array(arr);
+    }
+
+    bufferToUint8Array(jsonObject)
+    {
+      if (jsonObject === undefined || jsonObject.data === undefined) {
+        return undefined;
+      }
+      var arr = [];
+      for (let i = 0; i < jsonObject.data.length; i++) {
+        arr.push(jsonObject.data[i]);
+      }
+      return new Uint8Array(arr);
+    }
+
+    run_eqcheck(sourceJSON, src_etfgJSON, optimizedJSON, objectJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only) {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
-        var sourceArr = [];
-        for (var i in sourceJSON) {
-          sourceArr.push(sourceJSON[i]);
-        }
-        var optimizedArr = [];
-        for (var i in optimizedJSON) {
-          optimizedArr.push(optimizedJSON[i]);
-        }
-        const source = new Uint8Array(sourceArr);
-        const optimized = new Uint8Array(optimizedArr);
+        const source = this.readFileObjectToUint8Array(sourceJSON);
+        const optimized = this.readFileObjectToUint8Array(optimizedJSON);
+        const src_etfg = this.bufferToUint8Array(src_etfgJSON);
+        const harvest = this.bufferToUint8Array(harvestJSON);
+        const object = this.bufferToUint8Array(objectJSON);
+
+        //console.log(`harvestJSON = ${JSON.stringify(harvestJSON)}\n`);
+        //console.log(`harvest = ${harvest}\n`);
 
         //console.log(`run_eqcheck called. source (type ${typeof source}) = ${source}`);
         //console.log(`run_eqcheck called. optimized (type ${typeof source}) = ${source}`);
@@ -285,6 +319,13 @@ class EqcheckHandler {
         const sourceError = this.checkSource(sourceTxt);
         if (sourceError) throw sourceError;
 
+        //const sourceFilename = this.get_src_filename(dirPath);
+        var sourceFilename = path.join(dirPath, srcName);
+        const etfgFilename = sourceFilename + ".etfg";
+        //const optimizedFilename = this.get_dst_filename(dirPath);
+        var optimizedFilename = path.join(dirPath, optName);
+        const objFilename = optimizedFilename + ".o";
+        const harvestFilename = optimizedFilename + ".o.harvest";
         const outFilename = this.get_outfilename(dirPath);
         const runstatusFilename = this.get_runstatus_filename(dirPath);
         const proofFilename = this.get_proof_filename(dirPath);
@@ -292,14 +333,33 @@ class EqcheckHandler {
 
         return new Promise((resolve, reject) => {
             //console.log('dirPath = ', dirPath);
-            const sourceFilename = path.join(dirPath, srcName);
-            fs.writeFileSync(sourceFilename, sourceTxt);
+            //const sourceFilename = path.join(dirPath, srcName);
+            if (!fs.existsSync(sourceFilename)) {
+              fs.writeFileSync(sourceFilename, sourceTxt);
+            }
             //console.log('sourceFilename = ', sourceFilename);
-            const optimizedFilename = path.join(dirPath, optName);
-            fs.writeFileSync(optimizedFilename, optimized)
+            if (!fs.existsSync(optimizedFilename)) {
+              fs.writeFileSync(optimizedFilename, optimized)
+            }
+            if (src_etfg !== undefined) {
+              console.log(`writing the src_etfg file`);
+              fs.writeFileSync(etfgFilename, src_etfg);
+              sourceFilename = etfgFilename;
+            }
+            if (harvest !== undefined) {
+              //console.log(`harvest = ${JSON.stringify(harvest)}\n`);
+              fs.writeFileSync(harvestFilename, harvest);
+              optimizedFilename = harvestFilename;
+            }
+            var dstObjArg = [];
+            if (object !== undefined) {
+              fs.writeFileSync(objFilename, object);
+              dstObjArg = ['--dst-object', objFilename];
+            }
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
+            const src_dst_names = ['-src-filename', sourceFilename, '-dst-filename', optimizedFilename];
             var dryRunArg = [];
             if (dryRun) {
               dryRunArg = ['--dry-run'];
@@ -313,7 +373,7 @@ class EqcheckHandler {
               dryRunArg.push('--llvm2tfg-only');
             }
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
-            const eq32_args = ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(proof).concat(unroll).concat(dryRunArg);
+            const eq32_args = ([ sourceFilename, optimizedFilename ]).concat(redirect).concat(proof).concat(dstObjArg).concat(unroll).concat(dryRunArg).concat(src_dst_names);
             console.log('calling eq32 ' + eq32_args);
             resolve(exec.execute(this.superoptInstall + "/bin/eq32", eq32_args));
         });
@@ -324,7 +384,7 @@ class EqcheckHandler {
 
     newTempDir() {
         return new Promise((resolve, reject) => {
-            temp.mkdir({prefix: 'compiler-explorer-compiler', dir: process.env.tmpDir}, (err, dirPath) => {
+            temp.mkdir({prefix: 'eqchecker', dir: process.env.tmpDir}, (err, dirPath) => {
                 if (err)
                     reject(`Unable to open temp file: ${err}`);
                 else
@@ -367,49 +427,57 @@ class EqcheckHandler {
 
     async getProofXML(dirPath) {
       let proofFilename = this.get_proof_filename(dirPath) + ".xml";
-      var buffer = this.readBuffer(proofFilename);
+      var buffer = await this.readBuffer(proofFilename);
       return buffer.toString();
     }
 
     async getSrcFiles(dirPath) {
-      const srcFilename = this.get_src_filename(dirPath);
-      const irFilename = this.get_ir_filename(dirPath, "src");
-      const etfgFilename = this.get_etfg_filename(dirPath, "src");
+      const runStatus = await this.getRunningStatus(dirPath);
+      const srcFilenameJSON = runStatus.running_status.src_filename;
+      //console.log(`srcFilenameJSON = ${srcFilenameJSON}\n`);
+      const srcFilename = srcFilenameJSON.join();
+      //console.log(`srcFilename = ${srcFilename}\n`);
+      //const irFilename = srcFilename + ".ll";
+      const etfgFilename = srcFilename + ".etfg";
 
-      const src = this.readBuffer(srcFilename);
-      const ir = this.readBuffer(irFilename);
-      const etfg = this.readBuffer(etfgFilename);
-      return { src: src, ir: ir, etfg: etfg };
+      const src = await this.readBuffer(srcFilename);
+      //const ir = await this.readBuffer(irFilename);
+      const etfg = await this.readBuffer(etfgFilename);
+      return { src: src/*, ir: ir*/, etfg: etfg };
     }
 
     async getDstFiles(dirPath) {
-      let dstFilename = this.get_dst_filename(dirPath);
-      const dst = this.readBuffer(dstFilename);
+      const runStatus = await this.getRunningStatus(dirPathIn);
+      const dstFilename = runStatus.running_status.dst_filename.join();
+      const dst = await this.readBuffer(dstFilename);
 
-      let harvestFilename = this.get_harvest_filename(dirPath);
+      let harvestFilename = dstFilename + ".o.harvest";
       if (fs.existsSync(harvestFilename)) {
+        var objFilename = this.get_obj_filename(dirPath);
         var tfgFilename = this.get_tfg_filename(dirPath);
 
-        const harvest = this.readBuffer(harvest);
-        const tfg = this.readBuffer(tfgFilename);
-        return { dst: dst, harvest: harvest, tfg: tfg };
+        const harvest = await this.readBuffer(harvest);
+        const obj = await this.readBuffer(objFilename);
+        const tfg = await this.readBuffer(tfgFilename);
+        return { dst: dst, obj: obj, harvest: harvest, tfg: tfg };
       } else {
-        let irFilename = this.get_ir_filename(dirPath, "opt");
-        let etfgFilename = this.get_etfg_filename(dirPath, "opt");
+        //let irFilename = this.get_ir_filename(dirPath, "opt");
+        let etfgFilename = dstFilename + ".etfg";
 
-        const ir = this.readBuffer(irFilename);
-        const etfg = this.readBuffer(etfgFilename);
-        return { dst: dst, ir: ir, etfg: etfg };
+        //const ir = await this.readBuffer(irFilename);
+        const etfg = await this.readBuffer(etfgFilename);
+        return { dst: dst/*, ir: ir*/, etfg: etfg };
       }
     }
 
     async getOutputChunk(dirPath, offset) {
-      let outFilename;
+      //let outFilename;
       //let chunkBuf = Buffer.alloc(max_chunksize);
 
-      outFilename = this.get_outfilename(dirPath);
+      const outFilename = this.get_outfilename(dirPath);
 
       if (!fs.existsSync(outFilename)) {
+        //console.log(`file does not exist: ${outFilename}\n`);
         return [offset, ""];
       }
       //let outfd;
@@ -431,11 +499,12 @@ class EqcheckHandler {
       //  return [offset, ""];
       //}
       //const max_chunksize = 8192; //8192-byte intervals
-      var buffer = this.readBuffer(outFilename, offset);
+      var buffer = await this.readBuffer(outFilename, offset);
 
       //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
       //let chunkBuf = buffer.slice(0, bufferSize);
       let chunk = buffer.toString();
+      console.log(`chunk: ${JSON.stringify(chunk)}\n`);
       const end_of_message_marker = "</MSG>";
 
       let lastMessage = chunk.lastIndexOf(end_of_message_marker);
@@ -459,7 +528,12 @@ class EqcheckHandler {
         return "";
       }
       const buffer = fs.readFileSync(runStatusFilename);
-      return buffer.toString();
+      const runStatusXML = buffer.toString();
+      var runStatus;
+      xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
+        runStatus = result;
+      });
+      return runStatus;
     }
 
     pidIsRunning(pid) {
@@ -533,7 +607,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       const {
-          commandIn, dirPathIn, offsetIn, source, optimized, unrollFactor, srcName, optName, functionName
+          commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, object, harvest, unrollFactor, srcName, optName, functionName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -546,6 +620,15 @@ class EqcheckHandler {
       //}
       //console.log("commandIn = " + commandIn);
       if (commandIn === commandSubmitEqcheck || commandIn === commandPrepareEqcheck || commandIn === commandPointsToAnalysis) {
+        if (commandIn === commandSubmitEqcheck) {
+          console.log(`Submit received on ${dirPathIn}\n`);
+          console.log(`src_etfg = ${JSON.stringify(src_etfg)}\n`);
+        } else if (commandIn === commandPrepareEqcheck) {
+          console.log(`Prepare received on ${dirPathIn}\n`);
+        } else if (commandIn === commandPointsToAnalysis) {
+          console.log(`PointsTo received on ${dirPathIn}\n`);
+        }
+
         if (source === undefined) {
             logger.warn("No body found in request: source code missing", req);
             return next(new Error("Bad request"));
@@ -556,17 +639,17 @@ class EqcheckHandler {
             return next(new Error("Bad request"));
         }
 
-        const dirPath =  await this.newTempDir();
+        const dirPath =  (dirPathIn === undefined) ? await this.newTempDir() : dirPathIn;
         const dryRun = (commandIn === commandPrepareEqcheck);
         const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
 
-        this.run_eqcheck(source, optimized, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only)
+        this.run_eqcheck(source, src_etfg, optimized, object, harvest, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only)
             .then(
                 result => {
                     res.end(JSON.stringify({retcode: 0}));
                 },
                 error => {
-                    eqcheck_error(error, res);
+                    this.eqcheck_error(error, res);
                 });
         const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''});
         console.log(`response = ${response}\n`);
@@ -574,7 +657,7 @@ class EqcheckHandler {
       } else if (commandIn === commandPingEqcheck) {
         console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
         const ret = await this.getOutputChunk(dirPathIn, offsetIn);
-        const runStatusXML = await this.getRunningStatus(dirPathIn);
+        var runStatus = await this.getRunningStatus(dirPathIn);
         const offsetNew = ret[0];
         let chunkXML_orig = ret[1];
         let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
@@ -587,18 +670,10 @@ class EqcheckHandler {
             chunkObj = result;
         });
 
-        var runStatus;
-        xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
-          runStatus = result;
-        });
-
-        if (runStatus !== undefined && runStatus !== null) {
+        if (runStatus !== undefined && runStatus !== null && runStatus.running_status !== undefined) {
           const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
           if (runStatus.running_status.status_flag === runStateStatusRunning) {
-            const runStatusXML = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
-            xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
-              runStatus = result;
-            });
+            runStatus = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
             if (runStatus.running_status.status_flag === runStateStatusRunning && !pidRunning) {
               console.log(`Setting status_flag to terminated`);
               runStatus.running_status.status_flag = runStateStatusTerminated;
@@ -627,20 +702,23 @@ class EqcheckHandler {
         return;
       } else if (commandIn === commandObtainFunctionListsAfterPreparePhase) {
         console.log('obtainFunctionListsAfterPreparePhase received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
-        const runStatusXML = await this.getRunningStatus(dirPathIn);
-        var runStatus;
-        xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
-          runStatus = result;
-        });
-        console.log(`runStatus = ${JSON.stringify(runStatus)}\n`);
-        console.log(`running_status = ${JSON.stringify(runStatus.running_status)}`);
-        console.log(`dry_run_info = ${JSON.stringify(runStatus.running_status.dry_run_info)}`);
-        console.log(`common_functions = ${JSON.stringify(runStatus.running_status.dry_run_info[0].common_functions)}`);
+        const runStatus = await this.getRunningStatus(dirPathIn);
+        const objectFilename = runStatus.running_status.dst_filename + ".o";
+        const harvestFilename = runStatus.running_status.dst_filename + ".o.harvest";
+        //console.log(`runStatus = ${JSON.stringify(runStatus)}\n`);
+        //console.log(`objectFilename = ${objectFilename}\n`);
+        //console.log(`harvestFilename = ${harvestFilename}\n`);
+        //console.log(`running_status = ${JSON.stringify(runStatus.running_status)}`);
+        //console.log(`dry_run_info = ${JSON.stringify(runStatus.running_status.dry_run_info)}`);
+        //console.log(`common_functions = ${JSON.stringify(runStatus.running_status.dry_run_info[0].common_functions)}`);
+        const object = await this.readBuffer(objectFilename);
+        const harvest = await this.readBuffer(harvestFilename);
         const common = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].common_functions[0]);
         const src_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].src_only_functions[0]);
         const dst_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].dst_only_functions[0]);
-        console.log(`common = ${common}, src_only = ${src_only}, dst_only = ${dst_only}`);
-        const responseStr = JSON.stringify({ common: common, src_only: src_only, dst_only: dst_only });
+        //console.log(`harvest = ${harvest}\n`);
+        //console.log(`common = ${common}, src_only = ${src_only}, dst_only = ${dst_only}`);
+        const responseStr = JSON.stringify({ harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only });
         res.end(responseStr);
         return;
       } else if (commandIn === commandObtainProof) {
@@ -659,23 +737,20 @@ class EqcheckHandler {
         res.end(proofStr);
         return;
       } else if (commandIn === commandObtainSrcFiles) {
-        const src_files_json = await getSrcFiles(this.dirPathIn);
-        const src_files_str = JSON.stringify(src_file_json);
+        //console.log('commandObtainSrcFiles received with dirPathIn ', dirPathIn);
+        const src_files_json = await this.getSrcFiles(dirPathIn);
+        const src_files_str = JSON.stringify(src_files_json);
+        //console.log(`responding with dirPathIn ${src_files_str}\n`);
         res.end(src_files_str);
         return;
       } else if (commandIn === commandObtainDstFiles) {
-        const dst_files_json = await getDstFiles(this.dirPathIn);
-        const dst_files_str = JSON.stringify(dst_file_json);
+        const dst_files_json = await this.getDstFiles(dirPathIn);
+        const dst_files_str = JSON.stringify(dst_files_json);
         res.end(dst_files_str);
         return;
       } else if (commandIn === commandCancelEqcheck) {
         console.log('CancelEqcheck received with dirPathIn ', dirPathIn);
-        const runStatusXML = await this.getRunningStatus(dirPathIn);
-
-        var runStatus;
-        xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
-          runStatus = result;
-        });
+        const runStatus = await this.getRunningStatus(dirPathIn);
 
         if (runStatus !== undefined && runStatus !== null) {
           console.log(`killing runStatus.pid = ${runStatus.running_status.pid}\n`);

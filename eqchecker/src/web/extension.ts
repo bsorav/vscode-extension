@@ -281,8 +281,11 @@ class Eqchecker {
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           dirPath: undefined,
           functionName: undefined,
+          src_etfg: undefined,
+          harvest: undefined,
+          object: undefined
         };
-    var jsonRequest = JSON.stringify(request);
+    const jsonRequest = JSON.stringify(request);
     //console.log(`jsonRequest = ${jsonRequest}\n`);
     const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
 
@@ -293,7 +296,7 @@ class Eqchecker {
 
     request.dirPath = dirPath;
 
-    const {common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+    const {harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
 
     //console.log(`common = ${common}`);
 
@@ -317,6 +320,15 @@ class Eqchecker {
       const msg = this.createWarningMessageFromFunctionList('second', dst_only);
       vscode.window.showInformationMessage(msg);
     }
+
+    request.serverCommand = commandPointsToAnalysis;
+    const jsonRequest2 = JSON.stringify(request);
+    await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
+
+    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath});
+    const response = (await this.RequestResponseForCommand(jsonRequest));
+    const etfg = response.etfg;
+
     var viewRequestRemove =
         { type: 'removeEqcheckInView',
           origRequest: request,
@@ -331,6 +343,9 @@ class Eqchecker {
       //console.log(`functionName = ${functionName}\n`);
       funRequest.serverCommand = commandSubmitEqcheck;
       funRequest.dirPath = undefined;
+      funRequest.src_etfg = etfg;
+      funRequest.harvest = harvest;
+      funRequest.object = object;
       funRequest.functionName = functionName;
       const jsonRequest = JSON.stringify(funRequest);
       funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));

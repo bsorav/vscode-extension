@@ -333,8 +333,13 @@ class Eqchecker {
 
     const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath2});
     const response = (await this.RequestResponseForCommand(jsonRequest3));
-    console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
-    const etfg = response.etfg;
+    //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
+    const src_etfg = response.etfg;
+
+    const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: dirPath2});
+    const response2 = (await this.RequestResponseForCommand(jsonRequest4));
+    //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
+    const dst_etfg = response2.etfg;
 
     const viewRequestRemove2 =
         { type: 'removeEqcheckInView',
@@ -350,7 +355,8 @@ class Eqchecker {
       //console.log(`functionName = ${functionName}\n`);
       funRequest.serverCommand = commandSubmitEqcheck;
       funRequest.dirPath = undefined;
-      funRequest.src_etfg = etfg;
+      funRequest.src_etfg = src_etfg;
+      funRequest.dst_etfg = dst_etfg;
       funRequest.harvest = harvest;
       funRequest.object = object;
       funRequest.functionName = functionName;

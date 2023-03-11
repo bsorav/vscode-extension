@@ -341,6 +341,7 @@ class EqcheckHandler {
             if (!fs.existsSync(optimizedFilename)) {
               fs.writeFileSync(optimizedFilename, optimized)
             }
+            const src_dst_names = ['-src-filename', sourceFilename, '-dst-filename', optimizedFilename];
             if (src_etfg !== undefined) {
               console.log(`writing the src_etfg file`);
               fs.writeFileSync(etfgFilename, src_etfg);
@@ -359,7 +360,6 @@ class EqcheckHandler {
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
-            const src_dst_names = ['-src-filename', sourceFilename, '-dst-filename', optimizedFilename];
             var dryRunArg = [];
             if (dryRun) {
               dryRunArg = ['--dry-run'];

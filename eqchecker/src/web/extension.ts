@@ -488,7 +488,7 @@ class Eqchecker {
   private static async openSourceFiles() : Promise<eqcheckMenuEntry>
   {
     const options = {
-      canSelectMany: true,
+      canSelectMany: false,
       openLabel: 'Open Source Code File(s)',
       filters: {
         'Source Code': ['c'],
@@ -508,7 +508,7 @@ class Eqchecker {
 
       // Ask the user to select the next source code file.
       var dst_options = {
-        canSelectMany: true,
+        canSelectMany: false,
         openLabel: 'Open Destination Code File(s)',
       };
 

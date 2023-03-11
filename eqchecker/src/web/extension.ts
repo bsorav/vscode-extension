@@ -321,6 +321,12 @@ class Eqchecker {
       vscode.window.showInformationMessage(msg);
     }
 
+    const viewRequestRemove =
+        { type: 'removeEqcheckInView',
+          origRequest: request,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+
     request.serverCommand = commandPointsToAnalysis;
     const jsonRequest2 = JSON.stringify(request);
     const dirPath2 = await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
@@ -330,11 +336,11 @@ class Eqchecker {
     console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
     const etfg = response.etfg;
 
-    var viewRequestRemove =
+    const viewRequestRemove2 =
         { type: 'removeEqcheckInView',
           origRequest: request,
         };
-    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
 
     var funRequestPromises = [];
     for (let i = 0; i < common.length; i++) {

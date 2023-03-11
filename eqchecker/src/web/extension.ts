@@ -174,7 +174,7 @@ class Eqchecker {
         }
       })
       .then(function (response) {
-	resolve(response.json());
+        resolve(response.json());
       })
       .catch(function(err) {
         console.log(`error = ${JSON.stringify(err)}\n`);
@@ -258,14 +258,8 @@ class Eqchecker {
       //  entry.source1Text = doc.getText();
       //});
     }
-    /*if (entry.source2Text === undefined) */{
+    if (entry.source2Uri !== undefined) {
       entry.source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
-      //console.log(`source2Text = ${entry.source2Text}\n`);
-      //await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
-      //  //console.log("opened source2Uri");
-      //  if (doc.isDirty) {}
-      //  entry.source2Text = doc.getText();
-      //});
     }
 
     //console.log('source = ' + source);
@@ -296,7 +290,7 @@ class Eqchecker {
 
     request.dirPath = dirPath;
 
-    const {harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+    const {dst_filename: dst_filename, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
 
     //console.log(`common = ${common}`);
 
@@ -533,6 +527,14 @@ class Eqchecker {
     let ret : eqcheckMenuEntry[] = [];
     let i = 0;
     cSources.forEach(function (cSource1) {
+
+      ret.push({ source1Uri: cSource1Uri,
+                 source1Name: posix.basename(cSource1Uri, undefined),
+                 source1Text: undefined/*cSource1.Text*/,
+                 source2Uri: undefined,
+                 source2Name: undefined,
+                 source2Text: undefined/*asmSource.Text*/});
+
       //console.log("cSource1Label = " + cSource1.fileName);
       /*if (cSource1.input instanceof vscode.TabInputText) */{
         //let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
@@ -599,7 +601,11 @@ class Eqchecker {
   private static getQuickPickItemsFromEqcheckMenuEntries(menuItems : eqcheckMenuEntry[]) : string[] {
     //console.log("calling menuItems.map(). menuItems.length = " + menuItems.length.toString());
     let ret = menuItems.map(function (menuItem) {
-                return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
+                if (menuItem.source2Name !== undefined) {
+                  return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
+                } else {
+                  return `Compile ${menuItem.source1Name}`;
+                }
               });
     ret.push('Pick source/assembly files from the filesystem');
     //console.log("returned from menuItems.map(). ret.length = " + ret.length.toString());

@@ -55,7 +55,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
             case 'addEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name/*, message.source1Text*/, message.source2Uri, message.source2Name/*, message.source2Text*/, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
@@ -548,10 +548,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
         _dirPath,
         _source1Uri,
         _source1Name,
-        _source1Text,
+        //_source1Text,
         _source2Uri,
         _source2Name,
-        _source2Text,
+        //_source2Text,
         _functionName,
         _statusMessage,
         _runState
@@ -560,10 +560,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
         dirPath: _dirPath,
         source1Uri: _source1Uri,
         source1Name: _source1Name,
-        source1Text: _source1Text,
+        //source1Text: _source1Text,
         source2Uri: _source2Uri,
         source2Name: _source2Name,
-        source2Text: _source2Text,
+        //source2Text: _source2Text,
         functionName: _functionName,
         statusMessage : _statusMessage,
         runState: _runState,

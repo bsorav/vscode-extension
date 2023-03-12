@@ -37,10 +37,10 @@ const runStateStatusTerminated = 'terminated';
 interface eqcheckMenuEntry {
   source1Uri: string;
   source1Name: string;
-  source1Text: string;
+  //source1Text: string;
   source2Uri: string;
   source2Name: string;
-  source2Text: string;
+  //source2Text: string;
 }
 
 // This method is called when your extension is activated
@@ -251,7 +251,7 @@ class Eqchecker {
     }
     /*if (entry.source1Text === undefined) */{
       //console.log("calling openTextDocument");
-      entry.source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
+      const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
       //console.log(`source1Text = ${entry.source1Text}\n`);
       //await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
       //  //console.log("opened source1Uri");
@@ -259,8 +259,9 @@ class Eqchecker {
       //  entry.source1Text = doc.getText();
       //});
     }
+    var source2Text;
     if (entry.source2Uri !== undefined) {
-      entry.source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
+      source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
     }
 
     //console.log('source = ' + source);
@@ -269,10 +270,10 @@ class Eqchecker {
         { serverCommand: commandPrepareEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
-          source1Text: entry.source1Text,
+          source1Text: source1Text,
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
-          source2Text: entry.source2Text,
+          source2Text: source2Text,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           dirPath: undefined,
           functionName: undefined,
@@ -292,7 +293,7 @@ class Eqchecker {
 
     request.dirPath = dirPath;
 
-    const {dst_filename: dst_filename_arr, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
 
     const dst_filename = dst_filename_arr.toString();
     if (dst_filename === "") {
@@ -300,9 +301,12 @@ class Eqchecker {
       return false;
     }
 
+    const dst_filename_is_object = (dst_filename_is_object_str == "true");
+
     if (request.source2Uri === undefined) {
       request.source2Name = posix.basename(dst_filename.toString(), undefined);
       request.source2Uri = dst_filename.toString();
+      request.dstFilenameIsObject = dst_filename_is_object;
       request.source2Text = object;
       console.log(`set source2 to ${request.source2Name}\n`);
     }
@@ -384,7 +388,7 @@ class Eqchecker {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
     const response = (await this.RequestResponseForCommand(jsonRequest));
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
-    const proof = response.proof;
+    //const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
     return proof;
   }
@@ -763,9 +767,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-  async eqcheckViewProof(webview: vscode.Webview, dirPath, src_code, dst_code)
+  async eqcheckViewProof(webview: vscode.Webview, dirPath/*, src_code, dst_code*/)
   {
-    var proof = await Eqchecker.obtainProofFromServer(dirPath);
+    const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
+    const src_code = proof_response.src_code;
+    const dst_code = proof_response.dst_code;
+    const proof = proof_response.proof;
     //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
     const graph_hierarchy = proof["graph-hierarchy"];
     const corr_graph = graph_hierarchy["corr_graph"];
@@ -943,9 +950,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
           console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
-          const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
-          const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
-          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, source1Str, source2Str);
+          //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
+          //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
+          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath/*, source1Str, source2Str*/);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
           this.panels[data.eqcheck.dirPath] = new_panels;

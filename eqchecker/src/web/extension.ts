@@ -249,16 +249,7 @@ class Eqchecker {
     if (entry === undefined || entry.source1Uri === undefined) {
       return false;
     }
-    /*if (entry.source1Text === undefined) */{
-      //console.log("calling openTextDocument");
-      const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
-      //console.log(`source1Text = ${entry.source1Text}\n`);
-      //await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
-      //  //console.log("opened source1Uri");
-      //  if (doc.isDirty) {}
-      //  entry.source1Text = doc.getText();
-      //});
-    }
+    const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
     var source2Text;
     if (entry.source2Uri !== undefined) {
       source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
@@ -274,6 +265,7 @@ class Eqchecker {
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
           source2Text: source2Text,
+          dstFilenameIsObject: undefined,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           dirPath: undefined,
           functionName: undefined,
@@ -390,7 +382,7 @@ class Eqchecker {
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
     //const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
-    return proof;
+    return response;
   }
 
   private static async obtainFunctionListsAfterPreparePhase(dirPathIn)
@@ -536,10 +528,11 @@ class Eqchecker {
     }
     return { source1Uri: srcFileUri,
              source1Name: srcFileName,
-             source1Text: undefined/*srcText*/,
+             //source1Text: undefined/*srcText*/,
              source2Uri: dstFileUri,
              source2Name: dstFileName,
-             source2Text: undefined/*dstText*/};
+             //source2Text: undefined/*dstText*/
+            };
   }
 
   private static genLikelyEqcheckPairs(cSources, asmSources) : eqcheckMenuEntry[]
@@ -550,10 +543,11 @@ class Eqchecker {
 
       ret.push({ source1Uri: cSource1.Uri,
                  source1Name: posix.basename(cSource1.Uri, undefined),
-                 source1Text: undefined/*cSource1.Text*/,
+                 //source1Text: undefined/*cSource1.Text*/,
                  source2Uri: undefined,
                  source2Name: undefined,
-                 source2Text: undefined/*asmSource.Text*/});
+                 //source2Text: undefined/*asmSource.Text*/
+                });
 
       //console.log("cSource1Label = " + cSource1.fileName);
       /*if (cSource1.input instanceof vscode.TabInputText) */{
@@ -568,10 +562,11 @@ class Eqchecker {
             //console.log("asmSourceUri = " + asmSourceUri);
             ret.push({ source1Uri: cSource1Uri,
                        source1Name: posix.basename(cSource1Uri, undefined),
-                       source1Text: undefined/*cSource1.Text*/,
+                       //source1Text: undefined/*cSource1.Text*/,
                        source2Uri: asmSourceUri,
                        source2Name: posix.basename(asmSourceUri, undefined),
-                       source2Text: undefined/*asmSource.Text*/});
+                       //source2Text: undefined/*asmSource.Text*/
+                      });
             //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
             //ret.push(pr);
           }
@@ -584,10 +579,11 @@ class Eqchecker {
             if (cSource1Uri !== cSource2Uri) {
               ret.push({ source1Uri: cSource1Uri,
                          source1Name: posix.basename(cSource1Uri, undefined),
-                         source1Text: undefined/*cSource1.Text*/,
+                         //source1Text: undefined/*cSource1.Text*/,
                          source2Uri: cSource2Uri,
                          source2Name: posix.basename(cSource2Uri, undefined),
-                         source2Text: undefined/*cSource2.Text*/});
+                         //source2Text: undefined/*cSource2.Text*/
+                        });
               //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
               //ret.push(pr);
             }

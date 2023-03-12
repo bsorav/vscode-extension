@@ -39,6 +39,10 @@ const runStateStatusSafetyCheckFailed = 'safety_check_failed';
 const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';
 
+function def(a) {
+  return (a === undefined) ? "undef" : "def";
+}
+
 function initialise(/*compilerEnv*/) {
     if (hasSetUpAutoClean) return;
     hasSetUpAutoClean = true;
@@ -138,7 +142,7 @@ class EqcheckHandler {
             dirPathIn = req.body.dirPathIn;
             offsetIn = req.body.offsetIn;
             srcName = "src.".concat(req.body.source1Name);
-            optName = "opt.".concat(req.body.source2Name);
+            optName = (req.body.source2Name === undefined) ? undefined : "opt.".concat(req.body.source2Name);
             functionName = req.body.functionName;
             //if (req.body.bypassCache)
             //    bypassCache = true;
@@ -164,7 +168,8 @@ class EqcheckHandler {
             dirPathIn = req.dirPathIn;
             offsetIn = req.offsetIn;
             srcName = "src.".concat(req.source1Name);
-            optName = "opt.".concat(req.source2Name);
+            //optName = "opt.".concat(req.source2Name);
+            optName = (req.source2Name === undefined) ? undefined : "opt.".concat(req.source2Name);
             functionName = req.functionName;
             //options = req.query.options;
             //// By default we get the default filters.
@@ -258,8 +263,14 @@ class EqcheckHandler {
     }
 
     get_object_filename_for_dst_filename(dst_filename, dst_filename_is_object) {
-      if (dst_filename_is_object === true) {
-        return dst_filename;
+      //const true_str = "true";
+      //console.log(`dst_filename_is_object = ${dst_filename_is_object}`);
+      //console.log(`(dst_filename_is_object===true) = ${dst_filename_is_object === true}`);
+      //console.log(`(dst_filename_is_object===\"true\") = ${dst_filename_is_object === true_str}`);
+      //console.log(`(dst_filename_is_object==true) = ${dst_filename_is_object == true}`);
+      //console.log(`(dst_filename_is_object==\"true\") = ${dst_filename_is_object == true_str}`);
+      if (dst_filename_is_object === true || dst_filename_is_object === "true" || dst_filename_is_object == "true") {
+        return dst_filename + "";
       } else {
         return dst_filename + ".o";
       }
@@ -318,6 +329,8 @@ class EqcheckHandler {
         const harvest = this.bufferToUint8Array(harvestJSON);
         const object = this.bufferToUint8Array(objectJSON);
 
+        console.log(`source = ${def(source)}, optimized = ${def(optimized)}, src_etfg = ${def(src_etfg)}, dst_etfg = ${def(dst_etfg)}, harvest = ${def(harvest)}, object = ${def(object)}\n`);
+
         //console.log(`harvestJSON = ${JSON.stringify(harvestJSON)}\n`);
         //console.log(`harvest = ${harvest}\n`);
 
@@ -336,8 +349,8 @@ class EqcheckHandler {
         //const sourceFilename = this.get_src_filename(dirPath);
         var sourceFilename = path.join(dirPath, srcName);
         const src_etfgFilename = sourceFilename + ".etfg";
-        const dst_etfgFilename = optimizedFilename + ".etfg";
         var optimizedFilename = (optName === undefined) ? undefined : path.join(dirPath, optName);
+        const dst_etfgFilename = (optimizedFilename === undefined) ? undefined : optimizedFilename + ".etfg";
         const objFilename = (optimizedFilename === undefined) ? undefined : this.get_object_filename_for_dst_filename(optimizedFilename, (optimized === object));
         const harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
         const outFilename = this.get_outfilename(dirPath);
@@ -351,28 +364,31 @@ class EqcheckHandler {
             if (!fs.existsSync(sourceFilename)) {
               fs.writeFileSync(sourceFilename, sourceTxt);
             }
-            //console.log('sourceFilename = ', sourceFilename);
+            console.log('optimizedFilename = ', optimizedFilename);
+            console.log(`optimized = ${def(optimized)}`);
             if (optimizedFilename !== undefined && !fs.existsSync(optimizedFilename)) {
               fs.writeFileSync(optimizedFilename, optimized)
             }
             const src_names = ['-src-filename', sourceFilename];
             const dst_names = (optimizedFilename === undefined) ? [] : ['-dst-filename', optimizedFilename];
             if (src_etfg !== undefined) {
-              console.log(`writing the src_etfg file`);
+              console.log(`writing the src_etfg file to ${src_etfgFilename}`);
               fs.writeFileSync(src_etfgFilename, src_etfg);
               sourceFilename = src_etfgFilename;
             }
             if (dst_etfg !== undefined) {
-              console.log(`writing the dst_etfg file`);
               fs.writeFileSync(dst_etfgFilename, dst_etfg);
+              console.log(`writing the dst_etfg file to ${dst_etfgFilename}`);
               optimizedFilename = dst_etfgFilename;
             } else if (harvest !== undefined) {
               //console.log(`harvest = ${JSON.stringify(harvest)}\n`);
               fs.writeFileSync(harvestFilename, harvest);
+              console.log(`writing harvest output to ${harvestFilename}`);
               optimizedFilename = harvestFilename;
             }
             var dstObjArg = [];
             if (object !== undefined) {
+              console.log(`writing object to ${harvestFilename}`);
               fs.writeFileSync(objFilename, object);
               dstObjArg = ['--dst-object', objFilename];
             }
@@ -416,13 +432,14 @@ class EqcheckHandler {
     }
 
     async readBuffer(filename, start = 0, bufferSize = undefined, max_chunksize = 8192) {
+      console.log(`readBuffer: filename = ${filename}`);
       let fd;
       try {
         fd = await fs.open(filename, 'r');
       } catch (err) {
         console.log(`file not found ${filename}`);
         console.error(err);
-        return "";
+        return undefined;
       }
       let stats = fs.fstatSync(fd);
       if (stats.size === undefined) {
@@ -450,6 +467,7 @@ class EqcheckHandler {
     async getProofXML(dirPath) {
       let proofFilename = this.get_proof_filename(dirPath) + ".xml";
       var buffer = await this.readBuffer(proofFilename);
+      if (buffer === undefined) return undefined;
       return buffer.toString();
     }
 
@@ -469,7 +487,7 @@ class EqcheckHandler {
     }
 
     async getDstFiles(dirPath) {
-      const runStatus = await this.getRunningStatus(dirPathIn);
+      const runStatus = await this.getRunningStatus(dirPath);
       const dstFilename = runStatus.running_status.dst_filename.join();
       const dst = await this.readBuffer(dstFilename);
       const objFilename = this.get_object_filename_for_dst_filename(dstFilename, runStatus.running_status.dst_filename_is_object);
@@ -486,8 +504,13 @@ class EqcheckHandler {
         //let irFilename = this.get_ir_filename(dirPath, "opt");
         let etfgFilename = dstFilename + ".etfg";
 
+        console.log(`getDstFiles: etfgFilename = ${etfgFilename}`);
         //const ir = await this.readBuffer(irFilename);
-        const etfg = await this.readBuffer(etfgFilename);
+        var etfg;
+        if (fs.existsSync(etfgFilename)) {
+          console.log(`getDstFiles: etfgFilename = ${etfgFilename} exists. reading etfg`);
+          etfg = await this.readBuffer(etfgFilename);
+        }
         return { dst: dst/*, ir: ir*/, etfg: etfg };
       }
     }
@@ -522,7 +545,9 @@ class EqcheckHandler {
       //}
       //const max_chunksize = 8192; //8192-byte intervals
       var buffer = await this.readBuffer(outFilename, offset);
-
+      if (buffer === undefined) {
+        return [offset, ""];
+      }
       //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
       //let chunkBuf = buffer.slice(0, bufferSize);
       let chunk = buffer.toString();
@@ -643,12 +668,12 @@ class EqcheckHandler {
       //console.log("commandIn = " + commandIn);
       if (commandIn === commandSubmitEqcheck || commandIn === commandPrepareEqcheck || commandIn === commandPointsToAnalysis) {
         if (commandIn === commandSubmitEqcheck) {
-          console.log(`Submit received on ${dirPathIn}\n`);
+          console.log(`Submit received on ${dirPathIn}: source = ${def(source)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}\, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
           //console.log(`src_etfg = ${JSON.stringify(src_etfg)}\n`);
         } else if (commandIn === commandPrepareEqcheck) {
-          console.log(`Prepare received on ${dirPathIn}\n`);
+          console.log(`Prepare received on ${dirPathIn}: source = ${def(source)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}\, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
         } else if (commandIn === commandPointsToAnalysis) {
-          console.log(`PointsTo received on ${dirPathIn}\n`);
+          console.log(`PointsTo received on ${dirPathIn}: source = ${def(source)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}\, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
         }
 
         if (source === undefined) {
@@ -726,10 +751,17 @@ class EqcheckHandler {
         console.log('obtainFunctionListsAfterPreparePhase received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
         const runStatus = await this.getRunningStatus(dirPathIn);
         const dstFilename = runStatus.running_status.dst_filename;
-        const objectFilename = this.get_object_filename_for_dst_filename(dstFilename, runStatus.running_status.dst_filename_is_object);
+        if (dstFilename === "") {
+          res.end(JSON.stringify({ dst_filename: dstFilename }));
+          return;
+        }
+        const dstFilenameIsObject = runStatus.running_status.dst_filename_is_object;
+        const objectFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
         const harvestFilename = this.get_harvest_filename_for_object_filename(objectFilename);
         //console.log(`runStatus = ${JSON.stringify(runStatus)}\n`);
-        //console.log(`objectFilename = ${objectFilename}\n`);
+        console.log(`dstFilename = ${dstFilename}\n`);
+        console.log(`dstFilenameIsObject = ${dstFilenameIsObject}\n`);
+        console.log(`objectFilename = ${objectFilename}\n`);
         //console.log(`harvestFilename = ${harvestFilename}\n`);
         //console.log(`running_status = ${JSON.stringify(runStatus.running_status)}`);
         //console.log(`dry_run_info = ${JSON.stringify(runStatus.running_status.dry_run_info)}`);
@@ -760,13 +792,14 @@ class EqcheckHandler {
         res.end(proofStr);
         return;
       } else if (commandIn === commandObtainSrcFiles) {
-        //console.log('commandObtainSrcFiles received with dirPathIn ', dirPathIn);
+        console.log('commandObtainSrcFiles received with dirPathIn ', dirPathIn);
         const src_files_json = await this.getSrcFiles(dirPathIn);
         const src_files_str = JSON.stringify(src_files_json);
         //console.log(`responding with dirPathIn ${src_files_str}\n`);
         res.end(src_files_str);
         return;
       } else if (commandIn === commandObtainDstFiles) {
+        console.log('commandObtainDstFiles received with dirPathIn ', dirPathIn);
         const dst_files_json = await this.getDstFiles(dirPathIn);
         const dst_files_str = JSON.stringify(dst_files_json);
         res.end(dst_files_str);

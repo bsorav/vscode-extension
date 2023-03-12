@@ -292,7 +292,7 @@ class Eqchecker {
 
     request.dirPath = dirPath;
 
-    const {dst_filename_arr: dst_filename, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+    const {dst_filename: dst_filename_arr, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
 
     const dst_filename = dst_filename_arr.toString();
     if (dst_filename === "") {

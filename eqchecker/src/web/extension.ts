@@ -203,7 +203,8 @@ class Eqchecker {
           origRequest.dirPath = dirPath;
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
           Eqchecker.statusMap[dirPath] = statusEqcheckPinging;
-          vscode.window.showInformationMessage(`Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`);
+          const msg = (origRequest.source2Uri === undefined) ? `Compiling ${origRequest.source1Uri}` : `Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`;
+          vscode.window.showInformationMessage(msg);
         } else {
           //console.log("response received.\n");
         }
@@ -245,7 +246,7 @@ class Eqchecker {
     //console.log("addEqcheck() called\n");
     //var source : string;
     //var optimized : string;
-    if (entry === undefined || entry.source1Uri === undefined || entry.source2Uri === undefined) {
+    if (entry === undefined || entry.source1Uri === undefined) {
       return false;
     }
     /*if (entry.source1Text === undefined) */{
@@ -276,6 +277,7 @@ class Eqchecker {
           dirPath: undefined,
           functionName: undefined,
           src_etfg: undefined,
+          dst_etfg: undefined,
           harvest: undefined,
           object: undefined
         };
@@ -284,13 +286,26 @@ class Eqchecker {
     const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
 
     if (dirPath === "") {
-      //console.log('returning false');
+      console.log('returning false because dirPath = empty-string');
       return false;
     }
 
     request.dirPath = dirPath;
 
-    const {dst_filename: dst_filename, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+    const {dst_filename_arr: dst_filename, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+
+    const dst_filename = dst_filename_arr.toString();
+    if (dst_filename === "") {
+      console.log('returning false because dst_filename === ""');
+      return false;
+    }
+
+    if (request.source2Uri === undefined) {
+      request.source2Name = posix.basename(dst_filename.toString(), undefined);
+      request.source2Uri = dst_filename.toString();
+      request.source2Text = object;
+      console.log(`set source2 to ${request.source2Name}\n`);
+    }
 
     //console.log(`common = ${common}`);
 
@@ -334,6 +349,7 @@ class Eqchecker {
     const response2 = (await this.RequestResponseForCommand(jsonRequest4));
     //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
     const dst_etfg = response2.etfg;
+    console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
 
     const viewRequestRemove2 =
         { type: 'removeEqcheckInView',
@@ -458,7 +474,7 @@ class Eqchecker {
       } else {
         eqcheckPair = eqcheckPairs[result];
       }
-      console.log(`eqcheckPair = ${eqcheckPair}\n`);
+      console.log(`eqcheckPair = ${JSON.stringify(eqcheckPair)}\n`);
       if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
         vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPair.source1Uri} -> ${eqcheckPair.source2Uri}`);
       }
@@ -528,8 +544,8 @@ class Eqchecker {
     let i = 0;
     cSources.forEach(function (cSource1) {
 
-      ret.push({ source1Uri: cSource1Uri,
-                 source1Name: posix.basename(cSource1Uri, undefined),
+      ret.push({ source1Uri: cSource1.Uri,
+                 source1Name: posix.basename(cSource1.Uri, undefined),
                  source1Text: undefined/*cSource1.Text*/,
                  source2Uri: undefined,
                  source2Name: undefined,

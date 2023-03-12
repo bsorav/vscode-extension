@@ -180,7 +180,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
             var thd = document.createElement("td");
             //var thd_text = document.createTextNode(`${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`);
             //thd.appendChild(thd_text);
-            if (eqcheck.functionName === undefined) {
+            if (eqcheck.source2Name === undefined) {
+              thd.innerHTML = `Compiling ${eqcheck.source1Name}`;
+            } else if (eqcheck.functionName === undefined) {
               thd.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
             } else {
               thd.innerHTML = `${eqcheck.functionName}: ${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;

@@ -369,10 +369,10 @@ function drawNetwork(cfg) {
         to_label = "exit";
       }
 
-      const label = `${from_label} -> ${to_label}`;
+      //const label = `${from_label} -> ${to_label}`;
 
       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
-      return {from: from_idx, to: to_idx, label: label};
+      return {from: from_idx, to: to_idx/*, label: label*/};
     }));
 
     var network = new vis.Network(document.getElementById('cfg'), {
@@ -464,6 +464,7 @@ network.on('selectEdge', function(properties) {
         edge: edge,
         src_subprogram_info: g_src_subprogram_info,
         src_ir_subprogram_info: g_src_ir_subprogram_info,
+        dst_subprogram_info: g_dst_subprogram_info,
         dst_ir_subprogram_info: g_dst_ir_subprogram_info,
         src_nodeMap: g_src_nodeMap,
         src_ir_nodeMap: g_src_ir_nodeMap,

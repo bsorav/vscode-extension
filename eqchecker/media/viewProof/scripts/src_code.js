@@ -446,6 +446,7 @@ window.addEventListener('message', async event => {
             break;
         case "data":
             code = message.code;
+            //console.log(`code = ${code}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             if (message.syntax_type === "asm") {
               codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');

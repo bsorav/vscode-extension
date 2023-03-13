@@ -269,6 +269,8 @@ class Eqchecker {
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           dirPath: undefined,
           functionName: undefined,
+          src_ir: undefined,
+          dst_ir: undefined,
           src_etfg: undefined,
           dst_etfg: undefined,
           harvest: undefined,
@@ -340,11 +342,13 @@ class Eqchecker {
     const response = (await this.RequestResponseForCommand(jsonRequest3));
     //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
     const src_etfg = response.etfg;
+    const src_ir = response.ir;
 
     const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: dirPath2});
     const response2 = (await this.RequestResponseForCommand(jsonRequest4));
     //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
     const dst_etfg = response2.etfg;
+    const dst_ir = response2.ir;
     console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
 
     const viewRequestRemove2 =
@@ -363,6 +367,8 @@ class Eqchecker {
       funRequest.dirPath = undefined;
       funRequest.src_etfg = src_etfg;
       funRequest.dst_etfg = dst_etfg;
+      funRequest.src_ir = src_ir;
+      funRequest.dst_ir = dst_ir;
       funRequest.harvest = harvest;
       funRequest.object = object;
       funRequest.functionName = functionName;
@@ -766,8 +772,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   async eqcheckViewProof(webview: vscode.Webview, dirPath/*, src_code, dst_code*/)
   {
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
+    //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
-    const dst_code = proof_response.dst_code;
+    //console.log(`src_code = ${src_code}\n`);
+    const dst_code = proof_response.dst_code.toString();
+    const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir.toString();
+    const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir.toString();
     const proof = proof_response.proof;
     //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
     const graph_hierarchy = proof["graph-hierarchy"];
@@ -818,8 +828,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
     const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
 
     // Set the webview content
 
@@ -827,9 +839,38 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     panel_src_code.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
     panel_dst_code.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
 
+    var panel_src_ir, panel_dst_ir;
+    //if (src_ir !== undefined) {
+    //  const panel_src_ir =
+    //    vscode.window.createWebviewPanel(
+    //      'src_ir',
+    //      'Source IR',
+    //      vscode.ViewColumn.One,
+    //      {
+    //        enableScripts: true,
+    //        retainContextWhenHidden: true
+    //      }
+    //    );
+    //  panel_src_ir.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
+    //}
+    //if (dst_ir !== undefined) {
+    //  panel_dst_ir =
+    //    vscode.window.createWebviewPanel(
+    //      'dst_ir',
+    //      'Destination IR',
+    //      vscode.ViewColumn.Three,
+    //      {
+    //        enableScripts: true,
+    //        retainContextWhenHidden: true
+    //      }
+    //    );
+    //  panel_dst_ir.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
+    //}
     let panel_prd_loaded = false;
     let panel_src_code_loaded = false;
     let panel_dst_code_loaded = false;
+    let panel_src_ir_loaded = (panel_src_ir === undefined);
+    let panel_dst_ir_loaded = (panel_dst_ir === undefined);
 
     // Handle messages from the webview
     panel_prd.webview.onDidReceiveMessage(
@@ -858,9 +899,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             panel_src_code.webview.postMessage({
               command: "clear"
             });
+            if (panel_src_ir !== undefined) {
+              panel_src_ir.webview.postMessage({
+                command: "clear"
+              });
+            }
             panel_dst_code.webview.postMessage({
               command: "clear"
             });
+            if (panel_dst_ir !== undefined) {
+              panel_dst_ir.webview.postMessage({
+                command: "clear"
+              });
+            }
             break;
           default:
             break;
@@ -885,7 +936,22 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       Eqchecker.context.subscriptions
     );
 
-    // Handle messages from the webview
+    if (panel_src_ir !== undefined) {
+      panel_src_ir.webview.onDidReceiveMessage(
+        message => {
+          switch (message.command) {
+            case 'loaded':
+              //console.log("src-ir panel loaded.\n");
+              panel_src_ir_loaded = true;
+              //vscode.window.showErrorMessage(message.text);
+              break;
+          }
+        },
+        undefined,
+        Eqchecker.context.subscriptions
+      );
+    }
+
     panel_dst_code.webview.onDidReceiveMessage(
       message => {
         switch (message.command) {
@@ -900,8 +966,24 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       Eqchecker.context.subscriptions
     );
 
+    if (panel_dst_ir !== undefined) {
+      panel_dst_ir.webview.onDidReceiveMessage(
+        message => {
+          switch (message.command) {
+            case 'loaded':
+              //console.log("dst-ir panel loaded.\n");
+              panel_dst_ir_loaded = true;
+              //vscode.window.showErrorMessage(message.text);
+              break;
+          }
+        },
+        undefined,
+        Eqchecker.context.subscriptions
+      );
+    }
+
     async function waitForLoading(){
-      while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false) {
+      while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false || panel_src_ir_loaded === false || panel_dst_ir_loaded === false) {
           //console.log(`panel_{prd,src_code,dst_code}_loaded ${panel_prd_loaded} ${panel_src_code_loaded} ${panel_dst_code_loaded} is still false`);
           await Eqchecker.wait(1000);
       }
@@ -914,12 +996,18 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     panel_src_code.webview.postMessage({command: "data", code:src_code, syntax_type: "c/llvm"});
+    if (panel_src_ir !== undefined) {
+      panel_src_ir.webview.postMessage({command: "data", code:src_ir, syntax_type: "c/llvm"});
+    }
     if (dst_assembly === "") {
       panel_dst_code.webview.postMessage({command: "data", code:dst_code, syntax_type: "c/llvm"});
+      if (panel_dst_ir !== undefined) {
+        panel_dst_ir.webview.postMessage({command: "data", code:dst_ir, syntax_type: "c/llvm"});
+      }
     } else {
       panel_dst_code.webview.postMessage({command: "data", code:dst_assembly, syntax_type: "asm"});
     }
-    const new_panels = { prd: panel_prd, src_code: panel_src_code, dst_code: panel_dst_code };
+    const new_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
     return new_panels;
   }
@@ -945,7 +1033,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         case 'eqcheckViewProof': {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
-          console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
+          //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
           const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath/*, source1Str, source2Str*/);
@@ -960,12 +1048,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`HideProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
           //console.log(`HideProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
           //console.log(`HideProof received. this.panels[data.eqcheck.dirPath].length = ${this.panels[data.eqcheck.dirPath].length}\n`);
-          this.panels[data.eqcheck.dirPath].prd.dispose();
-          this.panels[data.eqcheck.dirPath].src_code.dispose();
-          this.panels[data.eqcheck.dirPath].dst_code.dispose();
-          //for (let i = 0; i < this.panels[data.eqcheck.dirPath].length; i++) {
-          //  this.panels[data.eqcheck.dirPath][i].dispose();
-          //}
+          const panel = this.panels[data.eqcheck.dirPath];
+          panel.prd.dispose();
+          panel.src_code.dispose();
+          panel.dst_code.dispose();
+          if (panel.src_ir !== undefined) {
+            panel.src_ir.dispose();
+          }
+          if (panel.dst_ir !== undefined) {
+            panel.dst_ir.dispose();
+          }
           break;
         }
         case 'startEqcheck': {

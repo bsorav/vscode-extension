@@ -109,7 +109,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, srcName, optName, functionName;
+        let commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName;
         if (req.is('json')) {
             // JSON-style request
             //console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -143,6 +143,7 @@ class EqcheckHandler {
             offsetIn = req.body.offsetIn;
             srcName = "src.".concat(req.body.source1Name);
             optName = (req.body.source2Name === undefined) ? undefined : "opt.".concat(req.body.source2Name);
+            dstFilenameIsObject = req.body.dstFilenameIsObject;
             functionName = req.body.functionName;
             //if (req.body.bypassCache)
             //    bypassCache = true;
@@ -170,6 +171,7 @@ class EqcheckHandler {
             srcName = "src.".concat(req.source1Name);
             //optName = "opt.".concat(req.source2Name);
             optName = (req.source2Name === undefined) ? undefined : "opt.".concat(req.source2Name);
+            dstFilenameIsObject = req.dstFilenameIsObject;
             functionName = req.functionName;
             //options = req.query.options;
             //// By default we get the default filters.
@@ -200,7 +202,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, srcName, optName, functionName};
+        return {commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName};
     }
 
     //splitArguments(options) {
@@ -269,7 +271,7 @@ class EqcheckHandler {
       //console.log(`(dst_filename_is_object===\"true\") = ${dst_filename_is_object === true_str}`);
       //console.log(`(dst_filename_is_object==true) = ${dst_filename_is_object == true}`);
       //console.log(`(dst_filename_is_object==\"true\") = ${dst_filename_is_object == true_str}`);
-      if (dst_filename_is_object === true || dst_filename_is_object === "true" || dst_filename_is_object == "true") {
+      if (dst_filename_is_object === true/* || dst_filename_is_object === "true" || dst_filename_is_object == "true"*/) {
         return dst_filename + "";
       } else {
         return dst_filename + ".o";
@@ -319,7 +321,7 @@ class EqcheckHandler {
       return new Uint8Array(arr);
     }
 
-    run_eqcheck(sourceJSON, src_etfgJSON, optimizedJSON, dst_etfgJSON, objectJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only) {
+    run_eqcheck(sourceJSON, src_etfgJSON, optimizedJSON, dst_etfgJSON, objectJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, dryRun, llvm2tfg_only) {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
         const source = this.readFileObjectToUint8Array(sourceJSON);
@@ -351,7 +353,7 @@ class EqcheckHandler {
         const src_etfgFilename = sourceFilename + ".etfg";
         var optimizedFilename = (optName === undefined) ? undefined : path.join(dirPath, optName);
         const dst_etfgFilename = (optimizedFilename === undefined) ? undefined : optimizedFilename + ".etfg";
-        const objFilename = (optimizedFilename === undefined) ? undefined : this.get_object_filename_for_dst_filename(optimizedFilename, (optimized === object));
+        const objFilename = (optimizedFilename === undefined) ? undefined : this.get_object_filename_for_dst_filename(optimizedFilename, dstFilenameIsObject);
         const harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
         const outFilename = this.get_outfilename(dirPath);
         const runstatusFilename = this.get_runstatus_filename(dirPath);
@@ -370,7 +372,10 @@ class EqcheckHandler {
               fs.writeFileSync(optimizedFilename, optimized)
             }
             const src_names = ['-src-filename', sourceFilename];
-            const dst_names = (optimizedFilename === undefined) ? [] : ['-dst-filename', optimizedFilename];
+            var dst_names = (optimizedFilename === undefined) ? [] : ['-dst-filename', optimizedFilename];
+            if (dstFilenameIsObject) {
+              dst_names.push('-dst-filename-is-object');
+            }
             if (src_etfg !== undefined) {
               console.log(`writing the src_etfg file to ${src_etfgFilename}`);
               fs.writeFileSync(src_etfgFilename, src_etfg);
@@ -490,7 +495,8 @@ class EqcheckHandler {
       const runStatus = await this.getRunningStatus(dirPath);
       const dstFilename = runStatus.running_status.dst_filename.join();
       const dst = await this.readBuffer(dstFilename);
-      const objFilename = this.get_object_filename_for_dst_filename(dstFilename, runStatus.running_status.dst_filename_is_object);
+      const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
+      const objFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
 
       let harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
       if (fs.existsSync(harvestFilename)) {
@@ -654,7 +660,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       const {
-          commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, srcName, optName, functionName
+          commandIn, dirPathIn, offsetIn, source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -690,7 +696,7 @@ class EqcheckHandler {
         const dryRun = (commandIn === commandPrepareEqcheck);
         const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
 
-        this.run_eqcheck(source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, dirPath, srcName, optName, functionName, dryRun, llvm2tfg_only)
+        this.run_eqcheck(source, src_etfg, optimized, dst_etfg, object, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, dryRun, llvm2tfg_only)
             .then(
                 result => {
                     res.end(JSON.stringify({retcode: 0}));
@@ -755,7 +761,7 @@ class EqcheckHandler {
           res.end(JSON.stringify({ dst_filename: dstFilename }));
           return;
         }
-        const dstFilenameIsObject = runStatus.running_status.dst_filename_is_object;
+        const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
         const objectFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
         const harvestFilename = this.get_harvest_filename_for_object_filename(objectFilename);
         //console.log(`runStatus = ${JSON.stringify(runStatus)}\n`);
@@ -773,7 +779,7 @@ class EqcheckHandler {
         const dst_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].dst_only_functions[0]);
         //console.log(`harvest = ${harvest}\n`);
         //console.log(`common = ${common}, src_only = ${src_only}, dst_only = ${dst_only}`);
-        const responseStr = JSON.stringify({ dst_filename: dstFilename, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only });
+        const responseStr = JSON.stringify({ dst_filename: dstFilename, dst_filename_is_object: dstFilenameIsObject, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only });
         res.end(responseStr);
         return;
       } else if (commandIn === commandObtainProof) {
@@ -787,7 +793,10 @@ class EqcheckHandler {
             proofObj = result;
         });
 
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj});
+        const src_files = this.getSrcFiles(dirPath);
+        const dst_files = this.getDstFiles(dirPath);
+
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_files.src, dst_code: dst_files.dst });
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;

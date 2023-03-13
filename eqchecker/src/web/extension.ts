@@ -775,9 +775,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
     //console.log(`src_code = ${src_code}\n`);
-    const dst_code = proof_response.dst_code.toString();
-    const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir.toString();
-    const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir.toString();
+    const dst_code = proof_response.dst_code;
+    const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
+    const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
+    //console.log("eqcheckViewProof src_ir = ", src_ir);
     const proof = proof_response.proof;
     //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
     const graph_hierarchy = proof["graph-hierarchy"];
@@ -840,32 +841,32 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     panel_dst_code.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
 
     var panel_src_ir, panel_dst_ir;
-    //if (src_ir !== undefined) {
-    //  const panel_src_ir =
-    //    vscode.window.createWebviewPanel(
-    //      'src_ir',
-    //      'Source IR',
-    //      vscode.ViewColumn.One,
-    //      {
-    //        enableScripts: true,
-    //        retainContextWhenHidden: true
-    //      }
-    //    );
-    //  panel_src_ir.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
-    //}
-    //if (dst_ir !== undefined) {
-    //  panel_dst_ir =
-    //    vscode.window.createWebviewPanel(
-    //      'dst_ir',
-    //      'Destination IR',
-    //      vscode.ViewColumn.Three,
-    //      {
-    //        enableScripts: true,
-    //        retainContextWhenHidden: true
-    //      }
-    //    );
-    //  panel_dst_ir.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
-    //}
+    if (src_ir !== undefined) {
+      panel_src_ir =
+        vscode.window.createWebviewPanel(
+          'src_ir',
+          'Source IR',
+          vscode.ViewColumn.One,
+          {
+            enableScripts: true,
+            retainContextWhenHidden: true
+          }
+        );
+      panel_src_ir.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
+    }
+    if (dst_ir !== undefined) {
+      panel_dst_ir =
+        vscode.window.createWebviewPanel(
+          'dst_ir',
+          'Destination IR',
+          vscode.ViewColumn.Three,
+          {
+            enableScripts: true,
+            retainContextWhenHidden: true
+          }
+        );
+      panel_dst_ir.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
+    }
     let panel_prd_loaded = false;
     let panel_src_code_loaded = false;
     let panel_dst_code_loaded = false;
@@ -921,27 +922,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       Eqchecker.context.subscriptions
     );
 
-    // Handle messages from the webview
-    panel_src_code.webview.onDidReceiveMessage(
-      message => {
-        switch (message.command) {
-          case 'loaded':
-            //console.log("src-code panel loaded.\n");
-            panel_src_code_loaded = true;
-            //vscode.window.showErrorMessage(message.text);
-            break;
-        }
-      },
-      undefined,
-      Eqchecker.context.subscriptions
-    );
-
     if (panel_src_ir !== undefined) {
       panel_src_ir.webview.onDidReceiveMessage(
         message => {
           switch (message.command) {
             case 'loaded':
-              //console.log("src-ir panel loaded.\n");
+              console.log("src-ir panel loaded.\n");
               panel_src_ir_loaded = true;
               //vscode.window.showErrorMessage(message.text);
               break;
@@ -952,12 +938,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       );
     }
 
-    panel_dst_code.webview.onDidReceiveMessage(
+
+    // Handle messages from the webview
+    panel_src_code.webview.onDidReceiveMessage(
       message => {
         switch (message.command) {
           case 'loaded':
-            //console.log("dst-code panel loaded.\n");
-            panel_dst_code_loaded = true;
+            //console.log("src-code panel loaded.\n");
+            panel_src_code_loaded = true;
             //vscode.window.showErrorMessage(message.text);
             break;
         }
@@ -982,6 +970,22 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       );
     }
 
+    panel_dst_code.webview.onDidReceiveMessage(
+      message => {
+        switch (message.command) {
+          case 'loaded':
+            //console.log("dst-code panel loaded.\n");
+            panel_dst_code_loaded = true;
+            //vscode.window.showErrorMessage(message.text);
+            break;
+        }
+      },
+      undefined,
+      Eqchecker.context.subscriptions
+    );
+
+
+
     async function waitForLoading(){
       while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false || panel_src_ir_loaded === false || panel_dst_ir_loaded === false) {
           //console.log(`panel_{prd,src_code,dst_code}_loaded ${panel_prd_loaded} ${panel_src_code_loaded} ${panel_dst_code_loaded} is still false`);
@@ -997,6 +1001,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     panel_src_code.webview.postMessage({command: "data", code:src_code, syntax_type: "c/llvm"});
     if (panel_src_ir !== undefined) {
+      //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
       panel_src_ir.webview.postMessage({command: "data", code:src_ir, syntax_type: "c/llvm"});
     }
     if (dst_assembly === "") {

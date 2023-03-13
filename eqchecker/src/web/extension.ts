@@ -889,12 +889,28 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               subprogram_info: message.src_subprogram_info,
               nodeMap: message.src_nodeMap
             });
+            if (panel_src_ir !== undefined) {
+              panel_src_ir.webview.postMessage({
+                command: "highlight",
+                path: message.edge.src_edge,
+                subprogram_info: message.src_ir_subprogram_info,
+                nodeMap: message.src_ir_nodeMap
+              });
+            }
             panel_dst_code.webview.postMessage({
               command: "highlight",
               path: message.edge.dst_edge,
               subprogram_info: message.dst_subprogram_info,
               nodeMap: message.dst_nodeMap
             });
+            if (panel_dst_ir !== undefined) {
+              panel_dst_ir.webview.postMessage({
+                command: "highlight",
+                path: message.edge.dst_edge,
+                subprogram_info: message.dst_ir_subprogram_info,
+                nodeMap: message.dst_ir_nodeMap
+              });
+            }
             break;
           case "clear":
             panel_src_code.webview.postMessage({

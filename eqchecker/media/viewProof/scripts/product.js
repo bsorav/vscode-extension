@@ -10,9 +10,16 @@ var g_nodeMap = null;
 var g_nodeIdMap = null;
 var g_edgeMap = null;
 var g_src_subprogram_info = null;
+var g_src_ir_subprogram_info = null;
 var g_dst_subprogram_info = null;
+var g_dst_ir_subprogram_info = null;
 var g_src_nodeMap = null;
+var g_src_ir_nodeMap = null;
 var g_dst_nodeMap = null;
+var g_dst_ir_nodeMap = null;
+
+const default_columnname_for_assembly = 4;
+const default_columnname_for_ir = 4;
 
 window.addEventListener('message', async event => {
     const message = event.data;
@@ -61,7 +68,28 @@ function line_column_map_get_value_for_pc(proptree, p, key)
 
 function tfg_llvm_obtain_subprogram_info(tfg_llvm)
 {
-  return tfg_llvm["llvm_subprogram_debug_info"];
+  return [tfg_llvm.llvm_subprogram_debug_info, tfg_llvm.llvm_ir_subprogram_debug_info];
+}
+
+function tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, pc)
+{
+  var ir_linename;
+  const ir_linename_map = tfg_llvm["ir_linename_map"];
+  if (ir_linename_map === undefined) {
+    return [0,0];
+  }
+
+  const index = pc.split('%')[0];
+  if (index.charAt(0) === 'L' && pc !== 'L0%0%d') {
+    var pc_components = pc.split('%');
+    pc_components[2] = "d";
+    const pc_default_subsubindex = pc_components.join('%');
+
+    ir_linename = line_column_map_get_value_for_pc(ir_linename_map, pc_default_subsubindex, "ir_linename");
+  } else {
+    ir_linename = ""; //unused
+  }
+  return [ir_linename, default_columnname_for_ir];
 }
 
 function tfg_asm_obtain_subprogram_info(tfg_asm, assembly)
@@ -141,7 +169,6 @@ function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_as
     dst_columnname = ""; //unused
     dst_line_and_column_names = dst_linename; //unused
   } else if (dst_index.charAt(0) === 'L') {
-    const default_columnname_for_assembly = 4;
     dst_linename = index_to_line_map[dst_index.substring(1)];
     dst_columnname = default_columnname_for_assembly;
     dst_line_and_column_names = dst_linename + dst_columnname;
@@ -151,6 +178,21 @@ function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_as
     dst_line_and_column_names = dst_linename; //unused
   }
   return [dst_linename, dst_columnname, dst_line_and_column_names];
+}
+
+
+function get_ir_node_map(proptree_nodes, tfg_llvm)
+{
+  var ret = {};
+  proptree_nodes.forEach(element => {
+    var linename, columnname;
+    if (tfg_llvm !== undefined) {
+      [linename, columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, element.pc);
+    }
+    const entry = {pc: element.pc, linename: linename, columnname: columnname};
+    ret[entry.pc] = entry;
+  });
+  return ret;
 }
 
 function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly)
@@ -187,12 +229,12 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
   //var src_nodeMap = {};
   //var dst_nodeMap = {};
 
-  const src_subprogram_info = tfg_llvm_obtain_subprogram_info(src_tfg_llvm);
-  var dst_subprogram_info;
+  const [src_subprogram_info, src_ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(src_tfg_llvm);
+  var dst_subprogram_info, dst_ir_subprogram_info;
   if (dst_tfg_llvm === undefined) {
     dst_subprogram_info = tfg_asm_obtain_subprogram_info(dst_tfg_asm, dst_assembly);
   } else {
-    dst_subprogram_info = tfg_llvm_obtain_subprogram_info(dst_tfg_llvm);
+    [dst_subprogram_info, dst_ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(dst_tfg_llvm);
   }
 
   var idx = 0;
@@ -201,19 +243,22 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const dst_pc = element.pc.split('_')[1];
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
+    const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
+    var dst_ir_linename, dst_ir_columnname;
     if (dst_tfg_llvm === undefined) {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly);
     } else {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
+      [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
     }
     //console.log(`element.pc = ${element.pc}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);
 
     const label = src_line_and_column_names + " ; " + dst_line_and_column_names;
 
-    const src_entry = {pc: src_pc, linename: src_linename, columnname: src_columnname, line_and_column_names: src_line_and_column_names};
-    const dst_entry = {pc: dst_pc, linename: dst_linename, columnname: dst_columnname, line_and_column_names: dst_line_and_column_names};
+    const src_entry = {pc: src_pc, linename: src_linename, ir_linename: src_ir_linename, columnname: src_columnname, ir_columnname: src_ir_columnname, line_and_column_names: src_line_and_column_names};
+    const dst_entry = {pc: dst_pc, linename: dst_linename, ir_linename: dst_ir_linename, columnname: dst_columnname, ir_columnname: dst_ir_columnname, line_and_column_names: dst_line_and_column_names};
 
     const entry = {idx: idx, pc: element.pc, src_node: src_entry, dst_node: dst_entry, label: label};
 
@@ -228,7 +273,9 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
   });
 
   const src_nodeMap = get_src_dst_node_map(src_nodes, src_tfg_llvm, undefined, undefined);
+  const src_ir_nodeMap = get_ir_node_map(src_nodes, src_tfg_llvm);
   const dst_nodeMap = get_src_dst_node_map(dst_nodes, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
+  const dst_ir_nodeMap = get_ir_node_map(dst_nodes, dst_tfg_llvm);
 
   cg_edges.forEach(element => {
     const from_pc = element.edge.from_pc;
@@ -256,7 +303,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
   });
 
-  return [nodeMap, nodeIdMap, edgeMap, src_subprogram_info, dst_subprogram_info, src_nodeMap, dst_nodeMap];
+  return [nodeMap, nodeIdMap, edgeMap, src_subprogram_info, src_ir_subprogram_info, dst_subprogram_info, dst_ir_subprogram_info, src_nodeMap, src_ir_nodeMap, dst_nodeMap, dst_ir_nodeMap];
 }
 
 function drawNetwork(cfg) {
@@ -285,7 +332,7 @@ function drawNetwork(cfg) {
     const eqcheck_info = corr_graph["eqcheck_info"];
     const dst_assembly = eqcheck_info["dst_assembly"];
 
-    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_subprogram_info, g_dst_subprogram_info, g_src_nodeMap, g_dst_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
+    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
 
     //console.log(`g_nodeMap = ${JSON.stringify(g_nodeMap)}`);
     var nodes = new vis.DataSet(nodes_in.map(function(node) {
@@ -416,9 +463,12 @@ network.on('selectEdge', function(properties) {
         to: to,
         edge: edge,
         src_subprogram_info: g_src_subprogram_info,
-        dst_subprogram_info: g_dst_subprogram_info,
+        src_ir_subprogram_info: g_src_ir_subprogram_info,
+        dst_ir_subprogram_info: g_dst_ir_subprogram_info,
         src_nodeMap: g_src_nodeMap,
-        dst_nodeMap: g_dst_nodeMap
+        src_ir_nodeMap: g_src_ir_nodeMap,
+        dst_nodeMap: g_dst_nodeMap,
+        dst_ir_nodeMap: g_dst_ir_nodeMap
     });
 });
 

@@ -213,7 +213,7 @@ export function clearCanvas(canvas, ctx){
 function drawPointOnNode(node, text, unroll, unroll_is_only_mu)
 {
     //node = node.split("_");
-    console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
+    //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
 

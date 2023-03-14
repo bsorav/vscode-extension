@@ -342,7 +342,7 @@ function drawNetwork(cfg) {
       var label = label_orig;
       const level = g_nodeMap[node.pc].level;
       //var x = ((level % 2) * 2 - 1) * 500;
-      console.log(`node = ${node.pc}, level = ${level}, x = ${x}`);
+      //console.log(`node = ${node.pc}, level = ${level}, x = ${x}`);
       if (node.pc === 'L0%0%d_L0%0%d') {
         label = "entry";
       } else if (node.pc.charAt(0) !== 'L') {

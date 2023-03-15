@@ -791,7 +791,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       vscode.window.createWebviewPanel(
           'productCFG',
           'Product Control Flow Graph',
-          vscode.ViewColumn.Two,
+          vscode.ViewColumn.Three,
           {
             enableScripts: true,
             retainContextWhenHidden: true
@@ -811,7 +811,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       vscode.window.createWebviewPanel(
         'dst_code',
         'Destination Code',
-        vscode.ViewColumn.Three,
+        (dst_ir === undefined) ? vscode.ViewColumn.Four: vscode.ViewColumn.Five,
         {
           enableScripts: true,
           retainContextWhenHidden: true
@@ -846,7 +846,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         vscode.window.createWebviewPanel(
           'src_ir',
           'Source IR',
-          vscode.ViewColumn.One,
+          vscode.ViewColumn.Two,
           {
             enableScripts: true,
             retainContextWhenHidden: true
@@ -859,7 +859,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         vscode.window.createWebviewPanel(
           'dst_ir',
           'Destination IR',
-          vscode.ViewColumn.Three,
+          vscode.ViewColumn.Four,
           {
             enableScripts: true,
             retainContextWhenHidden: true

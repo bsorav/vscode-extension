@@ -55,7 +55,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
             case 'addEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name/*, message.source1Text*/, message.source2Uri, message.source2Name/*, message.source2Text*/, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
             case 'updateEqcheckInView':
@@ -180,7 +180,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
             var thd = document.createElement("td");
             //var thd_text = document.createTextNode(`${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`);
             //thd.appendChild(thd_text);
-            if (eqcheck.functionName === undefined) {
+            if (eqcheck.source2Name === undefined) {
+              thd.innerHTML = `Compiling ${eqcheck.source1Name}`;
+            } else if (eqcheck.functionName === undefined) {
               thd.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
             } else {
               thd.innerHTML = `${eqcheck.functionName}: ${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
@@ -546,10 +548,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
         _dirPath,
         _source1Uri,
         _source1Name,
-        _source1Text,
+        //_source1Text,
         _source2Uri,
         _source2Name,
-        _source2Text,
+        //_source2Text,
         _functionName,
         _statusMessage,
         _runState
@@ -558,10 +560,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
         dirPath: _dirPath,
         source1Uri: _source1Uri,
         source1Name: _source1Name,
-        source1Text: _source1Text,
+        //source1Text: _source1Text,
         source2Uri: _source2Uri,
         source2Name: _source2Name,
-        source2Text: _source2Text,
+        //source2Text: _source2Text,
         functionName: _functionName,
         statusMessage : _statusMessage,
         runState: _runState,

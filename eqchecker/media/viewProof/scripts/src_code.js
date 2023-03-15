@@ -13,6 +13,10 @@ codeEl.style.fontSize = "16px";
 let preEl = document.getElementById("pre-code");
 preEl.style.minWidth = "100%";
 
+const entryNodeX = 1;
+const defaultNodeX = 2;
+const entryLabelGap = 0.5;
+const exitLabelGap = 1.0;
 
 function setupCanvas(){
     codeEl = document.getElementById("code");;
@@ -26,36 +30,61 @@ function setupCanvas(){
     canvas.width = rect.width;
     canvas.style.left = rect.left + "px";
     canvas.style.top = rect.top + "px";
+
+    let startX, startY;
+
+    var onMouseMove = function (event) {
+      const deltaX = event.clientX - startX;
+      const deltaY = event.clientY - startY;
+
+      window.scrollBy(deltaX, deltaY);
+
+      startX = event.clientX;
+      startY = event.clientY;
+    };
+
+    canvas.addEventListener('mousedown', function(event) {
+      startX = event.clientX;
+      startY = event.clientY;
+
+      document.addEventListener('mousemove', onMouseMove);
+    });
+
+    document.addEventListener('mouseup', function(event) {
+      document.removeEventListener('mousemove', onMouseMove);
+    });
 }
 
-function node_convert_to_xy(pc, pc_unroll, nodeMap)
+function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
 {
   let canvas = document.getElementById("canvas");
   let styles = window.getComputedStyle(document.getElementById("code"));
   let deltaY = styles.lineHeight.replace("px", "") * 1;
   let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
 
-  const [entryX, entryY, exitX, exitY] = [0, 0, 0, canvas.height / deltaY];
+  //const [entryX, entryY, exitX, exitY] = [1, subprogram_info.scope_line, 1, canvas.height / deltaY];
 
   if (pc === 'L0%0%d') {
-    return { type: "exit", pc: pc, y: entryY, x: entryX };
+    const entryY = subprogram_info.scope_line;
+
+    return { type: "entry", pc: pc, y: entryY, x: entryNodeX };
   } else if (pc.charAt(0) === 'L') {
     const linename = nodeMap[pc].linename;
     const columnname = nodeMap[pc].columnname;
     return { type: "L", pc: pc, x: columnname, y: linename, unroll: pc_unroll.unroll };
   } else {
-    return { type: "exit", pc: pc, y: exitY, x: exitX };
+    return { type: "exit", pc: pc };
   }
 }
 
-function edge_with_unroll_convert_to_xy(ec, nodeMap)
+function edge_with_unroll_convert_to_xy(ec, subprogram_info, nodeMap)
 {
-  const from_node = node_convert_to_xy(ec.from_pc, ec.from_pc_unroll, nodeMap);
-  const to_node = node_convert_to_xy(ec.to_pc, ec.to_pc_unroll, nodeMap);
+  const from_node = node_convert_to_xy(ec.from_pc, ec.from_pc_unroll, subprogram_info, nodeMap);
+  const to_node = node_convert_to_xy(ec.to_pc, ec.to_pc_unroll, subprogram_info, nodeMap);
   return { from_node: from_node, to_node: to_node };
 }
 
-function getNodesEdgesFromPathAndNodeMap_recursive(ec, nodeMap)
+function getNodesEdgesFromPathAndNodeMap_recursive(ec, subprogram_info, nodeMap)
 {
   if (ec.is_epsilon) {
     return { is_epsilon: true, edges: [], nodes: [] };
@@ -66,14 +95,14 @@ function getNodesEdgesFromPathAndNodeMap_recursive(ec, nodeMap)
     case 'parallel':
       const children = ec.serpar_child;
       children.forEach(function (child_ec) {
-        const child_graph_ec = getNodesEdgesFromPathAndNodeMap_recursive(child_ec, nodeMap);
+        const child_graph_ec = getNodesEdgesFromPathAndNodeMap_recursive(child_ec, subprogram_info, nodeMap);
         graph_ec.edges = arrayUnique(graph_ec.edges.concat(child_graph_ec.edges));
         graph_ec.nodes = arrayUnique(graph_ec.nodes.concat(child_graph_ec.nodes));
       });
       break;
     case 'edge_with_unroll':
       //console.log(`ec =\n${JSON.stringify(ec)}\n`);
-      const eu_edge = edge_with_unroll_convert_to_xy(ec, nodeMap);
+      const eu_edge = edge_with_unroll_convert_to_xy(ec, subprogram_info, nodeMap);
       graph_ec.nodes.push(eu_edge.from_node);
       graph_ec.nodes.push(eu_edge.to_node);
       graph_ec.nodes = arrayUnique(graph_ec.nodes);
@@ -83,9 +112,10 @@ function getNodesEdgesFromPathAndNodeMap_recursive(ec, nodeMap)
   return graph_ec;
 }
 
-function getNodesEdgesFromPathAndNodeMap(path, nodeMap)
+function getNodesEdgesFromPathAndNodeMap(path, subprogram_info, nodeMap)
 {
-  return getNodesEdgesFromPathAndNodeMap_recursive(path, nodeMap);
+  var graph_ec = getNodesEdgesFromPathAndNodeMap_recursive(path, subprogram_info, nodeMap);
+  return graph_ec;
 }
 
 function identifyFirstNodeWithCycle(path)
@@ -93,7 +123,7 @@ function identifyFirstNodeWithCycle(path)
   return path.from_pc; //XXX : TODO: FIXME: find the first entry to a cycle
 }
 
-export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
+export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, nodeMap)
 {
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context
@@ -106,14 +136,14 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
 
   //console.log(`path = ${JSON.stringify(path)}`);
 
-  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.ec, nodeMap);
+  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.ec, subprogram_info, nodeMap);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
   const is_epsilon = graph_ec.is_epsilon;
-  const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, nodeMap);
+  const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap);
 
   if (is_epsilon) {
-    drawPointOnNode(from_pc_xy, true, undefined, undefined);
+    drawPointOnNode(from_pc_xy, "stays still", undefined, undefined);
     return;
   }
 
@@ -146,8 +176,8 @@ export function highlightPathInCode(canvas, ctx, code, path, nodeMap)
         //unroll_mu = path.unroll_factor_mu;
         unroll = path.unroll_factor_delta;
       }
-      drawPointOnNode(element, false, unroll, unroll_is_only_mu);
-      topNode = Math.min(topNode, element.y * 1 * deltaY);
+      drawPointOnNode(element, undefined, unroll, unroll_is_only_mu);
+      topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
   });
 
   window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
@@ -180,11 +210,10 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node, is_epsilon, unroll, unroll_is_only_mu)
+function drawPointOnNode(node, text, unroll, unroll_is_only_mu)
 {
     //node = node.split("_");
-
-    console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
+    //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
 
@@ -216,12 +245,12 @@ function drawPointOnNode(node, is_epsilon, unroll, unroll_is_only_mu)
         color = "rgb(255, 0, 0)";
         drawCircle(ctx, x1, y1, 3, color);
     }
-    if (is_epsilon) {
+    if (text !== undefined) {
       let r = 5;
       let x = x1 + r*Math.cos(7*Math.PI/4);
       let y = y1 - r*Math.sin(7*Math.PI/4);
       const textcolor = "rgb(255, 0, 0)";
-      drawText(ctx, x, y, "stays still", 10, textcolor);
+      drawText(ctx, x, y, text, 10, textcolor);
     }
 }
 
@@ -234,12 +263,6 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     // Draw edge between node1 and node2
 
     let pattern = [];
-    //if(dashed){
-    //    pattern = [4, 2];
-    //}
-
-    //node1 = node1.split("_");
-    //node2 = node2.split("_");
 
     let canvas = document.getElementById("canvas");
     let ctx = canvas.getContext("2d");
@@ -247,28 +270,14 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     let styles = window.getComputedStyle(document.getElementById("code"));
 
     let deltaY = styles.lineHeight.replace("px", "") * 1;
+    const delta2Y = parseInt(styles.getPropertyValue("line-height"));
     let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
 
-    // console.log(node2);
-    //if (node1.type === "entry"){
-    //  node1 = {type: "entry", y: 0, x: 0};
-    //}
-
-    //if (node2.type === "exit"){
-    //  node2 = {type: "exit", y: canvas.height/deltaY, x: 1};
-    //}
-
-    //if (node1.length === 2){
-    //  node1.push(2);
-    //}
-    //if (node2.length === 2){
-    //  node2.push(2);
-    //}
     if (node1.x === undefined) {
-      node1.x = 2;
+      node1.x = defaultNodeX;
     }
     if (node2.x === undefined) {
-      node2.x = 2;
+      node2.x = defaultNodeX;
     }
 
     if (node1.x === node2.x && node1.y === node2.y) {
@@ -276,7 +285,18 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
       return;
     }
 
-    //console.log(`Drawing an edge: (${node1.x},${node1.y}) -> (${node2.x},${node2.y})`);
+    if (node1.type === "entry") {
+      var label_node = node1;
+      label_node.y = (node1.y*1) - entryLabelGap;
+      drawPointOnNode(label_node, "ENTRY", undefined, undefined);
+    }
+    if (node2.type === "exit") {
+      node2.x = node1.x;
+      node2.y = (node1.y*1) + exitLabelGap;
+      drawPointOnNode(node2, "EXIT", undefined, undefined);
+    }
+
+    //console.log(`Drawing an edge: (${node1.type},${node1.x},${node1.y}) -> (${node2.type},${node2.x},${node2.y})`);
 
     let x1 = (node1.x - 1) * 1 * deltaX;
     let y1 = node1.y * 1 * deltaY - deltaY/4;
@@ -419,13 +439,14 @@ window.addEventListener('message', async event => {
 
     switch (message.command) {
         case "highlight":
-            highlightPathInCode(canvas, ctx, codeEl, message.path, message.nodeMap);
+            highlightPathInCode(canvas, ctx, codeEl, message.path, message.subprogram_info, message.nodeMap);
             break;
         case "clear":
             clearCanvas(canvas, ctx);
             break;
         case "data":
             code = message.code;
+            //console.log(`code = ${code}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             if (message.syntax_type === "asm") {
               codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');

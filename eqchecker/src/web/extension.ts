@@ -20,7 +20,10 @@ const commandPingEqcheck = 'pingEqcheck';
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
+const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandObtainSrcFiles = 'obtainSrcFiles';
+const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
 
 const runStateStatusPreparing = 'preparing';
@@ -35,10 +38,10 @@ const runStateStatusTerminated = 'terminated';
 interface eqcheckMenuEntry {
   source1Uri: string;
   source1Name: string;
-  source1Text: string;
+  //source1Text: string;
   source2Uri: string;
   source2Name: string;
-  source2Text: string;
+  //source2Text: string;
 }
 
 // This method is called when your extension is activated
@@ -139,7 +142,7 @@ class Eqchecker {
   {
     var runState;
     //console.log(`runStatus = ${runStatus}\n`);
-    if (runStatus === null || runStatus === undefined) {
+    if (runStatus === null || runStatus === undefined || runStatus.running_status === undefined) {
      runState = runStateStatusPreparing;
     } else {
      runState = runStatus.running_status.status_flag;
@@ -172,7 +175,7 @@ class Eqchecker {
         }
       })
       .then(function (response) {
-	resolve(response.json());
+        resolve(response.json());
       })
       .catch(function(err) {
         console.log(`error = ${JSON.stringify(err)}\n`);
@@ -201,7 +204,8 @@ class Eqchecker {
           origRequest.dirPath = dirPath;
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
           Eqchecker.statusMap[dirPath] = statusEqcheckPinging;
-          vscode.window.showInformationMessage(`Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`);
+          const msg = (origRequest.source2Uri === undefined) ? `Compiling ${origRequest.source1Uri}` : `Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`;
+          vscode.window.showInformationMessage(msg);
         } else {
           //console.log("response received.\n");
         }
@@ -243,23 +247,13 @@ class Eqchecker {
     //console.log("addEqcheck() called\n");
     //var source : string;
     //var optimized : string;
-    if (entry === undefined || entry.source1Uri === undefined || entry.source2Uri === undefined) {
+    if (entry === undefined || entry.source1Uri === undefined) {
       return false;
     }
-    if (entry.source1Text === undefined) {
-      //console.log("calling openTextDocument");
-      await vscode.workspace.openTextDocument(entry.source1Uri).then(doc => {
-        //console.log("opened source1Uri");
-        if (doc.isDirty) {}
-        entry.source1Text = doc.getText();
-      });
-    }
-    if (entry.source2Text === undefined) {
-      await vscode.workspace.openTextDocument(entry.source2Uri).then(doc => {
-        //console.log("opened source2Uri");
-        if (doc.isDirty) {}
-        entry.source2Text = doc.getText();
-      });
+    const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
+    var source2Text;
+    if (entry.source2Uri !== undefined) {
+      source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
     }
 
     //console.log('source = ' + source);
@@ -268,25 +262,49 @@ class Eqchecker {
         { serverCommand: commandPrepareEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
-          source1Text: entry.source1Text,
+          source1Text: source1Text,
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
-          source2Text: entry.source2Text,
+          source2Text: source2Text,
+          dstFilenameIsObject: undefined,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           dirPath: undefined,
           functionName: undefined,
+          src_ir: undefined,
+          dst_ir: undefined,
+          src_etfg: undefined,
+          dst_etfg: undefined,
+          harvest: undefined,
+          object: undefined
         };
-    var jsonRequest = JSON.stringify(request);
+    const jsonRequest = JSON.stringify(request);
+    //console.log(`jsonRequest = ${jsonRequest}\n`);
     const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
 
     if (dirPath === "") {
-      //console.log('returning false');
+      console.log('returning false because dirPath = empty-string');
       return false;
     }
 
     request.dirPath = dirPath;
 
-    const {common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+
+    const dst_filename = dst_filename_arr.toString();
+    if (dst_filename === "") {
+      console.log('returning false because dst_filename === ""');
+      return false;
+    }
+
+    const dst_filename_is_object = (dst_filename_is_object_str == "true");
+
+    if (request.source2Uri === undefined) {
+      request.source2Name = posix.basename(dst_filename.toString(), undefined);
+      request.source2Uri = dst_filename.toString();
+      request.dstFilenameIsObject = dst_filename_is_object;
+      request.source2Text = object;
+      console.log(`set source2 to ${request.source2Name}\n`);
+    }
 
     //console.log(`common = ${common}`);
 
@@ -310,11 +328,35 @@ class Eqchecker {
       const msg = this.createWarningMessageFromFunctionList('second', dst_only);
       vscode.window.showInformationMessage(msg);
     }
-    var viewRequestRemove =
+
+    const viewRequestRemove =
         { type: 'removeEqcheckInView',
           origRequest: request,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+
+    request.serverCommand = commandPointsToAnalysis;
+    const jsonRequest2 = JSON.stringify(request);
+    const dirPath2 = await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
+
+    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath2});
+    const response = (await this.RequestResponseForCommand(jsonRequest3));
+    //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
+    const src_etfg = response.etfg;
+    const src_ir = response.ir;
+
+    const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: dirPath2});
+    const response2 = (await this.RequestResponseForCommand(jsonRequest4));
+    //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
+    const dst_etfg = response2.etfg;
+    const dst_ir = response2.ir;
+    console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
+
+    const viewRequestRemove2 =
+        { type: 'removeEqcheckInView',
+          origRequest: request,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
 
     var funRequestPromises = [];
     for (let i = 0; i < common.length; i++) {
@@ -324,6 +366,12 @@ class Eqchecker {
       //console.log(`functionName = ${functionName}\n`);
       funRequest.serverCommand = commandSubmitEqcheck;
       funRequest.dirPath = undefined;
+      funRequest.src_etfg = src_etfg;
+      funRequest.dst_etfg = dst_etfg;
+      funRequest.src_ir = src_ir;
+      funRequest.dst_ir = dst_ir;
+      funRequest.harvest = harvest;
+      funRequest.object = object;
       funRequest.functionName = functionName;
       const jsonRequest = JSON.stringify(funRequest);
       funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));
@@ -339,9 +387,9 @@ class Eqchecker {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
     const response = (await this.RequestResponseForCommand(jsonRequest));
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
-    const proof = response.proof;
+    //const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
-    return proof;
+    return response;
   }
 
   private static async obtainFunctionListsAfterPreparePhase(dirPathIn)
@@ -429,6 +477,7 @@ class Eqchecker {
       } else {
         eqcheckPair = eqcheckPairs[result];
       }
+      console.log(`eqcheckPair = ${JSON.stringify(eqcheckPair)}\n`);
       if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
         vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPair.source1Uri} -> ${eqcheckPair.source2Uri}`);
       }
@@ -452,10 +501,10 @@ class Eqchecker {
   private static async openSourceFiles() : Promise<eqcheckMenuEntry>
   {
     const options = {
-      canSelectMany: true,
-      openLabel: 'Open Source and Destination Code Files',
+      canSelectMany: false,
+      openLabel: 'Open Source Code File(s)',
       filters: {
-        'Source Code': ['c', 's'],
+        'Source Code': ['c'],
       }
     };
 
@@ -464,34 +513,33 @@ class Eqchecker {
     // Ask the user to select the first source code file.
     const firstFileUris = await vscode.window.showOpenDialog(options);
     if (firstFileUris && firstFileUris[0]) {
-      srcFileUri = firstFileUris[0];
-      srcFileName = posix.basename(srcFileUri.fsPath, undefined);
-      srcText = await vscode.workspace.openTextDocument(srcFileUri);
-      await vscode.window.showTextDocument(srcText, { viewColumn: vscode.ViewColumn.One });
+      srcFileUri = firstFileUris[0].fsPath;
+      srcFileName = posix.basename(srcFileUri, undefined);
+      //srcText = await vscode.workspace.openTextDocument(srcFileUri);
+      //await vscode.window.showTextDocument(srcText, { viewColumn: vscode.ViewColumn.One });
+      //console.log(`srcText = ${JSON.stringify(srcText)}\n`);
 
-      if (!firstFileUris[1]) {
-        // Ask the user to select the next source code file.
-        options.openLabel = 'Open Destination Code File';
-        options.filters = {
-          'Source Code': ['s', 'c'],
-        };
-        const dstFileUris = await vscode.window.showOpenDialog(options);
-        if (dstFileUris && dstFileUris[0]) {
-          dstFileUri = dstFileUris[0];
-        }
-      } else {
-        dstFileUri = firstFileUris[1];
+      // Ask the user to select the next source code file.
+      var dst_options = {
+        canSelectMany: false,
+        openLabel: 'Open Destination Code File(s)',
+      };
+
+      const dstFileUris = await vscode.window.showOpenDialog(dst_options);
+      if (dstFileUris && dstFileUris[0]) {
+        dstFileUri = dstFileUris[0].fsPath;
+        dstFileName = posix.basename(dstFileUri, undefined);
       }
-      dstFileName = posix.basename(dstFileUri.fsPath, undefined);
-      dstText = await vscode.workspace.openTextDocument(dstFileUri);
-      await vscode.window.showTextDocument(dstText, { viewColumn: vscode.ViewColumn.Two });
+      //dstText = await vscode.workspace.openTextDocument(dstFileUri);
+      //await vscode.window.showTextDocument(dstText, { viewColumn: vscode.ViewColumn.Two });
     }
     return { source1Uri: srcFileUri,
              source1Name: srcFileName,
-             source1Text: srcText,
+             //source1Text: undefined/*srcText*/,
              source2Uri: dstFileUri,
              source2Name: dstFileName,
-             source2Text: dstText};
+             //source2Text: undefined/*dstText*/
+            };
   }
 
   private static genLikelyEqcheckPairs(cSources, asmSources) : eqcheckMenuEntry[]
@@ -499,6 +547,15 @@ class Eqchecker {
     let ret : eqcheckMenuEntry[] = [];
     let i = 0;
     cSources.forEach(function (cSource1) {
+
+      ret.push({ source1Uri: cSource1.Uri,
+                 source1Name: posix.basename(cSource1.Uri, undefined),
+                 //source1Text: undefined/*cSource1.Text*/,
+                 source2Uri: undefined,
+                 source2Name: undefined,
+                 //source2Text: undefined/*asmSource.Text*/
+                });
+
       //console.log("cSource1Label = " + cSource1.fileName);
       /*if (cSource1.input instanceof vscode.TabInputText) */{
         //let cSource1Uri = uri2str((cSource1.input as vscode.TabInputText).uri);
@@ -512,10 +569,11 @@ class Eqchecker {
             //console.log("asmSourceUri = " + asmSourceUri);
             ret.push({ source1Uri: cSource1Uri,
                        source1Name: posix.basename(cSource1Uri, undefined),
-                       source1Text: cSource1.Text,
+                       //source1Text: undefined/*cSource1.Text*/,
                        source2Uri: asmSourceUri,
                        source2Name: posix.basename(asmSourceUri, undefined),
-                       source2Text: asmSource.Text});
+                       //source2Text: undefined/*asmSource.Text*/
+                      });
             //let pr = `${++i}: ${cSource1.label} -> ${asmSource.label}`;
             //ret.push(pr);
           }
@@ -528,10 +586,11 @@ class Eqchecker {
             if (cSource1Uri !== cSource2Uri) {
               ret.push({ source1Uri: cSource1Uri,
                          source1Name: posix.basename(cSource1Uri, undefined),
-                         source1Text: cSource1.Text,
+                         //source1Text: undefined/*cSource1.Text*/,
                          source2Uri: cSource2Uri,
                          source2Name: posix.basename(cSource2Uri, undefined),
-                         source2Text: cSource2.Text});
+                         //source2Text: undefined/*cSource2.Text*/
+                        });
               //let pr = `${++i}: ${cSource1.label} -> ${cSource2.label}`;
               //ret.push(pr);
             }
@@ -565,7 +624,11 @@ class Eqchecker {
   private static getQuickPickItemsFromEqcheckMenuEntries(menuItems : eqcheckMenuEntry[]) : string[] {
     //console.log("calling menuItems.map(). menuItems.length = " + menuItems.length.toString());
     let ret = menuItems.map(function (menuItem) {
-                return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
+                if (menuItem.source2Name !== undefined) {
+                  return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
+                } else {
+                  return `Compile ${menuItem.source1Name}`;
+                }
               });
     ret.push('Pick source/assembly files from the filesystem');
     //console.log("returned from menuItems.map(). ret.length = " + ret.length.toString());
@@ -584,6 +647,17 @@ class Eqchecker {
   public static wait(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
   }
+
+  public static Text2String(text)
+  {
+    var arr = [];
+    for (let i in text) {
+      arr.push(text[i]);
+    }
+    const dec = new TextDecoder("utf-8");
+    return dec.decode(new Uint8Array(arr));
+  }
+
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
@@ -696,9 +770,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-  async eqcheckViewProof(webview: vscode.Webview, dirPath, src_code, dst_code)
+  async eqcheckViewProof(webview: vscode.Webview, dirPath/*, src_code, dst_code*/)
   {
-    var proof = await Eqchecker.obtainProofFromServer(dirPath);
+    const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
+    //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
+    const src_code = proof_response.src_code;
+    //console.log(`src_code = ${src_code}\n`);
+    const dst_code = proof_response.dst_code;
+    const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
+    const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
+    //console.log("eqcheckViewProof src_ir = ", src_ir);
+    const proof = proof_response.proof;
     //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
     const graph_hierarchy = proof["graph-hierarchy"];
     const corr_graph = graph_hierarchy["corr_graph"];
@@ -710,7 +792,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       vscode.window.createWebviewPanel(
           'productCFG',
           'Product Control Flow Graph',
-          vscode.ViewColumn.Two,
+          vscode.ViewColumn.Three,
           {
             enableScripts: true,
             retainContextWhenHidden: true
@@ -730,7 +812,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       vscode.window.createWebviewPanel(
         'dst_code',
         'Destination Code',
-        vscode.ViewColumn.Three,
+        (dst_ir === undefined) ? vscode.ViewColumn.Four: vscode.ViewColumn.Five,
         {
           enableScripts: true,
           retainContextWhenHidden: true
@@ -748,8 +830,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
     const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
 
     // Set the webview content
 
@@ -757,9 +841,38 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     panel_src_code.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
     panel_dst_code.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
 
+    var panel_src_ir, panel_dst_ir;
+    if (src_ir !== undefined) {
+      panel_src_ir =
+        vscode.window.createWebviewPanel(
+          'src_ir',
+          'Source IR',
+          vscode.ViewColumn.Two,
+          {
+            enableScripts: true,
+            retainContextWhenHidden: true
+          }
+        );
+      panel_src_ir.webview.html = EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
+    }
+    if (dst_ir !== undefined) {
+      panel_dst_ir =
+        vscode.window.createWebviewPanel(
+          'dst_ir',
+          'Destination IR',
+          vscode.ViewColumn.Four,
+          {
+            enableScripts: true,
+            retainContextWhenHidden: true
+          }
+        );
+      panel_dst_ir.webview.html = EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script);
+    }
     let panel_prd_loaded = false;
     let panel_src_code_loaded = false;
     let panel_dst_code_loaded = false;
+    let panel_src_ir_loaded = (panel_src_ir === undefined);
+    let panel_dst_ir_loaded = (panel_dst_ir === undefined);
 
     // Handle messages from the webview
     panel_prd.webview.onDidReceiveMessage(
@@ -774,21 +887,49 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             panel_src_code.webview.postMessage({
               command: "highlight",
               path: message.edge.src_edge,
+              subprogram_info: message.src_subprogram_info,
               nodeMap: message.src_nodeMap
             });
+            if (panel_src_ir !== undefined) {
+              panel_src_ir.webview.postMessage({
+                command: "highlight",
+                path: message.edge.src_edge,
+                subprogram_info: message.src_ir_subprogram_info,
+                nodeMap: message.src_ir_nodeMap
+              });
+            }
             panel_dst_code.webview.postMessage({
               command: "highlight",
               path: message.edge.dst_edge,
+              subprogram_info: message.dst_subprogram_info,
               nodeMap: message.dst_nodeMap
             });
+            if (panel_dst_ir !== undefined) {
+              panel_dst_ir.webview.postMessage({
+                command: "highlight",
+                path: message.edge.dst_edge,
+                subprogram_info: message.dst_ir_subprogram_info,
+                nodeMap: message.dst_ir_nodeMap
+              });
+            }
             break;
           case "clear":
             panel_src_code.webview.postMessage({
               command: "clear"
             });
+            if (panel_src_ir !== undefined) {
+              panel_src_ir.webview.postMessage({
+                command: "clear"
+              });
+            }
             panel_dst_code.webview.postMessage({
               command: "clear"
             });
+            if (panel_dst_ir !== undefined) {
+              panel_dst_ir.webview.postMessage({
+                command: "clear"
+              });
+            }
             break;
           default:
             break;
@@ -797,6 +938,23 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       undefined,
       Eqchecker.context.subscriptions
     );
+
+    if (panel_src_ir !== undefined) {
+      panel_src_ir.webview.onDidReceiveMessage(
+        message => {
+          switch (message.command) {
+            case 'loaded':
+              console.log("src-ir panel loaded.\n");
+              panel_src_ir_loaded = true;
+              //vscode.window.showErrorMessage(message.text);
+              break;
+          }
+        },
+        undefined,
+        Eqchecker.context.subscriptions
+      );
+    }
+
 
     // Handle messages from the webview
     panel_src_code.webview.onDidReceiveMessage(
@@ -813,7 +971,22 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       Eqchecker.context.subscriptions
     );
 
-    // Handle messages from the webview
+    if (panel_dst_ir !== undefined) {
+      panel_dst_ir.webview.onDidReceiveMessage(
+        message => {
+          switch (message.command) {
+            case 'loaded':
+              //console.log("dst-ir panel loaded.\n");
+              panel_dst_ir_loaded = true;
+              //vscode.window.showErrorMessage(message.text);
+              break;
+          }
+        },
+        undefined,
+        Eqchecker.context.subscriptions
+      );
+    }
+
     panel_dst_code.webview.onDidReceiveMessage(
       message => {
         switch (message.command) {
@@ -828,8 +1001,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       Eqchecker.context.subscriptions
     );
 
+
+
     async function waitForLoading(){
-      while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false) {
+      while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false || panel_src_ir_loaded === false || panel_dst_ir_loaded === false) {
           //console.log(`panel_{prd,src_code,dst_code}_loaded ${panel_prd_loaded} ${panel_src_code_loaded} ${panel_dst_code_loaded} is still false`);
           await Eqchecker.wait(1000);
       }
@@ -842,12 +1017,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     panel_src_code.webview.postMessage({command: "data", code:src_code, syntax_type: "c/llvm"});
+    if (panel_src_ir !== undefined) {
+      //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
+      panel_src_ir.webview.postMessage({command: "data", code:src_ir, syntax_type: "c/llvm"});
+    }
     if (dst_assembly === "") {
       panel_dst_code.webview.postMessage({command: "data", code:dst_code, syntax_type: "c/llvm"});
+      if (panel_dst_ir !== undefined) {
+        panel_dst_ir.webview.postMessage({command: "data", code:dst_ir, syntax_type: "c/llvm"});
+      }
     } else {
       panel_dst_code.webview.postMessage({command: "data", code:dst_assembly, syntax_type: "asm"});
     }
-    const new_panels = { prd: panel_prd, src_code: panel_src_code, dst_code: panel_dst_code };
+    const new_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
     return new_panels;
   }
@@ -873,7 +1055,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         case 'eqcheckViewProof': {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
-          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, data.eqcheck.source1Text, data.eqcheck.source2Text);
+          //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
+          //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
+          //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
+          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath/*, source1Str, source2Str*/);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
           this.panels[data.eqcheck.dirPath] = new_panels;
@@ -885,12 +1070,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`HideProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
           //console.log(`HideProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
           //console.log(`HideProof received. this.panels[data.eqcheck.dirPath].length = ${this.panels[data.eqcheck.dirPath].length}\n`);
-          this.panels[data.eqcheck.dirPath].prd.dispose();
-          this.panels[data.eqcheck.dirPath].src_code.dispose();
-          this.panels[data.eqcheck.dirPath].dst_code.dispose();
-          //for (let i = 0; i < this.panels[data.eqcheck.dirPath].length; i++) {
-          //  this.panels[data.eqcheck.dirPath][i].dispose();
-          //}
+          const panel = this.panels[data.eqcheck.dirPath];
+          panel.prd.dispose();
+          panel.src_code.dispose();
+          panel.dst_code.dispose();
+          if (panel.src_ir !== undefined) {
+            panel.src_ir.dispose();
+          }
+          if (panel.dst_ir !== undefined) {
+            panel.dst_ir.dispose();
+          }
           break;
         }
         case 'startEqcheck': {

@@ -258,24 +258,43 @@ const viewStateViewSearchTree = 'viewSearchTree';
             //document.getElementById('hoverEqcheckArrow').style.display = 'none';
     }
 
-    function viewProofListener(evt) {
-      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
-      //const eqcheck = evt.currentTarget.eqcheck;
-      const eqcheck = eqcheckRightClickMenu.eqcheck;
+    function eqchecks_remove_view_state(viewState)
+    {
+      for (const eqc of eqchecks) {
+        if (eqc.viewState === viewState) {
+          eqc.viewState = viewStateBase;
+        }
+      }
+    }
+
+    function viewProof(eqcheck) {
       console.log('ViewProof clicked');
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      eqchecks_remove_view_state(viewStateViewProof);
       eqcheck.viewState = viewStateViewProof;
       eqcheckRightClickMenu.style.display = "none";
       vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+    }
+
+    function viewProofListener(evt) {
+      console.log('ViewProofListener called');
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      //const eqcheck = evt.currentTarget.eqcheck;
+      const eqcheck = eqcheckRightClickMenu.eqcheck;
+      viewProof(eqcheck);
     };
 
     function hideProofListener(evt) {
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
       //const eqcheck = evt.currentTarget.eqcheck;
-      const eqcheck = eqcheckRightClickMenu.eqcheck;
+      //const eqcheck = eqcheckRightClickMenu.eqcheck;
       console.log('HideProof clicked');
-      eqcheck.viewState = viewStateBase;
+      //eqcheck.viewState = viewStateBase;
+      eqchecks_remove_view_state(viewStateViewProof);
       eqcheckRightClickMenu.style.display = "none";
-      vscode.postMessage({ type: 'eqcheckHideProof', eqcheck: eqcheck});
+      startButtonRightClickMenu.style.display = "none";
+      vscode.postMessage({ type: 'eqcheckHideProof'/*, eqcheck: eqcheck*/});
     };
 
     function eqcheckCancel(eqcheck) {
@@ -335,6 +354,15 @@ const viewStateViewSearchTree = 'viewSearchTree';
       displayEqcheckList(eqchecks);
     }
 
+    function anyEqcheckInViewStateViewProof() {
+      for (const eqcheck of eqchecks) {
+        if (eqcheck.viewState === viewStateViewProof) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function showStartButtonRightClickMenu(mouseX, mouseY) {
       const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
       startButtonRightClickMenu.style.top = `${mouseY}px`;
@@ -342,8 +370,17 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
       var items = startButtonRightClickMenu.querySelectorAll(".item");
 
+      items[0].removeEventListener('click', cancelAndClearAllEqchecksListener);
+      items[1].removeEventListener('click', hideProofListener);
+
       items[0].innerHTML = 'Clear all eqchecks';
       items[0].addEventListener('click', cancelAndClearAllEqchecksListener);
+      if (anyEqcheckInViewStateViewProof()) {
+        items[1].innerHTML = 'Hide Proof';
+        items[1].addEventListener('click', hideProofListener);
+      } else {
+        items[1].innerHTML = '';
+      }
       startButtonRightClickMenu.style.display = "inline";
       startButtonRightClickMenu.classList.add("visible");
     }
@@ -365,9 +402,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
         var items = eqcheckRightClickMenu.querySelectorAll(".item");
 
-        console.log(`eqcheck.runState = ${eqcheck.runState}`);
-        console.log(`runStateStatusFoundProof = ${runStateStatusFoundProof}`);
-        console.log(`eqcheck.viewState = ${eqcheck.viewState}`);
+        //console.log(`eqcheck.runState = ${eqcheck.runState}`);
+        //console.log(`runStateStatusFoundProof = ${runStateStatusFoundProof}`);
+        //console.log(`eqcheck.viewState = ${eqcheck.viewState}`);
 
         items[0].removeEventListener('click', viewProofListener);
         items[0].removeEventListener('click', hideProofListener);
@@ -486,6 +523,11 @@ const viewStateViewSearchTree = 'viewSearchTree';
      */
     function onEqcheckClicked(eqcheck) {
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
+        if (eqcheckRightClickMenu.style.display !== "inline") {
+          viewProof(eqcheck);
+        } else {
+          hideEqcheckRightClickMenu();
+        }
     }
 
     /**

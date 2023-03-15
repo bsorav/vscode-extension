@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /*
-    PRODUCT CFG 
+    PRODUCT CFG
 */
 
 const vscode = acquireVsCodeApi();
@@ -27,23 +27,27 @@ window.addEventListener('message', async event => {
     switch (message.command) {
       case 'showProof':
         g_prodCfg = message.code;
+        //console.log("RECEIVED showProof. refreshing panel\n");
+        refreshPanel();
         //prod_cfg = message;
         //console.log(`prod_cfg = ${prod_cfg}`);
-        //console.log("RECEIVED showProof\n");
+        break;
+      case "load":
+        vscode.postMessage({command:"loaded"});
         break;
     }
 });
 
-async function waitForMessage(){
-    while(g_prodCfg === null){
-        //console.log("prod_cfg is still NULL");
-        await new Promise(r => window.setTimeout(r, 1000));
-    }
-}
+//async function waitForMessage(){
+//    while(g_prodCfg === null){
+//        //console.log("prod_cfg is still NULL");
+//        await new Promise(r => window.setTimeout(r, 1000));
+//    }
+//}
 vscode.postMessage({command:"loaded"});
 
 //console.log("Waiting for proof\n");
-await waitForMessage();
+//await waitForMessage();
 //console.log(`Proof received, prod_cfg =\n${JSON.stringify(prod_cfg)}\n`);
 
 function initializeContainer(){
@@ -509,50 +513,53 @@ function drawNetwork(cfg) {
     return network; //nodeMap:g_nodeMap
 }
 
-initializeContainer();
-var network = drawNetwork(g_prodCfg);
-//var res = drawNetwork(g_prodCfg);
+function refreshPanel()
+{
+  initializeContainer();
+  var network = drawNetwork(g_prodCfg);
+  //var res = drawNetwork(g_prodCfg);
 
-network.on("stabilizationIterationsDone", function(){
-  network.setOptions( { physics: false } );
-});
+  network.on("stabilizationIterationsDone", function(){
+    network.setOptions( { physics: false } );
+  });
 
-//var network = res.network;
-//var nodeMap = res.nodeMap;
+  //var network = res.network;
+  //var nodeMap = res.nodeMap;
 
-network.on('selectEdge', function(properties) {
-    let propEdgeId = properties.edges[0];
-    let propEdge = network.body.data.edges.get(propEdgeId);
-    //console.log(`propEdge.from = ${propEdge.from}`);
-    //console.log(`propEdge.to = ${propEdge.to}`);
-    const from = g_nodeIdMap[propEdge.from];
-    const to = g_nodeIdMap[propEdge.to];
-    const edgeId = getEdgeId(from.pc, to.pc);
-    const edge = g_edgeMap[edgeId];
+  network.on('selectEdge', function(properties) {
+      let propEdgeId = properties.edges[0];
+      let propEdge = network.body.data.edges.get(propEdgeId);
+      //console.log(`propEdge.from = ${propEdge.from}`);
+      //console.log(`propEdge.to = ${propEdge.to}`);
+      const from = g_nodeIdMap[propEdge.from];
+      const to = g_nodeIdMap[propEdge.to];
+      const edgeId = getEdgeId(from.pc, to.pc);
+      const edge = g_edgeMap[edgeId];
 
-    //console.log(`from = ${JSON.stringify(from)}`);
-    //console.log(`to = ${JSON.stringify(to)}`);
-    //console.log(`edgeId = ${JSON.stringify(edgeId)}`);
-    //console.log(`highlighting edge = ${JSON.stringify(edge)}`);
+      //console.log(`from = ${JSON.stringify(from)}`);
+      //console.log(`to = ${JSON.stringify(to)}`);
+      //console.log(`edgeId = ${JSON.stringify(edgeId)}`);
+      //console.log(`highlighting edge = ${JSON.stringify(edge)}`);
 
-    vscode.postMessage({
-        command:"highlight",
-        from: from,
-        to: to,
-        edge: edge,
-        src_subprogram_info: g_src_subprogram_info,
-        src_ir_subprogram_info: g_src_ir_subprogram_info,
-        dst_subprogram_info: g_dst_subprogram_info,
-        dst_ir_subprogram_info: g_dst_ir_subprogram_info,
-        src_nodeMap: g_src_nodeMap,
-        src_ir_nodeMap: g_src_ir_nodeMap,
-        dst_nodeMap: g_dst_nodeMap,
-        dst_ir_nodeMap: g_dst_ir_nodeMap
-    });
-});
+      vscode.postMessage({
+          command:"highlight",
+          from: from,
+          to: to,
+          edge: edge,
+          src_subprogram_info: g_src_subprogram_info,
+          src_ir_subprogram_info: g_src_ir_subprogram_info,
+          dst_subprogram_info: g_dst_subprogram_info,
+          dst_ir_subprogram_info: g_dst_ir_subprogram_info,
+          src_nodeMap: g_src_nodeMap,
+          src_ir_nodeMap: g_src_ir_nodeMap,
+          dst_nodeMap: g_dst_nodeMap,
+          dst_ir_nodeMap: g_dst_ir_nodeMap
+      });
+  });
 
-network.on('deselectEdge', function(properties) {
-    vscode.postMessage({
-        command:"clear"
-    });
-});
+  network.on('deselectEdge', function(properties) {
+      vscode.postMessage({
+          command:"clear"
+      });
+  });
+}

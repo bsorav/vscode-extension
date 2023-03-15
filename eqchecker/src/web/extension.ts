@@ -1033,6 +1033,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       );
     }
 
+    if (proof_panels !== undefined) {
+      this.panel_post_message(panel_prd, {command: 'load'});
+      this.panel_post_message(panel_src_code, {command: 'load'});
+      this.panel_post_message(panel_src_ir, {command: 'load'});
+      this.panel_post_message(panel_dst_code, {command: 'load'});
+      this.panel_post_message(panel_dst_ir, {command: 'load'});
+    } // otherwise the panels would have been freshly created and would have posted the "loaded" message anyway
 
     async function waitForLoading(){
       while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false || panel_src_ir_loaded === false || panel_dst_ir_loaded === false) {
@@ -1042,30 +1049,21 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
     await waitForLoading();
     // Message passing to src and dst webview
-    //console.log(`Panels loaded. Posting proof to panel_prd. panel_prd = ${JSON.stringify(panel_prd)}\n`);
-    if (panel_prd !== undefined) {
-      panel_prd.webview.postMessage({command: 'showProof', code: proof});
-      console.log("Posted proof to panel_prd\n");
-    }
-    console.log("Posted proof to panel_prd\n");
+    console.log(`Panels loaded. Posting proof to panel_prd.\n`);
+    this.panel_post_message(panel_prd, {command: 'showProof', code: proof});
+    //console.log("Posted proof to panel_prd\n");
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    if  (panel_src_code !== undefined) {
-      panel_src_code.webview.postMessage({command: "data", code:src_code, syntax_type: "c/llvm"});
-    }
-    if (panel_src_ir !== undefined) {
-      //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
-      panel_src_ir.webview.postMessage({command: "data", code:src_ir, syntax_type: "c/llvm"});
-    }
-    if (panel_dst_code !== undefined) {
-      if (dst_assembly === "") {
-        panel_dst_code.webview.postMessage({command: "data", code:dst_code, syntax_type: "c/llvm"});
-        if (panel_dst_ir !== undefined) {
-          panel_dst_ir.webview.postMessage({command: "data", code:dst_ir, syntax_type: "c/llvm"});
-        }
-      } else {
-        panel_dst_code.webview.postMessage({command: "data", code:dst_assembly, syntax_type: "asm"});
-      }
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, syntax_type: "c/llvm"});
+
+    //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
+    this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm"});
+
+    if (dst_assembly === "") {
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, syntax_type: "c/llvm"});
+      this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm"});
+    } else {
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);

@@ -374,8 +374,8 @@ function drawNetwork(cfg) {
     //console.log(`eqcheck_info = ${JSON.stringify(eqcheck_info)}\n`);
     const dst_assembly = eqcheck_info["dst_assembly"];
     const dst_insn_pcs = convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs"]);
-    const dst_pc_to_assembly_index_map = convert_long_long_map_json_to_associative_array(eqcheck_info["dst_pc_to_assembly_index_map"]);
-    const dst_assembly_index_to_assembly_line_map = convert_long_long_map_json_to_associative_array(eqcheck_info["dst_assembly_index_to_assembly_line_map"]);
+    const dst_pc_to_assembly_index_map = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_pc_to_assembly_index_map"]);
+    const dst_assembly_index_to_assembly_line_map = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_assembly_index_to_assembly_line_map"]);
 
     //console.log(`dst_insn_pcs =\n`);
     //for (var key in dst_insn_pcs) {
@@ -393,7 +393,7 @@ function drawNetwork(cfg) {
     //  console.log(`${key} -> ${val}`);
     //}
 
-    const dst_insn_index_to_assembly_line_map = dst_asm_compute_index_to_line_map(dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map);
+    const dst_insn_index_to_assembly_line_map = (dst_assembly==="") ? undefined : dst_asm_compute_index_to_line_map(dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map);
 
     //console.log(`dst_insn_index_to_assembly_line_map =\n`);
     //for (var key in dst_insn_index_to_assembly_line_map) {

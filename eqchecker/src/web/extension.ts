@@ -783,8 +783,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  async eqcheckViewProof(webview: vscode.Webview, dirPath, proof_panels)
+  async eqcheckViewProof(webview: vscode.Webview, dirPath)
   {
+    const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
@@ -1041,11 +1042,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
     await waitForLoading();
     // Message passing to src and dst webview
-    //console.log(`Panels loaded. Posting proof to panel_prd. proof = ${JSON.stringify(proof)}\n`);
+    //console.log(`Panels loaded. Posting proof to panel_prd. panel_prd = ${JSON.stringify(panel_prd)}\n`);
     if (panel_prd !== undefined) {
       panel_prd.webview.postMessage({command: 'showProof', code: proof});
+      console.log("Posted proof to panel_prd\n");
     }
-    //console.log("Posted proof to panel_prd\n");
+    console.log("Posted proof to panel_prd\n");
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
     if  (panel_src_code !== undefined) {
@@ -1065,9 +1067,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         panel_dst_code.webview.postMessage({command: "data", code:dst_assembly, syntax_type: "asm"});
       }
     }
-    const new_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
+    this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
-    return new_panels;
+    //return new_panels;
   }
 
   public resolveWebviewView(
@@ -1093,10 +1095,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
-          const new_panels = await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath, this.proof_panels);
+          await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
-          this.proof_panels = new_panels;
+          //this.proof_panels = new_panels;
           //console.log(`ViewProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
           //console.log(`ViewProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
           break;

@@ -371,14 +371,19 @@ const viewStateViewSearchTree = 'viewSearchTree';
       var items = startButtonRightClickMenu.querySelectorAll(".item");
 
       items[0].removeEventListener('click', cancelAndClearAllEqchecksListener);
+      items[0].removeEventListener('click', hideProofListener);
+
+      items[1].removeEventListener('click', cancelAndClearAllEqchecksListener);
       items[1].removeEventListener('click', hideProofListener);
 
-      items[0].innerHTML = 'Clear all eqchecks';
-      items[0].addEventListener('click', cancelAndClearAllEqchecksListener);
       if (anyEqcheckInViewStateViewProof()) {
-        items[1].innerHTML = 'Hide Proof';
-        items[1].addEventListener('click', hideProofListener);
+        items[0].innerHTML = 'Hide Proof';
+        items[0].addEventListener('click', hideProofListener);
+        items[1].innerHTML = 'Clear all eqchecks';
+        items[1].addEventListener('click', cancelAndClearAllEqchecksListener);
       } else {
+        items[0].innerHTML = 'Clear all eqchecks';
+        items[0].addEventListener('click', cancelAndClearAllEqchecksListener);
         items[1].innerHTML = '';
       }
       startButtonRightClickMenu.style.display = "inline";
@@ -522,6 +527,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
      * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }} eqcheck
      */
     function onEqcheckClicked(eqcheck) {
+        const eqcheckRightClickMenu = document.getElementById("start-button-right-click-menu");
         //vscode.postMessage({ type: 'eqcheckShowProof', value: eqcheck });
         if (eqcheckRightClickMenu.style.display !== "inline") {
           viewProof(eqcheck);

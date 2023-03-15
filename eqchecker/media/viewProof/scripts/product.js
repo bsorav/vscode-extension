@@ -139,29 +139,59 @@ function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc)
   return [src_linename, src_columnname, src_line_and_column_names];
 }
 
-function assembly_code_compute_index_to_line_map(assembly_code)
+function dst_asm_compute_index_to_line_map_helper(index, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map)
 {
-  const lines = assembly_code.split('\n');
-  //console.log(`assembly_code = ${assembly_code}\n`);
-  //console.log(`lines= ${lines}\n`);
-  var ret = {};
-  var l = 0;
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].match(/^\s*.L/)) {
-      continue;
+  const dst_pc = dst_insn_pcs[index];
+  if (dst_pc in dst_pc_to_assembly_index_map) {
+    const assembly_index = dst_pc_to_assembly_index_map[dst_pc];
+    if (assembly_index in dst_assembly_index_to_assembly_line_map) {
+      const assembly_line = dst_assembly_index_to_assembly_line_map[assembly_index];
+      //console.log(`index ${index}, dst_pc ${dst_pc}, assembly_index ${assembly_index}, assembly_line ${assembly_line}\n`);
+      return assembly_line;
     }
-    if (lines[i].match(/^\s*nop$/)) {
-      continue;
-    }
-    ret[l] = i + 1;
-    l++;
   }
+  return undefined;
+}
+
+function dst_asm_compute_index_to_line_map(dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map)
+{
+  var ret = {};
+  for (var oi in dst_insn_pcs) {
+    var found = false;
+    //console.log(`looking at insn index ${oi}\n`);
+    for (var i = oi; i < dst_insn_pcs.length; i++) {
+      const linename = dst_asm_compute_index_to_line_map_helper(i, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map);
+      if (linename !== undefined) {
+        ret[oi] = linename;
+        found = true;
+        break;
+      }
+    }
+    if (found) {
+      continue;
+    }
+    for (var i = oi; i >= 0; i--) {
+      const linename = dst_asm_compute_index_to_line_map_helper(i, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map);
+      if (linename !== undefined) {
+        ret[oi] = linename;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      ret[oi] = 0; //this should not be reached
+    }
+  }
+  //console.log(`computed index_to_assembly_line_map (size ${ret.length}) =\n`);
+  //for (var key in ret) {
+  //  const val = ret[key];
+  //  console.log(`${key} -> ${val}`);
+  //}
   return ret;
 }
 
-function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly)
+function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
 {
-  const index_to_line_map = assembly_code_compute_index_to_line_map(dst_assembly);
   var dst_linename, dst_columnname, dst_line_and_column_names;
   const dst_index = dst_pc.split('%')[0];
   if (dst_pc === 'L0%0%d') {
@@ -169,7 +199,8 @@ function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_as
     dst_columnname = ""; //unused
     dst_line_and_column_names = dst_linename; //unused
   } else if (dst_index.charAt(0) === 'L') {
-    dst_linename = index_to_line_map[dst_index.substring(1)];
+    const index_name = dst_index.substring(1);
+    dst_linename = dst_insn_index_to_assembly_line_map[index_name];
     dst_columnname = default_columnname_for_assembly;
     dst_line_and_column_names = dst_linename + dst_columnname;
   } else {
@@ -179,7 +210,6 @@ function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_as
   }
   return [dst_linename, dst_columnname, dst_line_and_column_names];
 }
-
 
 function get_ir_node_map(proptree_nodes, tfg_llvm)
 {
@@ -195,7 +225,7 @@ function get_ir_node_map(proptree_nodes, tfg_llvm)
   return ret;
 }
 
-function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly)
+function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
 {
   var ret = {};
   //if (tfg_llvm === null) {
@@ -206,7 +236,7 @@ function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly)
   proptree_nodes.forEach(element => {
     var linename, columnname, line_and_column_names;
     if (tfg_llvm === undefined) {
-      [linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly);
+      [linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
     } else {
       [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
     }
@@ -221,7 +251,7 @@ function getEdgeId(from_pc, to_pc)
   return `${from_pc} -> ${to_pc}`;
 }
 
-function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly)
+function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
 {
   var nodeMap = {};
   var nodeIdMap = {};
@@ -248,7 +278,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     var dst_linename, dst_columnname, dst_line_and_column_names;
     var dst_ir_linename, dst_ir_columnname;
     if (dst_tfg_llvm === undefined) {
-      [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly);
+      [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
     } else {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
       [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
@@ -273,9 +303,9 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     idx++;
   });
 
-  const src_nodeMap = get_src_dst_node_map(src_nodes, src_tfg_llvm, undefined, undefined);
+  const src_nodeMap = get_src_dst_node_map(src_nodes, src_tfg_llvm, undefined, undefined, undefined, undefined, undefined);
   const src_ir_nodeMap = get_ir_node_map(src_nodes, src_tfg_llvm);
-  const dst_nodeMap = get_src_dst_node_map(dst_nodes, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
+  const dst_nodeMap = get_src_dst_node_map(dst_nodes, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
   const dst_ir_nodeMap = get_ir_node_map(dst_nodes, dst_tfg_llvm);
 
   cg_edges.forEach(element => {
@@ -307,6 +337,16 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
   return [nodeMap, nodeIdMap, edgeMap, src_subprogram_info, src_ir_subprogram_info, dst_subprogram_info, dst_ir_subprogram_info, src_nodeMap, src_ir_nodeMap, dst_nodeMap, dst_ir_nodeMap];
 }
 
+function convert_long_long_map_json_to_associative_array(long_long_map_json)
+{
+  var ret = {};
+  const pairs = long_long_map_json.long_long_pair;
+  for (var i = 0; i < pairs.length; i++) {
+    ret[pairs[i].long_val_key] = pairs[i].long_val_value;
+  }
+  return ret;
+}
+
 function drawNetwork(cfg) {
 
     //var nodeMap = {};
@@ -331,9 +371,37 @@ function drawNetwork(cfg) {
     const dst_tfg_asm = dst_tfg["tfg_asm"];
 
     const eqcheck_info = corr_graph["eqcheck_info"];
+    //console.log(`eqcheck_info = ${JSON.stringify(eqcheck_info)}\n`);
     const dst_assembly = eqcheck_info["dst_assembly"];
+    const dst_insn_pcs = convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs"]);
+    const dst_pc_to_assembly_index_map = convert_long_long_map_json_to_associative_array(eqcheck_info["dst_pc_to_assembly_index_map"]);
+    const dst_assembly_index_to_assembly_line_map = convert_long_long_map_json_to_associative_array(eqcheck_info["dst_assembly_index_to_assembly_line_map"]);
 
-    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly);
+    //console.log(`dst_insn_pcs =\n`);
+    //for (var key in dst_insn_pcs) {
+    //  const val = dst_insn_pcs[key];
+    //  console.log(`${key} -> ${val}`);
+    //}
+    //console.log(`dst_pc_to_assembly_index_map =\n`);
+    //for (var key in dst_pc_to_assembly_index_map) {
+    //  const val = dst_pc_to_assembly_index_map[key];
+    //  console.log(`${key} -> ${val}`);
+    //}
+    //console.log(`dst_assembly_index_to_assembly_line_map =\n`);
+    //for (var key in dst_assembly_index_to_assembly_line_map) {
+    //  const val = dst_assembly_index_to_assembly_line_map[key];
+    //  console.log(`${key} -> ${val}`);
+    //}
+
+    const dst_insn_index_to_assembly_line_map = dst_asm_compute_index_to_line_map(dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map);
+
+    //console.log(`dst_insn_index_to_assembly_line_map =\n`);
+    //for (var key in dst_insn_index_to_assembly_line_map) {
+    //  const val = dst_insn_index_to_assembly_line_map[key];
+    //  console.log(`${key} -> ${val}`);
+    //}
+
+    [g_nodeMap, g_nodeIdMap, g_edgeMap, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
     //console.log(`g_nodeMap = ${JSON.stringify(g_nodeMap)}`);
     var nodes = new vis.DataSet(nodes_in.map(function(node) {

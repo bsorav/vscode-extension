@@ -364,7 +364,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
       startButtonRightClickMenu.style.display = "none";
       eqcheckRightClickMenu.style.display = "none";
-      vscode.postMessage({ type: 'saveSession' });
+      vscode.postMessage({ type: 'saveSession', eqchecks: JSON.stringify(eqchecks) });
     }
 
     function loadSessionListener() {

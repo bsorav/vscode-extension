@@ -24,6 +24,8 @@ const commandObtainProof = 'obtainProof';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
+const commandSaveSession = 'saveSession';
+const commandLoadSession = 'loadSession';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -1153,11 +1155,24 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'saveSession': {
-          console.log('saveSession not implemented')
+          console.log('saveSession received')
+          let options: vscode.InputBoxOptions = {
+            prompt: "Session Name: ",
+            placeHolder: "Session name to save"
+          }
+          vscode.window.showInputBox(options).then(sessionName => {
+            if (!sessionName) return;
+            const jsonRequest = JSON.stringify({serverCommand: commandSaveSession, eqchecks: data.eqchecks});
+            const response = (await this.RequestResponseForCommand(jsonRequest));
+            if (response.done !== false) {
+              const msg = `Session ${sessionName} saved.`;
+              vscode.window.showInformationMessage(msg);
+            }
+          });
           break;
         }
         case 'loadSession': {
-          console.log('loadSession not implemented')
+          console.log('loadSession received')
           break;
         }
         default: {

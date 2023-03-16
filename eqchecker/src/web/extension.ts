@@ -1156,8 +1156,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           console.log('saveSession not implemented')
           break;
         }
-        case 'restoreSession': {
-          console.log('restoreSession not implemented')
+        case 'loadSession': {
+          console.log('loadSession not implemented')
           break;
         }
         default: {

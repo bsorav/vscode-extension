@@ -1152,8 +1152,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           await Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
           break;
         }
-
-
+        case 'saveSession': {
+          console.log('saveSession not implemented')
+          break;
+        }
+        case 'restoreSession': {
+          console.log('restoreSession not implemented')
+          break;
+        }
         default: {
           console.log('Unknown message received from webview: ' + data.type)
         }
@@ -1201,8 +1207,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       <body>
         <button class="clear-eqchecks-button"></button>
         <div id="start-button-right-click-menu">
+        <div id="StartButtonRightClickMenuItem0" class="item"></div>
         <div id="StartButtonRightClickMenuItem1" class="item"></div>
         <div id="StartButtonRightClickMenuItem2" class="item"></div>
+        <div id="StartButtonRightClickMenuItem3" class="item"></div>
         </div>
         <hr>
         <ul class="eqcheck-list">

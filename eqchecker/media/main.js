@@ -358,6 +358,25 @@ const viewStateViewSearchTree = 'viewSearchTree';
       displayEqcheckList(eqchecks);
     }
 
+    function saveSessionListener() {
+      console.log('saveSessionListener called');
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
+      startButtonRightClickMenu.style.display = "none";
+      eqcheckRightClickMenu.style.display = "none";
+      vscode.postMessage({ type: 'saveSession' });
+    }
+
+    function restoreSessionListener() {
+      console.log('restoreSessionListener called');
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
+      startButtonRightClickMenu.style.display = "none";
+      eqcheckRightClickMenu.style.display = "none";
+      vscode.postMessage({ type: 'restoreSession' });
+    }
+
+
     function anyEqcheckInViewStateViewProof() {
       for (const eqcheck of eqchecks) {
         if (eqcheck.viewState === viewStateViewProof) {
@@ -376,19 +395,41 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
       items[0].removeEventListener('click', cancelAndClearAllEqchecksListener);
       items[0].removeEventListener('click', hideProofListener);
+      items[0].removeEventListener('click', saveSessionListener);
+      items[0].removeEventListener('click', restoreSessionListener);
 
       items[1].removeEventListener('click', cancelAndClearAllEqchecksListener);
       items[1].removeEventListener('click', hideProofListener);
+      items[1].removeEventListener('click', saveSessionListener);
+      items[1].removeEventListener('click', restoreSessionListener);
+
+      items[2].removeEventListener('click', cancelAndClearAllEqchecksListener);
+      items[2].removeEventListener('click', hideProofListener);
+      items[2].removeEventListener('click', saveSessionListener);
+      items[2].removeEventListener('click', restoreSessionListener);
+
+      items[3].removeEventListener('click', cancelAndClearAllEqchecksListener);
+      items[3].removeEventListener('click', hideProofListener);
+      items[3].removeEventListener('click', saveSessionListener);
+      items[3].removeEventListener('click', restoreSessionListener);
 
       if (anyEqcheckInViewStateViewProof()) {
         items[0].innerHTML = 'Hide Proof';
         items[0].addEventListener('click', hideProofListener);
         items[1].innerHTML = 'Clear all eqchecks';
         items[1].addEventListener('click', cancelAndClearAllEqchecksListener);
+        items[2].innerHTML = 'Save Session';
+        items[2].addEventListener('click', saveSessionListener);
+        items[3].innerHTML = 'Restore Session';
+        items[3].addEventListener('click', restoreSessionListener);
       } else {
         items[0].innerHTML = 'Clear all eqchecks';
         items[0].addEventListener('click', cancelAndClearAllEqchecksListener);
-        items[1].innerHTML = '';
+        items[1].innerHTML = 'Save Session';
+        items[1].addEventListener('click', saveSessionListener);
+        items[2].innerHTML = 'Restore Session';
+        items[2].addEventListener('click', restoreSessionListener);
+        items[3].innerHTML = '';
       }
       startButtonRightClickMenu.style.display = "inline";
       startButtonRightClickMenu.classList.add("visible");

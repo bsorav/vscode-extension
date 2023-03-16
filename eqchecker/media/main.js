@@ -27,6 +27,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
     displayEqcheckList(eqchecks);
 
+    //console.log(`posting eqchecksLoaded\n`);
+    vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(eqchecks)});
+
     const welcome = document.querySelector('.clear-eqchecks-button');
     welcome.innerHTML = 'Start an Eqcheck';
     welcome.addEventListener('click', () => {
@@ -60,7 +63,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
                 }
             case 'updateEqcheckInView':
                 {
-                    //console.log("received message '" + message.type + "'");
+                    //console.log("received updateEqcheckInView message '" + message.type + "'");
                     updateEqcheckInView(message.origRequest, getStatusMessage(message.runState, message.statusMessage), message.runState);
                     break;
                 }
@@ -71,6 +74,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
                 }
             case 'eqcheckCancelled':
                 {
+                    //console.log("received eqcheckCancelled message '" + message.type + "'");
                     updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
                     break;
                 }
@@ -553,10 +557,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
       //console.log('runState = ' + runState + '\n');
       for (const eqcheck of eqchecks) {
         if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
-          //console.log('match found\n');
+          //console.log(`updateEqcheckInView match found. statusMessage = ${statusMessage}\n`);
           eqcheck.statusMessage = statusMessage;
           eqcheck.runState = runState;
           break;
+        } else {
+          //console.log(`eqcheckMatchesOrigRequest returned false for ${eqcheck.dirPath}`);
         }
       }
       displayEqcheckList(eqchecks);

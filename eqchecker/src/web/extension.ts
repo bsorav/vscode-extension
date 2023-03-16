@@ -120,9 +120,9 @@ class Eqchecker {
     //  console.log(message);
     //});
     if (Eqchecker.outputMap[dirPath] === undefined) {
-        Eqchecker.outputMap[dirPath] = messages;
+      Eqchecker.outputMap[dirPath] = messages;
     } else {
-        Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
+      Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
     }
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
@@ -1118,6 +1118,28 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             }
             this.proof_panels = undefined;
           }
+          break;
+        }
+        case 'eqchecksLoaded': {
+          console.log(`eqchecksLoaded received\n`);
+          var eqcheckRequestPromises = [];
+          const eqchecks = JSON.parse(data.eqchecks);
+          //console.log(`eqchecks_str =\n${data.eqchecks}\n`);
+          console.log(`eqchecks =\n${JSON.stringify(eqchecks)}\n`);
+          for (var i = 0; i < eqchecks.length; i++) {
+            const eqcheck = eqchecks[i];
+            //console.log(`eqcheck =\n${JSON.stringify(eqcheck)}\n`);
+            //console.log(`eqcheck.runState =${eqcheck.runState}\n`);
+            if (eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusRunning) {
+              const origRequest = { dirPath: eqcheck.dirPath, source1Uri: eqcheck.source1Uri, source1Name: eqcheck.source1Name, source2Uri: eqcheck.source2Uri, source2Name: eqcheck.source2Name, functionName: eqcheck.functionName };
+              const jsonRequest = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: eqcheck.dirPath, offsetIn: 0});
+              //console.log(`pushing to eqcheckRequestPromises`);
+              Eqchecker.statusMap[eqcheck.dirPath] = statusEqcheckPinging;
+              eqcheckRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, origRequest, false));
+            }
+          }
+          //console.log(`eqcheckRequestPromises.length = ${eqcheckRequestPromises.length}`);
+          Promise.all(eqcheckRequestPromises);
           break;
         }
         case 'startEqcheck': {

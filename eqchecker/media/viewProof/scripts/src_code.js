@@ -457,6 +457,9 @@ window.addEventListener('message', async event => {
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
             break;
+        case "load":
+            vscode.postMessage({command:"loaded"});
+            break;
         default:
             break;
     }

@@ -29,6 +29,8 @@ const commandObtainProof = 'obtainProof';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
+const commandSaveSession = 'saveSession';
+const commandLoadSession = 'loadSession';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -454,6 +456,21 @@ class EqcheckHandler {
         });
     }
 
+    savedSessionsDir() {
+      return new Promise((resolve, reject) => {
+        const eqDir = eqchecksDir();
+        fs.mkdir(path.join(eqdir, 'savedSessions'), (err) => {
+            if (err) {
+              console.error(err);
+              return false;
+            }
+            console.log('Directory created successfully!');
+            resolve(true);
+        });
+      });
+    }
+
+
     async readBuffer(filename, start = 0, bufferSize = undefined, max_chunksize = 8192) {
       //console.log(`readBuffer: filename = ${filename}`);
       let fd;
@@ -845,6 +862,7 @@ class EqcheckHandler {
         const chunkStr = JSON.stringify({dirPath: dirPathIn, serverStatus: "cancelled"});
         res.end(chunkStr);
         return;
+      } else if (commandIn === commandSaveSession) {
       } else {
         assert(false, "Invalid Command " + commandIn);
       }

@@ -244,44 +244,51 @@ class Eqchecker {
     return msg;
   }
 
-  public static async addEqcheck(entry) {
-    //console.log("addEqcheck() called\n");
-    //var source : string;
-    //var optimized : string;
-    if (entry === undefined || entry.source1Uri === undefined) {
-      return false;
-    }
-    const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
-    var source2Text;
-    if (entry.source2Uri !== undefined) {
-      source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
-    }
+  public static async afterPointsToAnalysisCommand(request, dirPath2, common, harvest, object) {
+    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath2});
+    const response = (await this.RequestResponseForCommand(jsonRequest3));
+    //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
+    const src_etfg = response.etfg;
+    const src_ir = response.ir;
 
-    //console.log('source = ' + source);
-    //console.log('optimized = ' + optimized);
-    var request =
-        { serverCommand: commandPrepareEqcheck,
-          source1Uri: entry.source1Uri,
-          source1Name: entry.source1Name,
-          source1Text: source1Text,
-          source2Uri: entry.source2Uri,
-          source2Name: entry.source2Name,
-          source2Text: source2Text,
-          dstFilenameIsObject: undefined,
-          statusMessage: EQCHECK_STATUS_MESSAGE_START,
-          dirPath: undefined,
-          functionName: undefined,
-          src_ir: undefined,
-          dst_ir: undefined,
-          src_etfg: undefined,
-          dst_etfg: undefined,
-          harvest: undefined,
-          object: undefined
+    const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: dirPath2});
+    const response2 = (await this.RequestResponseForCommand(jsonRequest4));
+    //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
+    const dst_etfg = response2.etfg;
+    const dst_ir = response2.ir;
+    console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
+
+    const viewRequestRemove2 =
+        { type: 'removeEqcheckInView',
+          origRequest: request,
         };
-    const jsonRequest = JSON.stringify(request);
-    //console.log(`jsonRequest = ${jsonRequest}\n`);
-    const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
 
+    var funRequestPromises = [];
+    for (let i = 0; i < common.length; i++) {
+      const functionName = common[i];
+      var funRequest = { ...request};
+
+      //console.log(`functionName = ${functionName}\n`);
+      funRequest.serverCommand = commandSubmitEqcheck;
+      funRequest.dirPath = undefined;
+      funRequest.src_etfg = src_etfg;
+      funRequest.dst_etfg = dst_etfg;
+      funRequest.src_ir = src_ir;
+      funRequest.dst_ir = dst_ir;
+      funRequest.harvest = harvest;
+      funRequest.object = object;
+      funRequest.functionName = functionName;
+      const jsonRequest = JSON.stringify(funRequest);
+      funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));
+    }
+
+    Promise.all(funRequestPromises);
+
+    return true;
+  }
+
+  public static async afterPrepareCommand(request, dirPath) {
     if (dirPath === "") {
       console.log('returning false because dirPath = empty-string');
       return false;
@@ -339,48 +346,53 @@ class Eqchecker {
     request.serverCommand = commandPointsToAnalysis;
     const jsonRequest2 = JSON.stringify(request);
     const dirPath2 = await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
+    return await Eqchecker.afterPointsToAnalysisCommand(request, dirPath2, common, harvest, object);
+  }
 
-    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath2});
-    const response = (await this.RequestResponseForCommand(jsonRequest3));
-    //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
-    const src_etfg = response.etfg;
-    const src_ir = response.ir;
+  public static async submitPrepareCommand(request) {
+    const jsonRequest = JSON.stringify(request);
+    const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
 
-    const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: dirPath2});
-    const response2 = (await this.RequestResponseForCommand(jsonRequest4));
-    //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
-    const dst_etfg = response2.etfg;
-    const dst_ir = response2.ir;
-    console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
+    return await Eqchecker.afterPrepareCommand(request, dirPath);
+  }
 
-    const viewRequestRemove2 =
-        { type: 'removeEqcheckInView',
-          origRequest: request,
-        };
-    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
 
-    var funRequestPromises = [];
-    for (let i = 0; i < common.length; i++) {
-      const functionName = common[i];
-      var funRequest = { ...request};
-
-      //console.log(`functionName = ${functionName}\n`);
-      funRequest.serverCommand = commandSubmitEqcheck;
-      funRequest.dirPath = undefined;
-      funRequest.src_etfg = src_etfg;
-      funRequest.dst_etfg = dst_etfg;
-      funRequest.src_ir = src_ir;
-      funRequest.dst_ir = dst_ir;
-      funRequest.harvest = harvest;
-      funRequest.object = object;
-      funRequest.functionName = functionName;
-      const jsonRequest = JSON.stringify(funRequest);
-      funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));
+  public static async addEqcheck(entry) {
+    //console.log("addEqcheck() called\n");
+    //var source : string;
+    //var optimized : string;
+    if (entry === undefined || entry.source1Uri === undefined) {
+      return false;
+    }
+    const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
+    var source2Text;
+    if (entry.source2Uri !== undefined) {
+      source2Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source2Uri));
     }
 
-    Promise.all(funRequestPromises);
-
-    return true;
+    //console.log('source = ' + source);
+    //console.log('optimized = ' + optimized);
+    var request =
+        { serverCommand: commandPrepareEqcheck,
+          source1Uri: entry.source1Uri,
+          source1Name: entry.source1Name,
+          source1Text: source1Text,
+          source2Uri: entry.source2Uri,
+          source2Name: entry.source2Name,
+          source2Text: source2Text,
+          dstFilenameIsObject: undefined,
+          statusMessage: EQCHECK_STATUS_MESSAGE_START,
+          dirPath: undefined,
+          functionName: undefined,
+          src_ir: undefined,
+          dst_ir: undefined,
+          src_etfg: undefined,
+          dst_etfg: undefined,
+          harvest: undefined,
+          object: undefined
+        };
+    //console.log(`jsonRequest = ${jsonRequest}\n`);
+    return await Eqchecker.submitPrepareCommand(request);
   }
 
   public static async obtainProofFromServer(dirPathIn)

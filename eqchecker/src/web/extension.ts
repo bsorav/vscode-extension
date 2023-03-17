@@ -222,10 +222,10 @@ class Eqchecker {
             let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
             resolve(Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false));
           } else {
-            resolve(dirPath);
+            resolve({dirPath: dirPath, runStatus: runStatus});
           }
         } else {
-          resolve(dirPath);
+          resolve({dirPath: dirPath, runStatus: runStatus});
         }
       })
     });
@@ -345,13 +345,15 @@ class Eqchecker {
 
     request.serverCommand = commandPointsToAnalysis;
     const jsonRequest2 = JSON.stringify(request);
-    const dirPath2 = await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
+    const result: any = await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
+    const dirPath2 = result.dirPath;
     return await Eqchecker.afterPointsToAnalysisCommand(request, dirPath2, common, harvest, object);
   }
 
   public static async submitPrepareCommand(request) {
     const jsonRequest = JSON.stringify(request);
-    const dirPath = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    const result : any = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    const dirPath = result.dirPath;
 
     return await Eqchecker.afterPrepareCommand(request, dirPath);
   }
@@ -405,7 +407,7 @@ class Eqchecker {
     return response;
   }
 
-  private static async obtainFunctionListsAfterPreparePhase(dirPathIn)
+  public static async obtainFunctionListsAfterPreparePhase(dirPathIn)
   {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainFunctionListsAfterPreparePhase, dirPathIn: dirPathIn});
     let response = await this.RequestResponseForCommand(jsonRequest);
@@ -1149,7 +1151,27 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               const jsonRequest = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: eqcheck.dirPath, offsetIn: 0});
               //console.log(`pushing to eqcheckRequestPromises`);
               Eqchecker.statusMap[eqcheck.dirPath] = statusEqcheckPinging;
-              eqcheckRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, origRequest, false));
+              var promise = Eqchecker.RequestNextChunk(jsonRequest, origRequest, false).then(
+                async (result : any) => {
+                  const dirPath = result.dirPath;
+                  const runStatus = result.runStatus;
+                  const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
+                  const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
+                  eqcheck.runState = runState;
+                  if (runState == runStateStatusPreparing) {
+                    return Eqchecker.afterPrepareCommand(origRequest, eqcheck.dirPath);
+                  } else if (runState == runStateStatusPointsToAnalysis) {
+                    const prepare_dirPath = eqcheck.prepare_dirPath;
+                    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await Eqchecker.obtainFunctionListsAfterPreparePhase(prepare_dirPath);
+                    return Eqchecker.afterPointsToAnalysisCommand(origRequest, eqcheck.dirPath, common, harvest, object);
+                  } else if (runState == runStateStatusRunning) {
+                    //not-reached
+                  } else {
+                    //not-reached
+                  }
+                }
+              );
+              eqcheckRequestPromises.push(promise);
             }
           }
           //console.log(`eqcheckRequestPromises.length = ${eqcheckRequestPromises.length}`);

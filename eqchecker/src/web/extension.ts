@@ -1366,6 +1366,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="StartButtonRightClickMenuItem1" class="item"></div>
         <div id="StartButtonRightClickMenuItem2" class="item"></div>
         <div id="StartButtonRightClickMenuItem3" class="item"></div>
+        <div id="StartButtonRightClickMenuItem4" class="item"></div>
         </div>
         <hr>
         <ul class="eqcheck-list">

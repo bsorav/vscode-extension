@@ -344,7 +344,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       //const eqcheck = evt.currentTarget.eqcheck;
       const eqcheck = eqcheckRightClickMenu.eqcheck;
-      eqcheckCancel(eqcheck);
+      //eqcheckCancel(eqcheck);
 
       console.log('eqcheckClear clicked');
       eqcheckRightClickMenu.style.display = "none";
@@ -362,11 +362,16 @@ const viewStateViewSearchTree = 'viewSearchTree';
       eqcheckRightClickMenu.style.display = "none";
     };
 
-    function cancelAndClearAllEqchecksListener() {
+    function cancelAllEqchecksListener() {
       hideStartButtonRightClickMenu();
       for (const eqcheck of eqchecks) {
         eqcheckCancel(eqcheck);
       }
+      displayEqcheckList(eqchecks);
+    }
+
+    function clearAllEqchecksListener() {
+      hideStartButtonRightClickMenu();
       eqchecks = [];
       displayEqcheckList(eqchecks);
     }
@@ -406,43 +411,35 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
       var items = startButtonRightClickMenu.querySelectorAll(".item");
 
-      items[0].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[0].removeEventListener('click', hideProofListener);
-      items[0].removeEventListener('click', saveSessionListener);
-      items[0].removeEventListener('click', loadSessionListener);
-
-      items[1].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[1].removeEventListener('click', hideProofListener);
-      items[1].removeEventListener('click', saveSessionListener);
-      items[1].removeEventListener('click', loadSessionListener);
-
-      items[2].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[2].removeEventListener('click', hideProofListener);
-      items[2].removeEventListener('click', saveSessionListener);
-      items[2].removeEventListener('click', loadSessionListener);
-
-      items[3].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[3].removeEventListener('click', hideProofListener);
-      items[3].removeEventListener('click', saveSessionListener);
-      items[3].removeEventListener('click', loadSessionListener);
+      for (const item of items) {
+        item.removeEventListener('click', cancelAllEqchecksListener);
+        item.removeEventListener('click', clearAllEqchecksListener);
+        item.removeEventListener('click', hideProofListener);
+        item.removeEventListener('click', saveSessionListener);
+        item.removeEventListener('click', loadSessionListener);
+      }
 
       if (anyEqcheckInViewStateViewProof()) {
         items[0].innerHTML = 'Hide Proof';
         items[0].addEventListener('click', hideProofListener);
+        items[1].innerHTML = 'Cancel all eqchecks';
+        items[1].addEventListener('click', cancelAllEqchecksListener);
+        items[2].innerHTML = 'Clear all eqchecks';
+        items[2].addEventListener('click', clearAllEqchecksListener);
+        items[3].innerHTML = 'Save Session';
+        items[3].addEventListener('click', saveSessionListener);
+        items[4].innerHTML = 'Load Session';
+        items[4].addEventListener('click', loadSessionListener);
+      } else {
+        items[0].innerHTML = 'Cancel all eqchecks';
+        items[0].addEventListener('click', cancelAllEqchecksListener);
         items[1].innerHTML = 'Clear all eqchecks';
-        items[1].addEventListener('click', cancelAndClearAllEqchecksListener);
+        items[1].addEventListener('click', clearAllEqchecksListener);
         items[2].innerHTML = 'Save Session';
         items[2].addEventListener('click', saveSessionListener);
         items[3].innerHTML = 'Load Session';
         items[3].addEventListener('click', loadSessionListener);
-      } else {
-        items[0].innerHTML = 'Clear all eqchecks';
-        items[0].addEventListener('click', cancelAndClearAllEqchecksListener);
-        items[1].innerHTML = 'Save Session';
-        items[1].addEventListener('click', saveSessionListener);
-        items[2].innerHTML = 'Load Session';
-        items[2].addEventListener('click', loadSessionListener);
-        items[3].innerHTML = '';
+        items[4].innerHTML = '';
       }
       startButtonRightClickMenu.style.display = "inline";
       startButtonRightClickMenu.classList.add("visible");
@@ -491,7 +488,6 @@ const viewStateViewSearchTree = 'viewSearchTree';
         eqcheckRightClickMenu.style.display = "inline";
 
         if (eqcheck.runState == runStateStatusFoundProof) {
-          items[0].removeEventListener('click', eqcheckCancelListener);
           if (eqcheck.viewState != viewStateViewProof) {
             items[0].innerHTML = 'View Proof';
             items[0].addEventListener('click', viewProofListener);
@@ -501,13 +497,18 @@ const viewStateViewSearchTree = 'viewSearchTree';
             items[0].addEventListener('click', hideProofListener);
           }
           items[1].innerHTML = 'View Search Tree';
-          items[2].innerHTML = 'Clear';
-          items[2].addEventListener('click', eqcheckClearListener);
+          items[2].innerHTML = 'Cancel';
+          items[2].addEventListener('click', eqcheckCancelListener);
+          items[3].innerHTML = 'Clear';
+          items[3].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';
             items[0].addEventListener('click', eqcheckCancelListener);
             items[1].innerHTML = 'View Search Tree';
+            items[1].addEventListener('click', viewSearchTreeListener);
+            items[2].innerHTML = 'Clear';
+            items[2].addEventListener('click', eqcheckClearListener);
           } else {
             items[0].innerHTML = 'Clear';
             items[0].addEventListener('click', eqcheckClearListener);

@@ -880,7 +880,7 @@ class EqcheckHandler {
           console.log('CancelEqcheck received with dirPathIn ', dirPathIn);
           const runStatus = await this.getRunningStatus(dirPathIn);
 
-          if (runStatus !== undefined && runStatus !== null) {
+          if (runStatus !== undefined && runStatus !== null && runStatus.running_status !== undefined) {
             console.log(`killing runStatus.pid = ${runStatus.running_status.pid}\n`);
             tree_kill(runStatus.running_status.pid, 'SIGKILL');
           }

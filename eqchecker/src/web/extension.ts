@@ -128,6 +128,7 @@ class Eqchecker {
     }
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
+    console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
     var request =
         { type: 'updateEqcheckInView',
           //dirPath: dirPath,
@@ -190,7 +191,7 @@ class Eqchecker {
     return new Promise ((resolve, reject) => {
       const origRequest = origRequestIn;
       //const firstRequest = firstRequestIn;
-      console.log(`requesting response for server command ${origRequestIn.serverCommand}, dirPathIn ${origRequest.dirPathIn}, function ${origRequest.functionName}`);
+      console.log(`requesting response for server command ${origRequest.serverCommand}, dirPathIn ${origRequest.dirPathIn}, function ${origRequest.functionName}`);
       this.RequestResponseForCommand(jsonRequest).then(async function(result) {
         //const result = res.result;
         //const origRequest = result.extra.origRequest;
@@ -202,6 +203,7 @@ class Eqchecker {
         if (origRequest.dirPathIn === undefined) {
           //console.log("first response received.\n");
           origRequest.type = 'addEqcheckInView';
+          origRequest.dirPath = dirPath;
           origRequest.dirPathIn = dirPath;
           origRequest[dirPathType] = dirPath;
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
@@ -271,9 +273,11 @@ class Eqchecker {
 
     if (common.length === 0) {
       const msg = `ERROR: No common function in files given for eqcheck`;
+      const origRequest = { ...request };
+      origRequest.dirPath = request.dirPathIn;
       var viewRequest =
           { type: 'updateEqcheckInView',
-            origRequest: request,
+            origRequest: origRequest,
             statusMessage: msg,
             runState: runStateStatusTerminated,
           };

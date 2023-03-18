@@ -19,7 +19,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
 (function () {
     const vscode = acquireVsCodeApi();
 
-    const oldState = vscode.getState() || { eqchecks: [] };
+    //const oldState = vscode.getState() || { eqchecks: [] };
+    const oldState = { eqchecks: [] };
     //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     let eqchecks = oldState.eqchecks;
@@ -617,6 +618,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       for (const eqcheck of eqchecks) {
         if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
           eqcheckToRemove = eqcheck;
+          console.log(`updateEqcheckInView match found. eqcheckToRemove.source2Name = ${eqcheck.source2Name}, origRequest.source2Name = ${origRequest.source2Name}. eqcheckToRemove.dirPath = ${eqcheckToRemove.dirPath}, dirPathIn = ${eqcheckToRemove.dirPathIn}, origRequest.dirPath = ${origRequest.dirPath}, dirPathIn = ${origRequest.dirPathIn}\n`);
           break;
         }
       }

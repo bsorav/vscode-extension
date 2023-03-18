@@ -19,8 +19,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
 (function () {
     const vscode = acquireVsCodeApi();
 
-    //const oldState = vscode.getState() || { eqchecks: [] };
-    const oldState = { eqchecks: [] };
+    const oldState = vscode.getState() || { eqchecks: [] };
+    //const oldState = { eqchecks: [] };
     //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     let eqchecks = oldState.eqchecks;
@@ -59,7 +59,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
             case 'addEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);
                     break;
                 }
             case 'updateEqcheckInView':
@@ -653,7 +653,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
         _source2Text,
         _functionName,
         _statusMessage,
-        _runState
+        _runState,
+        _prepareDirpath,
+        _pointsToDirpath
     ) {
       const eqcheck = {
         dirPath: _dirPath,
@@ -666,6 +668,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
         functionName: _functionName,
         statusMessage : _statusMessage,
         runState: _runState,
+        prepareDirpath: _prepareDirpath,
+        pointsToDirpath: _pointsToDirpath,
         viewState: viewStateBase,
       }
       console.log(`adding eqcheck.functionName \n${JSON.stringify(eqcheck.functionName)}`);

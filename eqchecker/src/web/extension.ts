@@ -330,7 +330,14 @@ class Eqchecker {
     var funRequestPromises = [];
     for (let i = 0; i < preparePhaseResult.common.length; i++) {
       const functionName = preparePhaseResult.common[i];
-      if (request.functionName !== undefined && request.functionName !== functionName) {
+      //console.log(`functionName '${functionName}'`);
+      //console.log(`request.functionName = '${request.functionName}'`);
+      //console.log(`functionName === request.functionName = '${functionName === request.functionName}'`);
+      //console.log(`functionName == request.functionName = '${functionName == request.functionName}'`);
+      //console.log(`functionName.valueOf() == request.functionName.valueOf() = '${functionName.valueOf() == request.functionName.valueOf()}'`);
+      //console.log(`functionName.toString() == request.functionName.toString() = '${functionName.toString() == request.functionName.toString()}'`);
+      if (request.functionName != undefined && request.functionName.toString() != functionName.toString()) {
+        console.log(`Ignoring function ${functionName} (request.functionName = ${request.functionName})`);
         continue;
       }
       var funRequest = { ...request};
@@ -338,6 +345,7 @@ class Eqchecker {
       //console.log(`functionName = ${functionName}\n`);
       funRequest.serverCommand = commandSubmitEqcheck;
       funRequest.dirPathIn = request.dirPathIn;
+      funRequest.dirPath = request.dirPathIn;
       funRequest.src_etfg = src_etfg;
       funRequest.dst_etfg = dst_etfg;
       funRequest.src_ir = src_ir;
@@ -714,13 +722,14 @@ class Eqchecker {
 
   public static eqcheckHasFinishedExecuting(eqcheck)
   {
-    if (   eqcheck.runState === runStateStatusFoundProof
-        || eqcheck.runState === runStateStatusExhaustedSearchSpace
-        || eqcheck.runState === runStateStatusSafetyCheckFailed
-        || eqcheck.runState === runStateStatusTimedOut
-        || eqcheck.runState === runStateStatusTerminated) {
+    if (   eqcheck.runState == runStateStatusFoundProof
+        || eqcheck.runState == runStateStatusExhaustedSearchSpace
+        || eqcheck.runState == runStateStatusSafetyCheckFailed
+        || eqcheck.runState == runStateStatusTimedOut
+        || eqcheck.runState == runStateStatusTerminated) {
       return true;
     }
+    //console.log(`eqcheck.runState = ${eqcheck.runState}\n`);
     return false;
   }
 }
@@ -1199,21 +1208,27 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               continue;
             }
 
-            const request = { dirPath: eqcheck.dirPath, source1Uri: eqcheck.source1Uri, source1Name: eqcheck.source1Name, source1Text: eqcheck.source1Text, source2Uri: eqcheck.source2Uri, source2Name: eqcheck.source2Name, source2Text: eqcheck.source2Text, functionName: eqcheck.functionName, prepareDirpath: eqcheck.prepareDirpath, pointsToDirpath: eqcheck.pointsToDirpath, runDirpath: eqcheck.runDirpath };
+            const request = { dirPathIn: eqcheck.dirPath, source1Uri: eqcheck.source1Uri, source1Name: eqcheck.source1Name, source1Text: eqcheck.source1Text, source2Uri: eqcheck.source2Uri, source2Name: eqcheck.source2Name, source2Text: eqcheck.source2Text, functionName: eqcheck.functionName, prepareDirpath: eqcheck.prepareDirpath, pointsToDirpath: eqcheck.pointsToDirpath, runDirpath: eqcheck.runDirpath };
 
             //console.log(`eqcheck =\n${JSON.stringify(eqcheck)}\n`);
             //console.log(`eqcheck.runState =${eqcheck.runState}\n`);
-            if (request.dirPath !== undefined) {
-              Eqchecker.statusMap[request.dirPath] = statusEqcheckPinging;
+            if (eqcheck.dirPath !== undefined) {
+              Eqchecker.statusMap[eqcheck.dirPath] = statusEqcheckPinging;
             }
-            if (eqcheck.runDirPath !== undefined) {
+            console.log(`eqcheck.dirPath = ${eqcheck.dirPath}\n`);
+            console.log(`eqcheck.pointsToDirpath = ${eqcheck.pointsToDirpath}\n`);
+            console.log(`eqcheck.prepareDirpath = ${eqcheck.prepareDirpath}\n`);
+            if (eqcheck.dirPath !== undefined && eqcheck.dirPath !== eqcheck.pointsToDirpath && eqcheck.dirPath !== eqcheck.prepareDirpath) {
               //do the run
+              console.log(`Submitting run command for ${eqcheck.dirPath}\n`);
               Eqchecker.submitRunCommand(request);
             } else if (eqcheck.pointsToDirPath !== undefined) {
               //do the points-to followed by run
+              console.log(`Submitting pointsTo command for ${eqcheck.dirPath}\n`);
               Eqchecker.submitPointsToCommand(request);
             } else {
               //do the prepare followed by points-to followed by run
+              console.log(`Submitting Prepare command for ${eqcheck.dirPath}\n`);
               Eqchecker.submitPrepareCommand(request);
             }
               //const jsonRequest = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: eqcheck.dirPath, offsetIn: 0});

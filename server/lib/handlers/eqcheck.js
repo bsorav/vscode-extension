@@ -128,7 +128,7 @@ class EqcheckHandler {
         let commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName;
         if (req.is('json')) {
             // JSON-style request
-            //console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
+            ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
             //const requestOptions = req.body.options;
             //console.log('JSON-style parseRequest:\n' + Object.keys(req));
             //console.log('method:\n' + req.method);
@@ -221,7 +221,7 @@ class EqcheckHandler {
         //    tool.args = this.splitArguments(tool.args);
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
-        //console.log("commandIn = " + commandIn);
+        console.log("commandIn = " + commandIn);
         return {commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName};
     }
 
@@ -709,86 +709,88 @@ class EqcheckHandler {
       //}
       //console.log("commandIn = " + commandIn);
       if (commandIn === commandSubmitEqcheck || commandIn === commandPrepareEqcheck || commandIn === commandPointsToAnalysis) {
-        if (commandIn === commandSubmitEqcheck) {
-          console.log(`Submit received on ${dirPathIn}: source = ${def(source)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
-          //console.log(`src_etfg = ${JSON.stringify(src_etfg)}\n`);
-        } else if (commandIn === commandPrepareEqcheck) {
-          console.log(`Prepare received on ${dirPathIn}: source = ${def(source)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
-        } else if (commandIn === commandPointsToAnalysis) {
-          console.log(`PointsTo received on ${dirPathIn}: source = ${def(source)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
-        }
+        if (dirPathIn === undefined) {
+          if (commandIn === commandSubmitEqcheck) {
+            console.log(`Submit received on ${dirPathIn}: source = ${def(source)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
+            //console.log(`src_etfg = ${JSON.stringify(src_etfg)}\n`);
+          } else if (commandIn === commandPrepareEqcheck) {
+            console.log(`Prepare received on ${dirPathIn}: source = ${def(source)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
+          } else if (commandIn === commandPointsToAnalysis) {
+            console.log(`PointsTo received on ${dirPathIn}: source = ${def(source)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}\n`);
+          }
 
-        if (source === undefined) {
-            logger.warn("No body found in request: source code missing", req);
-            return next(new Error("Bad request"));
-        }
+          if (source === undefined) {
+              logger.warn("No body found in request: source code missing", req);
+              return next(new Error("Bad request"));
+          }
 
-        //if (optimized === undefined) {
-        //    logger.warn("No body found in request: optimized code missing", req);
-        //    return next(new Error("Bad request"));
-        //}
+          //if (optimized === undefined) {
+          //    logger.warn("No body found in request: optimized code missing", req);
+          //    return next(new Error("Bad request"));
+          //}
 
-        const dirPath =  (dirPathIn === undefined) ? await this.newTempDir() : dirPathIn;
-        const dryRun = (commandIn === commandPrepareEqcheck);
-        const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
+          const dirPath =  (dirPathIn === undefined) ? await this.newTempDir() : dirPathIn;
+          const dryRun = (commandIn === commandPrepareEqcheck);
+          const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
 
-        this.run_eqcheck(source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, dryRun, llvm2tfg_only)
-            .then(
-                result => {
-                    res.end(JSON.stringify({retcode: 0}));
-                },
-                error => {
-                    this.eqcheck_error(error, res);
-                });
-        const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''});
-        //console.log(`response = ${response}\n`);
-        res.end(response);
-      } else if (commandIn === commandPingEqcheck) {
-        console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
-        const ret = await this.getOutputChunk(dirPathIn, offsetIn);
-        var runStatus = await this.getRunningStatus(dirPathIn);
-        const offsetNew = ret[0];
-        let chunkXML_orig = ret[1];
-        let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
-        //console.log("chunkXML:\n" + chunkXML);
+          this.run_eqcheck(source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, dryRun, llvm2tfg_only)
+              .then(
+                  result => {
+                      res.end(JSON.stringify({retcode: 0}));
+                  },
+                  error => {
+                      this.eqcheck_error(error, res);
+                  });
+          const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''});
+          //console.log(`response = ${response}\n`);
+          res.end(response);
+        } else {
+          console.log('ping received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
+          const ret = await this.getOutputChunk(dirPathIn, offsetIn);
+          var runStatus = await this.getRunningStatus(dirPathIn);
+          const offsetNew = ret[0];
+          let chunkXML_orig = ret[1];
+          let chunkXML = ("<messages>").concat(chunkXML_orig).concat("</messages>");
+          //console.log("chunkXML:\n" + chunkXML);
 
-        //var xml = "<root>Hello xml2js!</root>"
-        var chunkObj;
-        xml2js.parseString(chunkXML, {explictArray: true}, function (err, result) {
-            //console.dir(result);
-            chunkObj = result;
-        });
+          //var xml = "<root>Hello xml2js!</root>"
+          var chunkObj;
+          xml2js.parseString(chunkXML, {explictArray: true}, function (err, result) {
+              //console.dir(result);
+              chunkObj = result;
+          });
 
-        if (runStatus !== undefined && runStatus !== null && runStatus.running_status !== undefined) {
-          const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
-          if (runStatus.running_status.status_flag === runStateStatusRunning) {
-            runStatus = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
-            if (runStatus.running_status.status_flag === runStateStatusRunning && !pidRunning) {
-              console.log(`Setting status_flag to terminated`);
-              runStatus.running_status.status_flag = runStateStatusTerminated;
+          if (runStatus !== undefined && runStatus !== null && runStatus.running_status !== undefined) {
+            const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
+            if (runStatus.running_status.status_flag === runStateStatusRunning) {
+              runStatus = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
+              if (runStatus.running_status.status_flag === runStateStatusRunning && !pidRunning) {
+                console.log(`Setting status_flag to terminated`);
+                runStatus.running_status.status_flag = runStateStatusTerminated;
+              }
             }
           }
+
+          //const chunkJson = xml2json.toJson(chunkXML, );
+          //const chunkObj = JSON.parse(chunkJson);
+          //const chunkObj = xml2json.toJson(chunkXML, { object: true, arrayNotation: true });
+          //console.log("chunkJson:\n" + chunkJson);
+          //console.log("chunkObj:\n" + chunkObj);
+          //console.log("JSON.stringify(chunkObj):\n" + JSON.stringify(chunkObj));
+
+          //console.log("chunkJson:\n" + JSON.stringify(chunkJson, null, "    ") );
+          //console.log("chunkJson:\n" + JSON.stringify(chunkJson));
+          //for (var key in chunkJson) {
+          //  console.log('key ' + key);
+          //  console.log('value ' + chunkJson[key]);
+          //}
+
+          //console.log('chunkNew ', chunkNew);
+          const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj, runStatus: runStatus});
+          //console.log('chunkStr =\n' + chunkStr);
+          res.end(chunkStr);
+          return;
         }
-
-        //const chunkJson = xml2json.toJson(chunkXML, );
-        //const chunkObj = JSON.parse(chunkJson);
-        //const chunkObj = xml2json.toJson(chunkXML, { object: true, arrayNotation: true });
-        //console.log("chunkJson:\n" + chunkJson);
-        //console.log("chunkObj:\n" + chunkObj);
-        //console.log("JSON.stringify(chunkObj):\n" + JSON.stringify(chunkObj));
-
-        //console.log("chunkJson:\n" + JSON.stringify(chunkJson, null, "    ") );
-        //console.log("chunkJson:\n" + JSON.stringify(chunkJson));
-        //for (var key in chunkJson) {
-        //  console.log('key ' + key);
-        //  console.log('value ' + chunkJson[key]);
-        //}
-
-        //console.log('chunkNew ', chunkNew);
-        const chunkStr = JSON.stringify({dirPath: dirPathIn, offset: offsetNew, chunk: chunkObj, runStatus: runStatus});
-        //console.log('chunkStr =\n' + chunkStr);
-        res.end(chunkStr);
-        return;
       } else if (commandIn === commandObtainFunctionListsAfterPreparePhase) {
         console.log('obtainFunctionListsAfterPreparePhase received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
         const runStatus = await this.getRunningStatus(dirPathIn);
@@ -851,14 +853,15 @@ class EqcheckHandler {
         res.end(dst_files_str);
         return;
       } else if (commandIn === commandCancelEqcheck) {
-        console.log('CancelEqcheck received with dirPathIn ', dirPathIn);
-        const runStatus = await this.getRunningStatus(dirPathIn);
+        if (dirPathIn !== undefined) {
+          console.log('CancelEqcheck received with dirPathIn ', dirPathIn);
+          const runStatus = await this.getRunningStatus(dirPathIn);
 
-        if (runStatus !== undefined && runStatus !== null) {
-          console.log(`killing runStatus.pid = ${runStatus.running_status.pid}\n`);
-          tree_kill(runStatus.running_status.pid, 'SIGKILL');
+          if (runStatus !== undefined && runStatus !== null) {
+            console.log(`killing runStatus.pid = ${runStatus.running_status.pid}\n`);
+            tree_kill(runStatus.running_status.pid, 'SIGKILL');
+          }
         }
-
         const chunkStr = JSON.stringify({dirPath: dirPathIn, serverStatus: "cancelled"});
         res.end(chunkStr);
         return;

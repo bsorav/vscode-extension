@@ -15,7 +15,6 @@ const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
 const statusEqcheckPinging = "eqcheckPinging";
 const statusEqcheckCancelled = "eqcheckCancelled";
 
-const commandPingEqcheck = 'pingEqcheck';
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';

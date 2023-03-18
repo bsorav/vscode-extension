@@ -125,7 +125,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName;
+        let commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -163,6 +163,8 @@ class EqcheckHandler {
             optName = (req.body.source2Name === undefined) ? undefined : "opt.".concat(req.body.source2Name);
             dstFilenameIsObject = req.body.dstFilenameIsObject;
             functionName = req.body.functionName;
+            sessionName = req.body.sessionName;
+            eqchecks = req.body.eqchecks;
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -193,6 +195,8 @@ class EqcheckHandler {
             optName = (req.source2Name === undefined) ? undefined : "opt.".concat(req.source2Name);
             dstFilenameIsObject = req.dstFilenameIsObject;
             functionName = req.functionName;
+            sessionName = req.sessionName;
+            eqchecks = req.eqchecks;
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();
@@ -222,7 +226,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName};
+        return {commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks};
     }
 
     //splitArguments(options) {
@@ -456,20 +460,39 @@ class EqcheckHandler {
         });
     }
 
-    savedSessionsDir() {
+    eqchecksDir() {
       return new Promise((resolve, reject) => {
-        const eqDir = eqchecksDir();
-        fs.mkdir(path.join(eqdir, 'savedSessions'), (err) => {
-            if (err) {
-              console.error(err);
-              return false;
-            }
-            console.log('Directory created successfully!');
-            resolve(true);
-        });
+        const ret = path.join(this.superoptInstall, 'server-eqfiles');
+        if (!fs.existsSync(ret)) {
+          fs.mkdir(ret, (err) => {
+              if (err) {
+                console.error(err);
+                reject(`Could not create dir ${ret}`);
+              }
+              console.log('Directory created successfully!');
+          });
+        }
+        resolve(ret);
       });
     }
 
+    async savedSessionsDir() {
+      return new Promise((resolve, reject) => {
+        this.eqchecksDir().then( (eqDir) => {
+          const savedSessDir = path.join(eqDir, 'savedSessions');
+          if (!fs.existsSync(savedSessDir)) {
+            fs.mkdir(savedSessDir, (err) => {
+                if (err) {
+                  console.error(err);
+                  reject(`Could not create dir ${savedSessDir}`);
+                }
+                console.log('Directory created successfully!');
+            });
+          }
+          resolve(savedSessDir);
+        });
+      });
+    }
 
     async readBuffer(filename, start = 0, bufferSize = undefined, max_chunksize = 8192) {
       //console.log(`readBuffer: filename = ${filename}`);
@@ -696,7 +719,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       const {
-          commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName
+          commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -866,6 +889,15 @@ class EqcheckHandler {
         res.end(chunkStr);
         return;
       } else if (commandIn === commandSaveSession) {
+        const ssdir = await this.savedSessionsDir();
+        const sessionFile = path.join(ssdir, sessionName);
+        fs.writeFile(sessionFile, eqchecks, function (err) {
+          if (err) throw err;
+          console.log(`Saved ${sessionFile}`);
+        });
+        const chunkStr = JSON.stringify({serverStatus: "done"});
+        res.end(chunkStr);
+        return;
       } else {
         assert(false, "Invalid Command " + commandIn);
       }

@@ -186,11 +186,11 @@ class Eqchecker {
     );
   }
 
-  public static async RequestNextChunk(jsonRequest, origRequestIn, firstRequestIn:boolean) {
+  public static async RequestNextChunk(jsonRequest, origRequestIn, dirPathType) {
     return new Promise ((resolve, reject) => {
       const origRequest = origRequestIn;
-      const firstRequest = firstRequestIn;
-      console.log(`requesting response for function ${origRequest.functionName}`);
+      //const firstRequest = firstRequestIn;
+      console.log(`requesting response for server command ${origRequestIn.serverCommand}, dirPathIn ${origRequest.dirPathIn}, function ${origRequest.functionName}`);
       this.RequestResponseForCommand(jsonRequest).then(async function(result) {
         //const result = res.result;
         //const origRequest = result.extra.origRequest;
@@ -199,10 +199,11 @@ class Eqchecker {
         //console.log("extra =\n" + JSON.stringify(result.extra));
         let dirPath = result.dirPath;
         console.log(`response received for function ${origRequest.functionName}, dirPath ${dirPath}`);
-        if (firstRequest) {
+        if (origRequest.dirPathIn === undefined) {
           //console.log("first response received.\n");
           origRequest.type = 'addEqcheckInView';
-          origRequest.dirPath = dirPath;
+          origRequest.dirPathIn = dirPath;
+          origRequest[dirPathType] = dirPath;
           EqcheckViewProvider.provider.viewProviderPostMessage(origRequest);
           Eqchecker.statusMap[dirPath] = statusEqcheckPinging;
           const msg = (origRequest.source2Uri === undefined) ? `Compiling ${origRequest.source1Uri}` : `Checking equivalence for: ${origRequest.source1Uri} -> ${origRequest.source2Uri}`;
@@ -219,8 +220,9 @@ class Eqchecker {
         if (!done) {
           if (Eqchecker.statusMap[dirPath] === statusEqcheckPinging) {
             await Eqchecker.wait(500);
-            let jsonRequestNew = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: dirPath, offsetIn: offset});
-            resolve(Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, false));
+            //let jsonRequestNew = JSON.stringify({/*serverCommand: commandPingEqcheck, */dirPathIn: dirPath, offsetIn: offset});
+            let jsonRequestNew = JSON.stringify({serverCommand: origRequest.serverCommand, dirPathIn: dirPath, offsetIn: offset});
+            resolve(Eqchecker.RequestNextChunk(jsonRequestNew, origRequest, undefined));
           } else {
             resolve({dirPath: dirPath, runStatus: runStatus});
           }
@@ -244,64 +246,15 @@ class Eqchecker {
     return msg;
   }
 
-  public static async afterPointsToAnalysisCommand(request, dirPath2, common, harvest, object) {
-    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: dirPath2});
-    const response = (await this.RequestResponseForCommand(jsonRequest3));
-    //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
-    const src_etfg = response.etfg;
-    const src_ir = response.ir;
-
-    const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: dirPath2});
-    const response2 = (await this.RequestResponseForCommand(jsonRequest4));
-    //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
-    const dst_etfg = response2.etfg;
-    const dst_ir = response2.ir;
-    console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
-
-    const viewRequestRemove2 =
-        { type: 'removeEqcheckInView',
-          origRequest: request,
-        };
-    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
-
-    var funRequestPromises = [];
-    for (let i = 0; i < common.length; i++) {
-      const functionName = common[i];
-      var funRequest = { ...request};
-
-      //console.log(`functionName = ${functionName}\n`);
-      funRequest.serverCommand = commandSubmitEqcheck;
-      funRequest.dirPath = undefined;
-      funRequest.src_etfg = src_etfg;
-      funRequest.dst_etfg = dst_etfg;
-      funRequest.src_ir = src_ir;
-      funRequest.dst_ir = dst_ir;
-      funRequest.harvest = harvest;
-      funRequest.object = object;
-      funRequest.functionName = functionName;
-      const jsonRequest = JSON.stringify(funRequest);
-      funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, true));
-    }
-
-    Promise.all(funRequestPromises);
-
-    return true;
-  }
-
-  public static async afterPrepareCommand(request, dirPath) {
-    if (dirPath === "") {
-      console.log('returning false because dirPath = empty-string');
-      return false;
-    }
-
-    request.dirPath = dirPath;
-
-    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(dirPath);
+  private static async populatePreparePhaseInfo(request) //this function is (and should remain) idempotent
+  {
+    const prepareDirpath = request.prepareDirpath;
+    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
 
     const dst_filename = dst_filename_arr.toString();
     if (dst_filename === "") {
       console.log('returning false because dst_filename === ""');
-      return false;
+      return { retval: false, common: common, harvest: harvest, object: object };
     }
 
     const dst_filename_is_object = (dst_filename_is_object_str == "true");
@@ -326,7 +279,7 @@ class Eqchecker {
           };
       EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
       vscode.window.showInformationMessage(msg);
-      return false;
+      return { retval: false, common: common, harvest: harvest, object: object };
     }
     if (src_only.length > 0) {
       const msg = this.createWarningMessageFromFunctionList('first', src_only);
@@ -336,26 +289,108 @@ class Eqchecker {
       const msg = this.createWarningMessageFromFunctionList('second', dst_only);
       vscode.window.showInformationMessage(msg);
     }
+    return { retval: true, common: common, harvest: harvest, object: object };
+  }
+
+  public static async submitRunCommand(request/*, dirPath2, common, harvest, object*/) {
+    const pointsToDirpath = request.pointsToDirpath;
+
+    const preparePhaseResult = await this.populatePreparePhaseInfo(request);
+    if (!preparePhaseResult.retval) {
+      return false;
+    }
+
+    const origRequest = { ...request };
+    origRequest.dirPath = pointsToDirpath;
+    const viewRequestRemove2 =
+        { type: 'removeEqcheckInView',
+          origRequest: origRequest,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
+
+    const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: pointsToDirpath});
+    const response = (await this.RequestResponseForCommand(jsonRequest3));
+    //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
+    const src_etfg = response.etfg;
+    const src_ir = response.ir;
+
+    const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: pointsToDirpath});
+    const response2 = (await this.RequestResponseForCommand(jsonRequest4));
+    //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
+    const dst_etfg = response2.etfg;
+    const dst_ir = response2.ir;
+    //console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
+
+    console.log(`preparePhaseResult.common = ${preparePhaseResult.common.join(" ")}`);
+
+    var funRequestPromises = [];
+    for (let i = 0; i < preparePhaseResult.common.length; i++) {
+      const functionName = preparePhaseResult.common[i];
+      if (request.functionName !== undefined && request.functionName !== functionName) {
+        continue;
+      }
+      var funRequest = { ...request};
+
+      //console.log(`functionName = ${functionName}\n`);
+      funRequest.serverCommand = commandSubmitEqcheck;
+      funRequest.dirPathIn = request.dirPathIn;
+      funRequest.src_etfg = src_etfg;
+      funRequest.dst_etfg = dst_etfg;
+      funRequest.src_ir = src_ir;
+      funRequest.dst_ir = dst_ir;
+      funRequest.harvest = preparePhaseResult.harvest;
+      funRequest.object = preparePhaseResult.object;
+      funRequest.functionName = functionName;
+      const jsonRequest = JSON.stringify(funRequest);
+      funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, "runDirpath"));
+    }
+
+    Promise.all(funRequestPromises);
+
+    return true;
+  }
+
+
+  public static async submitPointsToCommand(request) {
+    const prepareDirpath = request.prepareDirpath;
+
+    if (prepareDirpath === "") {
+      console.log('returning false because prepareDirpath = empty-string');
+      return false;
+    }
+
+    const prepareRequest = { ...request };
+    prepareRequest.dirPath = prepareDirpath;
 
     const viewRequestRemove =
         { type: 'removeEqcheckInView',
-          origRequest: request,
+          origRequest: prepareRequest,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
 
+    const preparePhaseResult = await this.populatePreparePhaseInfo(request);
+    if (!preparePhaseResult.retval) {
+      return false;
+    }
+
     request.serverCommand = commandPointsToAnalysis;
     const jsonRequest2 = JSON.stringify(request);
-    const result: any = await Eqchecker.RequestNextChunk(jsonRequest2, request, true);
-    const dirPath2 = result.dirPath;
-    return await Eqchecker.afterPointsToAnalysisCommand(request, dirPath2, common, harvest, object);
+    const result: any = await Eqchecker.RequestNextChunk(jsonRequest2, request, "pointsToDirpath");
+
+    request.pointsToDirpath = result.dirPath;
+    request.dirPathIn = undefined;
+    return await Eqchecker.submitRunCommand(request/*, dirPath2, common, harvest, object*/);
   }
 
   public static async submitPrepareCommand(request) {
+    console.log(`submitting prepare command\n`);
+    request.serverCommand = commandPrepareEqcheck;
     const jsonRequest = JSON.stringify(request);
-    const result : any = await Eqchecker.RequestNextChunk(jsonRequest, request, true);
+    const result : any = await Eqchecker.RequestNextChunk(jsonRequest, request, "prepareDirpath");
     const dirPath = result.dirPath;
-
-    return await Eqchecker.afterPrepareCommand(request, dirPath);
+    request.prepareDirpath = dirPath;
+    request.dirPathIn = undefined;
+    return await Eqchecker.submitPointsToCommand(request);
   }
 
 
@@ -375,7 +410,7 @@ class Eqchecker {
     //console.log('source = ' + source);
     //console.log('optimized = ' + optimized);
     var request =
-        { serverCommand: commandPrepareEqcheck,
+        { //serverCommand: commandPrepareEqcheck,
           source1Uri: entry.source1Uri,
           source1Name: entry.source1Name,
           source1Text: source1Text,
@@ -384,7 +419,7 @@ class Eqchecker {
           source2Text: source2Text,
           dstFilenameIsObject: undefined,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
-          dirPath: undefined,
+          dirPathIn: undefined,
           functionName: undefined,
           src_ir: undefined,
           dst_ir: undefined,
@@ -429,12 +464,12 @@ class Eqchecker {
     let jsonRequest = JSON.stringify(request);
     const response = (await this.RequestResponseForCommand(jsonRequest));
     console.log("Cancel Eqcheck response: ", JSON.stringify(response));
-    var viewRequest =
-        { type: 'eqcheckCancelled',
-          //dirPath: dirPath,
-          origRequest: {dirPath: dirPath},
-        };
-    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
+    //var viewRequest =
+    //    { type: 'eqcheckCancelled',
+    //      //dirPath: dirPath,
+    //      origRequest: {dirPath: dirPath},
+    //    };
+    //EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
     return;
   }
 
@@ -673,6 +708,17 @@ class Eqchecker {
     return dec.decode(new Uint8Array(arr));
   }
 
+  public static eqcheckHasFinishedExecuting(eqcheck)
+  {
+    if (   eqcheck.runState === runStateStatusFoundProof
+        || eqcheck.runState === runStateStatusExhaustedSearchSpace
+        || eqcheck.runState === runStateStatusSafetyCheckFailed
+        || eqcheck.runState === runStateStatusTimedOut
+        || eqcheck.runState === runStateStatusTerminated) {
+      return true;
+    }
+    return false;
+  }
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
@@ -1144,35 +1190,53 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           console.log(`eqchecks =\n${JSON.stringify(eqchecks)}\n`);
           for (var i = 0; i < eqchecks.length; i++) {
             const eqcheck = eqchecks[i];
+
+            if (Eqchecker.eqcheckHasFinishedExecuting(eqcheck)) {
+              continue;
+            }
+
+            const request = { dirPath: eqcheck.dirPath, source1Uri: eqcheck.source1Uri, source1Name: eqcheck.source1Name, source1Text: eqcheck.source1Text, source2Uri: eqcheck.source2Uri, source2Name: eqcheck.source2Name, source2Text: eqcheck.source2Text, functionName: eqcheck.functionName, prepareDirpath: eqcheck.prepareDirpath, pointsToDirpath: eqcheck.pointsToDirpath, runDirpath: eqcheck.runDirpath };
+
             //console.log(`eqcheck =\n${JSON.stringify(eqcheck)}\n`);
             //console.log(`eqcheck.runState =${eqcheck.runState}\n`);
-            if (eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusRunning) {
-              const origRequest = { dirPath: eqcheck.dirPath, source1Uri: eqcheck.source1Uri, source1Name: eqcheck.source1Name, source2Uri: eqcheck.source2Uri, source2Name: eqcheck.source2Name, functionName: eqcheck.functionName };
-              const jsonRequest = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: eqcheck.dirPath, offsetIn: 0});
-              //console.log(`pushing to eqcheckRequestPromises`);
-              Eqchecker.statusMap[eqcheck.dirPath] = statusEqcheckPinging;
-              var promise = Eqchecker.RequestNextChunk(jsonRequest, origRequest, false).then(
-                async (result : any) => {
-                  const dirPath = result.dirPath;
-                  const runStatus = result.runStatus;
-                  const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
-                  const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
-                  eqcheck.runState = runState;
-                  if (runState == runStateStatusPreparing) {
-                    return Eqchecker.afterPrepareCommand(origRequest, eqcheck.dirPath);
-                  } else if (runState == runStateStatusPointsToAnalysis) {
-                    const prepare_dirPath = eqcheck.prepare_dirPath;
-                    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await Eqchecker.obtainFunctionListsAfterPreparePhase(prepare_dirPath);
-                    return Eqchecker.afterPointsToAnalysisCommand(origRequest, eqcheck.dirPath, common, harvest, object);
-                  } else if (runState == runStateStatusRunning) {
-                    //not-reached
-                  } else {
-                    //not-reached
-                  }
-                }
-              );
-              eqcheckRequestPromises.push(promise);
+            if (request.dirPath !== undefined) {
+              Eqchecker.statusMap[request.dirPath] = statusEqcheckPinging;
             }
+            if (eqcheck.runDirPath !== undefined) {
+              //do the run
+              Eqchecker.submitRunCommand(request);
+            } else if (eqcheck.pointsToDirPath !== undefined) {
+              //do the points-to followed by run
+              Eqchecker.submitPointsToCommand(request);
+            } else {
+              //do the prepare followed by points-to followed by run
+              Eqchecker.submitPrepareCommand(request);
+            }
+              //const jsonRequest = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: eqcheck.dirPath, offsetIn: 0});
+              ////console.log(`pushing to eqcheckRequestPromises`);
+              //Eqchecker.statusMap[eqcheck.dirPath] = statusEqcheckPinging;
+              //var promise = Eqchecker.RequestNextChunk(jsonRequest, origRequest, undefined).then(
+              //  async (result : any) => {
+              //    const dirPath = result.dirPath;
+              //    const runStatus = result.runStatus;
+              //    const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
+              //    const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
+              //    eqcheck.runState = runState;
+              //    if (runState == runStateStatusPreparing) {
+              //      return Eqchecker.afterPrepareCommand(origRequest, eqcheck.dirPath);
+              //    } else if (runState == runStateStatusPointsToAnalysis) {
+              //      const prepare_dirPath = eqcheck.prepare_dirPath;
+              //      const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await Eqchecker.obtainFunctionListsAfterPreparePhase(prepare_dirPath);
+              //      return Eqchecker.afterPointsToAnalysisCommand(origRequest, eqcheck.dirPath, common, harvest, object);
+              //    } else if (runState == runStateStatusRunning) {
+              //      //not-reached
+              //    } else {
+              //      //not-reached
+              //    }
+              //  }
+              //);
+              //eqcheckRequestPromises.push(promise);
+            //}
           }
           //console.log(`eqcheckRequestPromises.length = ${eqcheckRequestPromises.length}`);
           Promise.all(eqcheckRequestPromises);

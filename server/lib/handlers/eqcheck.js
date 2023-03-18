@@ -891,13 +891,26 @@ class EqcheckHandler {
       } else if (commandIn === commandSaveSession) {
         const ssdir = await this.savedSessionsDir();
         const sessionFile = path.join(ssdir, sessionName);
-        fs.writeFile(sessionFile, eqchecks, function (err) {
-          if (err) throw err;
-          console.log(`Saved ${sessionFile}`);
+        var ret = true;
+        await fs.writeFile(sessionFile, eqchecks, function (err) {
+          if (err) ret = false;
+          //console.log(`Saved ${sessionFile}`);
         });
-        const chunkStr = JSON.stringify({serverStatus: "done"});
+        const chunkStr = JSON.stringify({done: ret});
         res.end(chunkStr);
         return;
+      } else if (commandIn === commandLoadSession) {
+        const ssdir = await this.savedSessionsDir();
+        const sessionFile = path.join(ssdir, sessionName);
+        var response = fs.readFile(sessionFile, 'utf8', function(err, data) {
+          if (err) {
+            console.log(`Could not load from ${sessionFile}: ${err}`);
+          }
+          //console.log(`data = ${data}`);
+          const chunkStr = JSON.stringify({eqchecks: data});
+          res.end(chunkStr);
+          return;
+        });
       } else {
         assert(false, "Invalid Command " + commandIn);
       }

@@ -157,11 +157,11 @@ export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, no
 
   let topNode = canvas.height*1;
 
-  console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
+  //console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
   var node_with_mu_annotation;
   if (path.unroll_factor_mu != path.unroll_factor_delta) {
     node_with_mu_annotation = identifyFirstNodeWithCycle(path);
-    console.log(`node_with_mu_annotation = ${node_with_mu_annotation}\n`);
+    //console.log(`node_with_mu_annotation = ${node_with_mu_annotation}\n`);
   }
 
   NODES.forEach(element => {

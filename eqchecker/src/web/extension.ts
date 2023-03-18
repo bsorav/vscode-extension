@@ -304,14 +304,6 @@ class Eqchecker {
       return false;
     }
 
-    const origRequest = { ...request };
-    origRequest.dirPath = pointsToDirpath;
-    const viewRequestRemove2 =
-        { type: 'removeEqcheckInView',
-          origRequest: origRequest,
-        };
-    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
-
     const jsonRequest3 = JSON.stringify({serverCommand: commandObtainSrcFiles, dirPathIn: pointsToDirpath});
     const response = (await this.RequestResponseForCommand(jsonRequest3));
     //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
@@ -357,6 +349,14 @@ class Eqchecker {
       funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, "runDirpath"));
     }
 
+    const origRequest = { ...request };
+    origRequest.dirPath = pointsToDirpath;
+    const viewRequestRemove2 =
+        { type: 'removeEqcheckInView',
+          origRequest: origRequest,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove2);
+
     Promise.all(funRequestPromises);
 
     return true;
@@ -374,12 +374,6 @@ class Eqchecker {
     const prepareRequest = { ...request };
     prepareRequest.dirPath = prepareDirpath;
 
-    const viewRequestRemove =
-        { type: 'removeEqcheckInView',
-          origRequest: prepareRequest,
-        };
-    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
-
     const preparePhaseResult = await this.populatePreparePhaseInfo(request);
     if (!preparePhaseResult.retval) {
       return false;
@@ -391,7 +385,15 @@ class Eqchecker {
 
     request.pointsToDirpath = result.dirPath;
     request.dirPathIn = undefined;
-    return await Eqchecker.submitRunCommand(request/*, dirPath2, common, harvest, object*/);
+    var runCommand = Eqchecker.submitRunCommand(request/*, dirPath2, common, harvest, object*/);
+
+    const viewRequestRemove =
+        { type: 'removeEqcheckInView',
+          origRequest: prepareRequest,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+
+    return await runCommand;
   }
 
   public static async submitPrepareCommand(request) {

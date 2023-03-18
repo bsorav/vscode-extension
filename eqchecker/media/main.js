@@ -79,6 +79,16 @@ const viewStateViewSearchTree = 'viewSearchTree';
                     updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
                     break;
                 }
+            case 'loadEqchecks':
+                {
+                  for (const eqcheck of message.eqchecks) {
+                    if (!eqcheckExistsAlready(eqcheck)) {
+                      addEqcheckInView(eqcheck.dirPath, eqcheck.source1Uri, eqcheck.source1Name, eqcheck.source1Text, eqcheck.source2Uri, eqcheck.source2Name, eqcheck.source2Text, eqcheck.functionName, getStatusMessage(eqcheck.runState, eqcheck.statusMessage), eqcheck.runState, eqcheck.prepareDirpath, eqcheck.pointsToDirpath);
+                    }
+                  }
+                  displayEqcheckList(eqchecks);
+                  vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(message.eqchecks)});
+                }
         }
     });
 
@@ -423,14 +433,14 @@ const viewStateViewSearchTree = 'viewSearchTree';
         items[1].addEventListener('click', cancelAndClearAllEqchecksListener);
         items[2].innerHTML = 'Save Session';
         items[2].addEventListener('click', saveSessionListener);
-        items[3].innerHTML = 'Restore Session';
+        items[3].innerHTML = 'Load Session';
         items[3].addEventListener('click', loadSessionListener);
       } else {
         items[0].innerHTML = 'Clear all eqchecks';
         items[0].addEventListener('click', cancelAndClearAllEqchecksListener);
         items[1].innerHTML = 'Save Session';
         items[1].addEventListener('click', saveSessionListener);
-        items[2].innerHTML = 'Restore Session';
+        items[2].innerHTML = 'Load Session';
         items[2].addEventListener('click', loadSessionListener);
         items[3].innerHTML = '';
       }
@@ -638,6 +648,19 @@ const viewStateViewSearchTree = 'viewSearchTree';
         //&& eqcheck.source2Uri === origRequest.source2Uri
         //&& eqcheck.functionName === origRequest.functionName
       //;
+    }
+
+    function eqcheckExistsAlready(eqcheck)
+    {
+      for (const eqc of eqchecks) {
+        if (eqcheck.dirPath !== undefined && eqc.dirPath !== undefined && eqcheck.dirPath.toString() == eqc.dirPath.toString()) {
+          return true;
+        }
+        if (eqcheck.prepareDirpath !== undefined && eqc.prepareDirpath !== undefined && eqcheck.prepareDirpath.toString() == eqc.prepareDirpath.toString()) {
+          return true;
+        }
+      }
+      return false;
     }
 
     /**

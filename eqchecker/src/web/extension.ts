@@ -1284,12 +1284,35 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             if (response.done !== false) {
               const msg = `Session ${sessionName} saved.`;
               vscode.window.showInformationMessage(msg);
+            } else {
+              const msg = `Failed to save ${sessionName}.`;
+              vscode.window.showInformationMessage(msg);
             }
           });
           break;
         }
         case 'loadSession': {
           console.log('loadSession received')
+          let options: vscode.InputBoxOptions = {
+            prompt: "Session Name: ",
+            placeHolder: "Session name to load"
+          };
+          vscode.window.showInputBox(options).then(async sessionName => {
+            if (!sessionName) return;
+            const jsonRequest = JSON.stringify({serverCommand: commandLoadSession, sessionName: sessionName});
+            const response = (await Eqchecker.RequestResponseForCommand(jsonRequest));
+            if (response.eqchecks !== undefined) {
+              const eqchecks = JSON.parse(response.eqchecks);
+              var viewRequest =
+                { type: 'loadEqchecks',
+                  eqchecks: eqchecks,
+                };
+              EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
+            } else {
+              const msg = `Failed to load ${sessionName}.`;
+              vscode.window.showInformationMessage(msg);
+            }
+          });
           break;
         }
         default: {

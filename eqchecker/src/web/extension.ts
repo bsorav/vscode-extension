@@ -1271,23 +1271,23 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           await Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
           break;
         }
-        //case 'saveSession': {
-        //  console.log('saveSession received')
-        //  let options: vscode.InputBoxOptions = {
-        //    prompt: "Session Name: ",
-        //    placeHolder: "Session name to save"
-        //  }
-        //  vscode.window.showInputBox(options).then(sessionName => {
-        //    if (!sessionName) return;
-        //    const jsonRequest = JSON.stringify({serverCommand: commandSaveSession, eqchecks: data.eqchecks});
-        //    const response = (await this.RequestResponseForCommand(jsonRequest));
-        //    if (response.done !== false) {
-        //      const msg = `Session ${sessionName} saved.`;
-        //      vscode.window.showInformationMessage(msg);
-        //    }
-        //  });
-        //  break;
-        //}
+        case 'saveSession': {
+          console.log('saveSession received')
+          let options: vscode.InputBoxOptions = {
+            prompt: "Session Name: ",
+            placeHolder: "Session name to save"
+          };
+          vscode.window.showInputBox(options).then(async sessionName => {
+            if (!sessionName) return;
+            const jsonRequest = JSON.stringify({serverCommand: commandSaveSession, sessionName: sessionName, eqchecks: data.eqchecks});
+            const response = (await Eqchecker.RequestResponseForCommand(jsonRequest));
+            if (response.done !== false) {
+              const msg = `Session ${sessionName} saved.`;
+              vscode.window.showInformationMessage(msg);
+            }
+          });
+          break;
+        }
         case 'loadSession': {
           console.log('loadSession received')
           break;

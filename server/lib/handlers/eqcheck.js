@@ -20,7 +20,6 @@ const temp = require('temp'),
 let hasSetUpAutoClean = false;
 const defaultUnrollFactor = 64;
 
-const commandPingEqcheck = 'pingEqcheck';
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';

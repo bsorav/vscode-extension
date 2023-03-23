@@ -1272,6 +1272,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           await Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
           break;
         }
+        case 'viewSearchTree': {
+          console.log('viewSearchTree received');
+          break;
+        }
         case 'saveSession': {
           console.log('saveSession received')
           let options: vscode.InputBoxOptions = {
@@ -1376,6 +1380,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="EqcheckRightClickMenuItem1" class="item"></div>
         <div id="EqcheckRightClickMenuItem2" class="item"></div>
         <div id="EqcheckRightClickMenuItem3" class="item"></div>
+        <div id="EqcheckRightClickMenuItem4" class="item"></div>
         </div>
         <script nonce="${nonce}" src="${mainScriptUri}"></script>
       </body>

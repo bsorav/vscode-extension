@@ -360,6 +360,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
       console.log('viewSearchTree clicked');
       eqcheckRightClickMenu.style.display = "none";
+
+      vscode.postMessage({ type: 'viewSearchTree', eqcheck: JSON.stringify(eqcheck) });
     };
 
     function cancelAllEqchecksListener() {
@@ -470,20 +472,30 @@ const viewStateViewSearchTree = 'viewSearchTree';
         items[0].removeEventListener('click', hideProofListener);
         items[0].removeEventListener('click', eqcheckCancelListener);
         items[0].removeEventListener('click', eqcheckClearListener);
+        items[0].removeEventListener('click', viewSearchTreeListener);
 
         items[1].removeEventListener('click', viewProofListener);
         items[1].removeEventListener('click', hideProofListener);
         items[1].removeEventListener('click', eqcheckCancelListener);
         items[1].removeEventListener('click', eqcheckClearListener);
+        items[1].removeEventListener('click', viewSearchTreeListener);
 
         items[2].removeEventListener('click', viewProofListener);
         items[2].removeEventListener('click', hideProofListener);
         items[2].removeEventListener('click', eqcheckCancelListener);
         items[2].removeEventListener('click', eqcheckClearListener);
+        items[2].removeEventListener('click', viewSearchTreeListener);
+
+        items[3].removeEventListener('click', viewProofListener);
+        items[3].removeEventListener('click', hideProofListener);
+        items[3].removeEventListener('click', eqcheckCancelListener);
+        items[3].removeEventListener('click', eqcheckClearListener);
+        items[3].removeEventListener('click', viewSearchTreeListener);
 
         items[0].innerHTML = '';
         items[1].innerHTML = '';
         items[2].innerHTML = '';
+        items[3].innerHTML = '';
 
         eqcheckRightClickMenu.style.display = "inline";
 

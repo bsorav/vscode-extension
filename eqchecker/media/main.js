@@ -361,7 +361,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       console.log('viewSearchTree clicked');
       eqcheckRightClickMenu.style.display = "none";
 
-      vscode.postMessage({ type: 'viewSearchTree', eqcheck: JSON.stringify(eqcheck) });
+      vscode.postMessage({ type: 'eqcheckViewSearchTree', eqcheck: eqcheck });
     };
 
     function cancelAllEqchecksListener() {

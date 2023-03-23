@@ -497,6 +497,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
             items[0].addEventListener('click', hideProofListener);
           }
           items[1].innerHTML = 'View Search Tree';
+          items[1].addEventListener('click', viewSearchTreeListener);
           items[2].innerHTML = 'Cancel';
           items[2].addEventListener('click', eqcheckCancelListener);
           items[3].innerHTML = 'Clear';
@@ -520,14 +521,17 @@ const viewStateViewSearchTree = 'viewSearchTree';
           items[0].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTimedOut) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTerminated) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else {

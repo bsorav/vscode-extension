@@ -345,6 +345,9 @@ function convert_long_long_map_json_to_associative_array(long_long_map_json)
 {
   var ret = {};
   const pairs = long_long_map_json.long_long_pair;
+  if (pairs === undefined) {
+    return {};
+  }
   for (var i = 0; i < pairs.length; i++) {
     ret[pairs[i].long_val_key] = pairs[i].long_val_value;
   }
@@ -377,7 +380,7 @@ function drawNetwork(cfg) {
     const eqcheck_info = corr_graph["eqcheck_info"];
     //console.log(`eqcheck_info = ${JSON.stringify(eqcheck_info)}\n`);
     const dst_assembly = eqcheck_info["dst_assembly"];
-    const dst_insn_pcs = convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs"]);
+    const dst_insn_pcs = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs"]);
     const dst_pc_to_assembly_index_map = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_pc_to_assembly_index_map"]);
     const dst_assembly_index_to_assembly_line_map = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_assembly_index_to_assembly_line_map"]);
 

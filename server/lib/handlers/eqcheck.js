@@ -30,6 +30,7 @@ const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
 const commandSaveSession = 'saveSession';
 const commandLoadSession = 'loadSession';
+const commandObtainSearchTree = 'obtainSearchTree';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -860,6 +861,13 @@ class EqcheckHandler {
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_files.src, src_ir: src_files.ir, dst_code: dst_files.dst, dst_ir: dst_files.ir});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
+        return;
+      } else if (commandIn === commandObtainSearchTree) {
+        console.log('ObtainSearchTree received with dirPathIn ', dirPathIn);
+        var runStatus = await this.getRunningStatus(dirPathIn);
+        const searchTree = runStatus.running_status.enumerated_cgs;
+        const searchTreeStr = JSON.stringify(searchTree);
+        res.end(searchTreeStr);
         return;
       } else if (commandIn === commandObtainSrcFiles) {
         console.log('commandObtainSrcFiles received with dirPathIn ', dirPathIn);

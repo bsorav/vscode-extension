@@ -21,6 +21,10 @@
           "type": "webview",
           "id": "eqchecker.eqcheckView",
           "name": "Equivalence checks"
+        },
+        {
+          "id": "eqchecker.searchTreeView",
+          "name": "Search Tree"
         }
       ]
     },

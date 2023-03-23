@@ -360,6 +360,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
       console.log('viewSearchTree clicked');
       eqcheckRightClickMenu.style.display = "none";
+
+      vscode.postMessage({ type: 'eqcheckViewSearchTree', eqcheck: eqcheck });
     };
 
     function cancelAllEqchecksListener() {
@@ -470,20 +472,30 @@ const viewStateViewSearchTree = 'viewSearchTree';
         items[0].removeEventListener('click', hideProofListener);
         items[0].removeEventListener('click', eqcheckCancelListener);
         items[0].removeEventListener('click', eqcheckClearListener);
+        items[0].removeEventListener('click', viewSearchTreeListener);
 
         items[1].removeEventListener('click', viewProofListener);
         items[1].removeEventListener('click', hideProofListener);
         items[1].removeEventListener('click', eqcheckCancelListener);
         items[1].removeEventListener('click', eqcheckClearListener);
+        items[1].removeEventListener('click', viewSearchTreeListener);
 
         items[2].removeEventListener('click', viewProofListener);
         items[2].removeEventListener('click', hideProofListener);
         items[2].removeEventListener('click', eqcheckCancelListener);
         items[2].removeEventListener('click', eqcheckClearListener);
+        items[2].removeEventListener('click', viewSearchTreeListener);
+
+        items[3].removeEventListener('click', viewProofListener);
+        items[3].removeEventListener('click', hideProofListener);
+        items[3].removeEventListener('click', eqcheckCancelListener);
+        items[3].removeEventListener('click', eqcheckClearListener);
+        items[3].removeEventListener('click', viewSearchTreeListener);
 
         items[0].innerHTML = '';
         items[1].innerHTML = '';
         items[2].innerHTML = '';
+        items[3].innerHTML = '';
 
         eqcheckRightClickMenu.style.display = "inline";
 
@@ -497,6 +509,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
             items[0].addEventListener('click', hideProofListener);
           }
           items[1].innerHTML = 'View Search Tree';
+          items[1].addEventListener('click', viewSearchTreeListener);
           items[2].innerHTML = 'Cancel';
           items[2].addEventListener('click', eqcheckCancelListener);
           items[3].innerHTML = 'Clear';
@@ -520,14 +533,17 @@ const viewStateViewSearchTree = 'viewSearchTree';
           items[0].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTimedOut) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTerminated) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else {

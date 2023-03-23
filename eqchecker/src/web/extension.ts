@@ -25,6 +25,7 @@ const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
 const commandSaveSession = 'saveSession';
 const commandLoadSession = 'loadSession';
+const commandObtainSearchTree = 'obtainSearchTree';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -76,6 +77,68 @@ export async function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
+
+function aNodeWithIdTreeDataProvider(): vscode.TreeDataProvider<{ key: string }> {
+  return {
+    getChildren: (element: { key: string }): { key: string }[] => {
+      return getChildren(element ? element.key : undefined).map(key => getNode(key));
+    },
+    getTreeItem: (element: { key: string }): vscode.TreeItem => {
+      const treeItem = getTreeItem(element.key);
+      treeItem.id = element.key;
+      return treeItem;
+    },
+    getParent: ({ key }: { key: string }): { key: string } | undefined => {
+      const parentKey = key.substring(0, key.length - 1);
+      return parentKey ? new Key(parentKey) : undefined;
+    }
+  };
+}
+
+function getChildren(key: string | undefined): string[] {
+	if (!key) {
+		return Object.keys(Eqchecker.searchTree);
+	}
+	const treeElement = getTreeElement(key);
+	if (treeElement) {
+		return Object.keys(treeElement);
+	}
+	return [];
+}
+
+function getTreeItem(key: string): vscode.TreeItem {
+	const treeElement = getTreeElement(key);
+	// An example of how to use codicons in a MarkdownString in a tree item tooltip.
+	const tooltip = new vscode.MarkdownString(`$(zap) Tooltip for ${key}`, true);
+	return {
+		label: /**vscode.TreeItemLabel**/<any>{ label: key, highlights: key.length > 1 ? [[key.length - 2, key.length - 1]] : void 0 },
+		tooltip,
+		collapsibleState: treeElement && Object.keys(treeElement).length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+	};
+}
+
+function getTreeElement(element: string): any {
+	let parent = Eqchecker.searchTree;
+	for (let i = 0; i < element.length; i++) {
+		parent = parent[element.substring(0, i + 1)];
+		if (!parent) {
+			return null;
+		}
+	}
+	return parent;
+}
+
+function getNode(key: string): { key: string } {
+	if (!Eqchecker.searchTreeNodes[key]) {
+		Eqchecker.searchTreeNodes[key] = new Key(key);
+	}
+	return Eqchecker.searchTreeNodes[key];
+}
+
+class Key {
+	constructor(readonly key: string) { }
+}
+
 function getNonce() {
   let text = '';
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -88,12 +151,16 @@ function getNonce() {
 function uri2str(uri : vscode.Uri) : string {
   return uri.fsPath;
 }
+
 class Eqchecker {
   public static context;
   public static extensionUri;
   public static serverURL : string = defaultServerURL;
-  public static outputMap: Record<string, string[]> = {};
-  public static statusMap: Record<string, string> = {};
+  public static outputMap : Record<string, string[]> = {};
+  public static statusMap : Record<string, string> = {};
+  public static searchTree : any = {};
+  public static searchTreeNodes : any = {};
+  public static searchTreeView : any = undefined;
 
   public static initializeEqchecker(context: vscode.ExtensionContext) {
     //console.log("extensionUri = " + context.extensionUri.fsPath);
@@ -445,10 +512,17 @@ class Eqchecker {
     return await Eqchecker.submitPrepareCommand(request);
   }
 
+  public static async obtainSearchTreeFromServer(dirPathIn)
+  {
+    let jsonRequest = JSON.stringify({serverCommand: commandObtainSearchTree, dirPathIn: dirPathIn});
+    const response = await this.RequestResponseForCommand(jsonRequest);
+    return response;
+  }
+
   public static async obtainProofFromServer(dirPathIn)
   {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
-    const response = (await this.RequestResponseForCommand(jsonRequest));
+    const response = await this.RequestResponseForCommand(jsonRequest);
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
     //const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
@@ -732,6 +806,46 @@ class Eqchecker {
     }
     //console.log(`eqcheck.runState = ${eqcheck.runState}\n`);
     return false;
+  }
+
+  public static cgs_to_tree_rec(obj)
+  {
+    var tree = {};
+    var name = [];
+    if (obj instanceof Object) {
+      //console.log(`instanceof Object evaluates to true`);
+      for (const k in obj) {
+        //console.log(`looking at ${k}`);
+        if (obj.hasOwnProperty(k)) {
+          //console.log(`hasOwnProperty true for ${k}`);
+          if (k == "trie_child_tree") {
+            const trie_child_tree_node = obj[k][0];
+            if (trie_child_tree_node.hasOwnProperty('trie_child')) {
+              for (const trie_child of trie_child_tree_node.trie_child) {
+                const {name: child_name, tree: child_tree} = Eqchecker.cgs_to_tree_rec(trie_child);
+                tree[child_name as string] = child_tree;
+              }
+            }
+          } else if (k == "trie_key") {
+            for (const str of obj[k][0].string) {
+              name.push(str);
+            }
+          }
+        }
+      }
+    }
+    const ret = { name: name.join('.'), tree: tree };
+    //console.log(`returning ${JSON.stringify(ret)}\n`);
+    return ret;
+  }
+
+  public static cgs_enumerated_to_search_tree(cgs_enumerated)
+  {
+    const {name: searchTreeName, tree: searchTree} = Eqchecker.cgs_to_tree_rec(cgs_enumerated[0].trie_child[0]);
+    var ret = { };
+    ret[searchTreeName] = searchTree;
+    console.log(`ret =\n${JSON.stringify(ret)}`);
+    return { searchTree: ret, searchTreeNodes: {} };
   }
 }
 
@@ -1272,6 +1386,21 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           await Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
           break;
         }
+        case 'eqcheckViewSearchTree': {
+          console.log('viewSearchTree received');
+          const cgs_enumerated = await Eqchecker.obtainSearchTreeFromServer(data.eqcheck.dirPath);
+          const { searchTree: searchTree, searchTreeNodes: searchTreeNodes } = Eqchecker.cgs_enumerated_to_search_tree(cgs_enumerated);
+          Eqchecker.searchTree = searchTree;
+          Eqchecker.searchTreeNodes = searchTreeNodes;
+          if (Eqchecker.searchTreeView === undefined) {
+            Eqchecker.searchTreeView = vscode.window.createTreeView('eqchecker.searchTreeView', { treeDataProvider: aNodeWithIdTreeDataProvider(), showCollapseAll: true });
+            Eqchecker.context.subscriptions.push(Eqchecker.searchTreeView);
+            console.log('searchTreeView created');
+          } else {
+            console.log('searchTreeView already exists');
+          }
+          break;
+        }
         case 'saveSession': {
           console.log('saveSession received')
           let options: vscode.InputBoxOptions = {
@@ -1376,6 +1505,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="EqcheckRightClickMenuItem1" class="item"></div>
         <div id="EqcheckRightClickMenuItem2" class="item"></div>
         <div id="EqcheckRightClickMenuItem3" class="item"></div>
+        <div id="EqcheckRightClickMenuItem4" class="item"></div>
         </div>
         <script nonce="${nonce}" src="${mainScriptUri}"></script>
       </body>

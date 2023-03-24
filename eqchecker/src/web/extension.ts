@@ -205,6 +205,7 @@ class Eqchecker {
   public static searchTree : any = {};
   public static searchTreeNodes : any = {};
   public static searchTreeView : any = undefined;
+  public static searchTreeDataProvider : any = undefined;
 
   public static initializeEqchecker(context: vscode.ExtensionContext) {
     //console.log("extensionUri = " + context.extensionUri.fsPath);
@@ -1452,13 +1453,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`searchTree =\n${searchTree}\n`);
           Eqchecker.searchTree = searchTree;
           Eqchecker.searchTreeNodes = searchTreeNodes;
-          if (Eqchecker.searchTreeView === undefined) {
-            Eqchecker.searchTreeView = vscode.window.createTreeView('eqchecker.searchTreeView', { treeDataProvider: aNodeWithIdTreeDataProvider(), showCollapseAll: true });
-            Eqchecker.context.subscriptions.push(Eqchecker.searchTreeView);
-            console.log('searchTreeView created');
-          } else {
-            console.log('searchTreeView already exists');
-          }
+          //if (Eqchecker.searchTreeView !== undefined) {
+          //  console.log('searchTreeView already exists');
+          //  Eqchecker.searchTreeView.dispose();
+          //}
+          Eqchecker.searchTreeDataProvider = aNodeWithIdTreeDataProvider();
+          Eqchecker.searchTreeView = vscode.window.createTreeView('eqchecker.searchTreeView', { treeDataProvider: Eqchecker.searchTreeDataProvider, showCollapseAll: true });
+          Eqchecker.context.subscriptions.push(Eqchecker.searchTreeView);
+          console.log('searchTreeView created');
           break;
         }
         case 'saveSession': {

@@ -95,7 +95,7 @@ function aNodeWithIdTreeDataProvider(): vscode.TreeDataProvider<{ key: string[] 
       }
       let parent = [ ...key ];
       parent.pop();
-      return new Key(parent);
+      return getNode(parent);
     }
   };
 }
@@ -117,8 +117,21 @@ function getChildren(key: string[] | undefined): string[][] {
 
 function getSearchTreeNodeDescription(searchTreeNode)
 {
-  return "";
-  //return searchTreeNode.key.join('.');
+  const enum_status = searchTreeNode.enum_status.toString();
+  //console.log(`enum_status = ${enum_status}`);
+  if (enum_status == "cg_enumerated") {
+    return "enum";
+  } else if (enum_status == "cg_ces_propagated") {
+    return "prop";
+  } else if (enum_status == "cg_invariants_inferred") {
+    return "inv";
+  } else if (enum_status == "cg_equivalence_proof_checked") {
+    return "proof";
+  } else if (enum_status == "cg_safety_checked") {
+    return "safe";
+  } else {
+    return "";
+  }
 }
 
 function getTreeItem(key: string[]): vscode.TreeItem {
@@ -156,15 +169,17 @@ function getTreeElement(element: string[]): any {
 
 function getNode(key: string[]): { key: string[] } {
   if (!Eqchecker.searchTreeNodes[key.join('.')]) {
-    Eqchecker.searchTreeNodes[key.join('.')] = new Key(key);
+    Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, "");
   }
   return Eqchecker.searchTreeNodes[key.join('.')];
 }
 
-class Key {
-  //searchKey: string[];
-  constructor(readonly key: string[]) {
-    //this.searchKey = key;
+class SearchTreeNode {
+  searchKey: string[];
+  enum_status: string;
+  constructor(readonly key: string[], enum_status: string) {
+    this.searchKey = key;
+    this.enum_status = enum_status;
   }
 }
 
@@ -840,6 +855,7 @@ class Eqchecker {
   public static cgs_to_tree_rec(obj, parentname)
   {
     var tree = {};
+    var treeNodes = {};
     var curname = [ ...parentname ];
     if (obj instanceof Object) {
       //console.log(`instanceof Object evaluates to true`);
@@ -860,26 +876,35 @@ class Eqchecker {
             const trie_child_tree_node = obj[k][0];
             if (trie_child_tree_node.hasOwnProperty('trie_child')) {
               for (const trie_child of trie_child_tree_node.trie_child) {
-                const {name: child_name, tree: child_tree} = Eqchecker.cgs_to_tree_rec(trie_child, curname);
+                const {name: child_name, tree: child_tree, treeNodes: child_treeNodes } = Eqchecker.cgs_to_tree_rec(trie_child, curname);
                 tree[child_name as string] = child_tree;
+                //console.log(`child_treeNodes =\n${JSON.stringify(child_treeNodes)}`);
+                treeNodes = Object.assign({}, child_treeNodes, treeNodes);
+                //console.log(`treeNodes =\n${JSON.stringify(treeNodes)}`);
               }
+            } else if (trie_child_tree_node.hasOwnProperty("trie_val")) {
+              console.log(`found trie_val`);
+              const trie_child_val = trie_child_tree_node.trie_val[0];
+              treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.cg_enum_status);
             }
           }
         }
       }
     }
-    const ret = { name: curname.join('.'), tree: tree };
+    //console.log(`treeNodes =\n${JSON.stringify(treeNodes)}`);
+    const ret = { name: curname.join('.'), tree: tree, treeNodes: treeNodes };
     //console.log(`returning ${JSON.stringify(ret)}\n`);
     return ret;
   }
 
   public static cgs_enumerated_to_search_tree(cgs_enumerated)
   {
-    const {name: searchTreeName, tree: searchTree} = Eqchecker.cgs_to_tree_rec(cgs_enumerated[0].trie_child[0], []);
+    const {name: searchTreeName, tree: searchTree, treeNodes: searchTreeNodes} = Eqchecker.cgs_to_tree_rec(cgs_enumerated[0].trie_child[0], []);
     var ret = { };
     ret[searchTreeName] = searchTree;
     console.log(`ret =\n${JSON.stringify(ret)}`);
-    return { searchTree: ret, searchTreeNodes: {} };
+    console.log(`searchTreeNodes =\n${JSON.stringify(searchTreeNodes)}`);
+    return { searchTree: ret, searchTreeNodes: searchTreeNodes };
   }
 }
 

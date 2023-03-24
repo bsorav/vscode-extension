@@ -85,7 +85,8 @@ function aNodeWithIdTreeDataProvider(): vscode.TreeDataProvider<{ key: string[] 
     },
     getTreeItem: (element: { key: string[] }): vscode.TreeItem => {
       const treeItem = getTreeItem(element.key);
-      treeItem.id = element.key.join('.');
+      //treeItem.id = element.key.join('.');
+      //treeItem.command = enumeratedCGselected(treeItem.id);
       return treeItem;
     },
     getParent: ({ key }: { key: string[] }): { key: string[] } | undefined => {
@@ -114,6 +115,12 @@ function getChildren(key: string[] | undefined): string[][] {
   return ret;
 }
 
+function getSearchTreeNodeDescription(searchTreeNode)
+{
+  return "";
+  //return searchTreeNode.key.join('.');
+}
+
 function getTreeItem(key: string[]): vscode.TreeItem {
   const treeElement = getTreeElement(key);
   // An example of how to use codicons in a MarkdownString in a tree item tooltip.
@@ -121,10 +128,14 @@ function getTreeItem(key: string[]): vscode.TreeItem {
   //console.log(`key = ${key}, treeElement = ${JSON.stringify(treeElement)}`);
   const children = treeElement ? Object.keys(treeElement) : [];
   var collapsibleState = children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+  const id = key.join('.');
+  const description = getSearchTreeNodeDescription(getNode(key));
   return {
     label: /**vscode.TreeItemLabel**/<any>{ label: key[key.length - 1]/*, highlights: key.length > 1 ? [[key.length - 2, key.length - 1]] : void 0*/ },
-    tooltip,
-    collapsibleState: collapsibleState
+    tooltip: tooltip,
+    collapsibleState: collapsibleState,
+    id: id,
+    description: description
   };
 }
 
@@ -151,7 +162,10 @@ function getNode(key: string[]): { key: string[] } {
 }
 
 class Key {
-  constructor(readonly key: string[]) { }
+  //searchKey: string[];
+  constructor(readonly key: string[]) {
+    //this.searchKey = key;
+  }
 }
 
 function getNonce() {

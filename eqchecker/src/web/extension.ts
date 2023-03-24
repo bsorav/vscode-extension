@@ -78,65 +78,80 @@ export async function activate(context: vscode.ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {}
 
-function aNodeWithIdTreeDataProvider(): vscode.TreeDataProvider<{ key: string }> {
+function aNodeWithIdTreeDataProvider(): vscode.TreeDataProvider<{ key: string[] }> {
   return {
-    getChildren: (element: { key: string }): { key: string }[] => {
+    getChildren: (element: { key: string[] }): { key: string[] }[] => {
       return getChildren(element ? element.key : undefined).map(key => getNode(key));
     },
-    getTreeItem: (element: { key: string }): vscode.TreeItem => {
+    getTreeItem: (element: { key: string[] }): vscode.TreeItem => {
       const treeItem = getTreeItem(element.key);
-      treeItem.id = element.key;
+      treeItem.id = element.key.join('.');
       return treeItem;
     },
-    getParent: ({ key }: { key: string }): { key: string } | undefined => {
-      const parentKey = key.substring(0, key.length - 1);
-      return parentKey ? new Key(parentKey) : undefined;
+    getParent: ({ key }: { key: string[] }): { key: string[] } | undefined => {
+      if (key.length <= 1) {
+        return undefined;
+      }
+      let parent = [ ...key ];
+      parent.pop();
+      return new Key(parent);
     }
   };
 }
 
-function getChildren(key: string | undefined): string[] {
-	if (!key) {
-		return Object.keys(Eqchecker.searchTree);
-	}
-	const treeElement = getTreeElement(key);
-	if (treeElement) {
-		return Object.keys(treeElement);
-	}
-	return [];
+function getChildren(key: string[] | undefined): string[][] {
+  const treeElement = key ? getTreeElement(key) : Eqchecker.searchTree;
+  //if (key !== undefined) {
+  //  console.log(`getting children of ${key.join('.')}`);
+  //}
+  const searchTreeKeys = Object.keys(treeElement);
+  var ret = [];
+  for (const searchTreeKey of searchTreeKeys) {
+    //console.log(`child ${searchTreeKey}`);
+    const stringArr = searchTreeKey.split(".");
+    ret.push(stringArr);
+  }
+  return ret;
 }
 
-function getTreeItem(key: string): vscode.TreeItem {
-	const treeElement = getTreeElement(key);
-	// An example of how to use codicons in a MarkdownString in a tree item tooltip.
-	const tooltip = new vscode.MarkdownString(`$(zap) Tooltip for ${key}`, true);
-	return {
-		label: /**vscode.TreeItemLabel**/<any>{ label: key, highlights: key.length > 1 ? [[key.length - 2, key.length - 1]] : void 0 },
-		tooltip,
-		collapsibleState: treeElement && Object.keys(treeElement).length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
-	};
+function getTreeItem(key: string[]): vscode.TreeItem {
+  const treeElement = getTreeElement(key);
+  // An example of how to use codicons in a MarkdownString in a tree item tooltip.
+  const tooltip = new vscode.MarkdownString(`$(zap) ${key.join('.')}`, true);
+  //console.log(`key = ${key}, treeElement = ${JSON.stringify(treeElement)}`);
+  const children = treeElement ? Object.keys(treeElement) : [];
+  var collapsibleState = children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+  return {
+    label: /**vscode.TreeItemLabel**/<any>{ label: key[key.length - 1]/*, highlights: key.length > 1 ? [[key.length - 2, key.length - 1]] : void 0*/ },
+    tooltip,
+    collapsibleState: collapsibleState
+  };
 }
 
-function getTreeElement(element: string): any {
-	let parent = Eqchecker.searchTree;
-	for (let i = 0; i < element.length; i++) {
-		parent = parent[element.substring(0, i + 1)];
-		if (!parent) {
-			return null;
-		}
-	}
-	return parent;
+function getTreeElement(element: string[]): any {
+  let parent = Eqchecker.searchTree;
+  //console.log(`element = ${element}`);
+  var prefix =  "";
+  for (let i = 0; i < element.length; i++) {
+    prefix = (prefix.length == 0) ? element[i] : prefix + "." + element[i];
+    parent = parent[prefix];
+    //console.log(`i = ${i}, element[i] = ${element[i]}, parent = ${JSON.stringify(parent)}`);
+    if (!parent) {
+      return null;
+    }
+  }
+  return parent;
 }
 
-function getNode(key: string): { key: string } {
-	if (!Eqchecker.searchTreeNodes[key]) {
-		Eqchecker.searchTreeNodes[key] = new Key(key);
-	}
-	return Eqchecker.searchTreeNodes[key];
+function getNode(key: string[]): { key: string[] } {
+  if (!Eqchecker.searchTreeNodes[key.join('.')]) {
+    Eqchecker.searchTreeNodes[key.join('.')] = new Key(key);
+  }
+  return Eqchecker.searchTreeNodes[key.join('.')];
 }
 
 class Key {
-	constructor(readonly key: string) { }
+  constructor(readonly key: string[]) { }
 }
 
 function getNonce() {
@@ -808,40 +823,45 @@ class Eqchecker {
     return false;
   }
 
-  public static cgs_to_tree_rec(obj)
+  public static cgs_to_tree_rec(obj, parentname)
   {
     var tree = {};
-    var name = [];
+    var curname = [ ...parentname ];
     if (obj instanceof Object) {
       //console.log(`instanceof Object evaluates to true`);
       for (const k in obj) {
         //console.log(`looking at ${k}`);
         if (obj.hasOwnProperty(k)) {
           //console.log(`hasOwnProperty true for ${k}`);
+          if (k == "trie_key") {
+            for (const str of obj[k][0].string) {
+              curname.push(str);
+            }
+          }
+        }
+      }
+      for (const k in obj) {
+        if (obj.hasOwnProperty(k)) {
           if (k == "trie_child_tree") {
             const trie_child_tree_node = obj[k][0];
             if (trie_child_tree_node.hasOwnProperty('trie_child')) {
               for (const trie_child of trie_child_tree_node.trie_child) {
-                const {name: child_name, tree: child_tree} = Eqchecker.cgs_to_tree_rec(trie_child);
+                const {name: child_name, tree: child_tree} = Eqchecker.cgs_to_tree_rec(trie_child, curname);
                 tree[child_name as string] = child_tree;
               }
-            }
-          } else if (k == "trie_key") {
-            for (const str of obj[k][0].string) {
-              name.push(str);
             }
           }
         }
       }
     }
-    const ret = { name: name.join('.'), tree: tree };
+    const ret = { name: curname.join('.'), tree: tree };
     //console.log(`returning ${JSON.stringify(ret)}\n`);
     return ret;
   }
 
   public static cgs_enumerated_to_search_tree(cgs_enumerated)
   {
-    const {name: searchTreeName, tree: searchTree} = Eqchecker.cgs_to_tree_rec(cgs_enumerated[0].trie_child[0]);
+    const {name: searchTreeName, tree: searchTree} = Eqchecker.cgs_to_tree_rec(cgs_enumerated[0].trie_child[0], []);
     var ret = { };
     ret[searchTreeName] = searchTree;
     console.log(`ret =\n${JSON.stringify(ret)}`);
@@ -1390,6 +1410,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           console.log('viewSearchTree received');
           const cgs_enumerated = await Eqchecker.obtainSearchTreeFromServer(data.eqcheck.dirPath);
           const { searchTree: searchTree, searchTreeNodes: searchTreeNodes } = Eqchecker.cgs_enumerated_to_search_tree(cgs_enumerated);
+          //console.log(`searchTree =\n${searchTree}\n`);
           Eqchecker.searchTree = searchTree;
           Eqchecker.searchTreeNodes = searchTreeNodes;
           if (Eqchecker.searchTreeView === undefined) {

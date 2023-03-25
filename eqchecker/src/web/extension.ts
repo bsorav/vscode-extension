@@ -883,7 +883,8 @@ class Eqchecker {
                 treeNodes = Object.assign({}, child_treeNodes, treeNodes);
                 //console.log(`treeNodes =\n${JSON.stringify(treeNodes)}`);
               }
-            } else if (trie_child_tree_node.hasOwnProperty("trie_val")) {
+            }
+            if (trie_child_tree_node.hasOwnProperty("trie_val")) {
               //console.log(`found trie_val`);
               const trie_child_val = trie_child_tree_node.trie_val[0];
               treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.cg_enum_status);

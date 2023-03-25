@@ -105,8 +105,11 @@ function getChildren(key: string[] | undefined): string[][] {
   //if (key !== undefined) {
   //  console.log(`getting children of ${key.join('.')}`);
   //}
-  const searchTreeKeys = Object.keys(treeElement);
   var ret = [];
+  if (treeElement === undefined) {
+    return ret;;
+  }
+  const searchTreeKeys = Object.keys(treeElement);
   for (const searchTreeKey of searchTreeKeys) {
     //console.log(`child ${searchTreeKey}`);
     const stringArr = searchTreeKey.split(".");
@@ -198,6 +201,7 @@ class Eqchecker {
   public static outputMap : Record<string, string[]> = {};
   public static statusMap : Record<string, string> = {};
   public static searchTree : any = {};
+  public static searchTreeDirPath : string;
   public static searchTreeNodes : any = {};
   public static searchTreeView : any = undefined;
   public static searchTreeDataProvider : any = undefined;
@@ -1444,6 +1448,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           await Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
           break;
         }
+        case 'eqcheckClear': {
+          if (data.eqcheck === undefined || data.eqcheck.dirPath === Eqchecker.searchTreeDirPath) {
+            //console.log(`data = ${JSON.stringify(data)}`);
+            Eqchecker.searchTree = undefined;
+            Eqchecker.searchTreeNodes = undefined;
+            Eqchecker.searchTreeDirPath = undefined;
+            Eqchecker.searchTreeDataProvider = aNodeWithIdTreeDataProvider();
+            Eqchecker.searchTreeView = vscode.window.createTreeView('eqchecker.searchTreeView', { treeDataProvider: Eqchecker.searchTreeDataProvider, showCollapseAll: true });
+          }
+          break;
+        }
         case 'eqcheckViewSearchTree': {
           console.log('viewSearchTree received');
           const cgs_enumerated = await Eqchecker.obtainSearchTreeFromServer(data.eqcheck.dirPath);
@@ -1451,6 +1466,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`searchTree =\n${searchTree}\n`);
           Eqchecker.searchTree = searchTree;
           Eqchecker.searchTreeNodes = searchTreeNodes;
+          Eqchecker.searchTreeDirPath = data.eqcheck.dirPath;
           //if (Eqchecker.searchTreeView !== undefined) {
           //  console.log('searchTreeView already exists');
           //  Eqchecker.searchTreeView.dispose();

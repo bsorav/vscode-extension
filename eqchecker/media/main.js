@@ -324,6 +324,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       }
     }
 
+
     function removeEqcheck(eqcheck) {
       //console.log(`removing eqcheck =\n${JSON.stringify(eqcheck)}`);
       const index = eqchecks.indexOf(eqcheck);
@@ -350,6 +351,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       eqcheckRightClickMenu.style.display = "none";
 
       removeEqcheck(eqcheck);
+      vscode.postMessage({ type: 'eqcheckClear', eqcheck: eqcheck});
       displayEqcheckList(eqchecks);
     };
 
@@ -375,6 +377,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     function clearAllEqchecksListener() {
       hideStartButtonRightClickMenu();
       eqchecks = [];
+      vscode.postMessage({ type: 'eqcheckClear', eqcheck: undefined});
       displayEqcheckList(eqchecks);
     }
 

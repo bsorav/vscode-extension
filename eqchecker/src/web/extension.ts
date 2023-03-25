@@ -117,21 +117,21 @@ function getChildren(key: string[] | undefined): string[][] {
 
 function getSearchTreeNodeDescription(searchTreeNode)
 {
-  const enum_status = searchTreeNode.enum_status.toString();
+  return searchTreeNode.search_node_status.toString();
   //console.log(`enum_status = ${enum_status}`);
-  if (enum_status == "cg_enumerated") {
-    return "enum";
-  } else if (enum_status == "cg_ces_propagated") {
-    return "prop";
-  } else if (enum_status == "cg_invariants_inferred") {
-    return "inv";
-  } else if (enum_status == "cg_equivalence_proof_checked") {
-    return "proof";
-  } else if (enum_status == "cg_safety_checked") {
-    return "safe";
-  } else {
-    return "";
-  }
+  //if (enum_status == "cg_enumerated") {
+  //  return "enum";
+  //} else if (enum_status == "cg_ces_propagated") {
+  //  return "prop";
+  //} else if (enum_status == "cg_invariants_inferred") {
+  //  return "inv";
+  //} else if (enum_status == "cg_equivalence_proof_checked") {
+  //  return "proof";
+  //} else if (enum_status == "cg_safety_checked") {
+  //  return "safe";
+  //} else {
+  //  return "";
+  //}
 }
 
 function getTreeItem(key: string[]): vscode.TreeItem {
@@ -176,10 +176,10 @@ function getNode(key: string[]): { key: string[] } {
 
 class SearchTreeNode {
   searchKey: string[];
-  enum_status: string;
-  constructor(readonly key: string[], enum_status: string) {
+  search_node_status: string;
+  constructor(readonly key: string[], node_status: string) {
     this.searchKey = key;
-    this.enum_status = enum_status;
+    this.search_node_status = node_status;
   }
 }
 
@@ -887,7 +887,7 @@ class Eqchecker {
             if (trie_child_tree_node.hasOwnProperty("trie_val")) {
               //console.log(`found trie_val`);
               const trie_child_val = trie_child_tree_node.trie_val[0];
-              treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.cg_enum_status);
+              treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.correl_entry_status);
               //console.log(`curname ${curname.join('.')} cg enum_status ${trie_child_val.cg_enum_status}`);
             }
           }

@@ -316,6 +316,10 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.runstatus');
     }
 
+    get_search_tree_filename(dirPath) {
+      //console.log('dirPath ', dirPath);
+      return path.join(dirPath, 'eqcheck.search_tree');
+    }
 
     get_errfilename(dirPath) {
       return path.join(dirPath, 'eqcheck.example.err');
@@ -373,6 +377,7 @@ class EqcheckHandler {
         const harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
         const outFilename = this.get_outfilename(dirPath);
         const runstatusFilename = this.get_runstatus_filename(dirPath);
+        const searchTreeFilename = this.get_search_tree_filename(dirPath);
         const proofFilename = this.get_proof_filename(dirPath);
         //const errFilename = this.get_errfilename(dirPath);
 
@@ -421,7 +426,7 @@ class EqcheckHandler {
               fs.writeFileSync(objFilename, object);
               dstObjArg = ['--dst-object', objFilename];
             }
-            const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename];
+            const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
             var dryRunArg = [];
@@ -632,6 +637,20 @@ class EqcheckHandler {
       //return [offsetNew, chunk];
       let offsetNew = offset + chunkEnd;
       return [offsetNew, truncatedChunk];
+    }
+
+    async getSearchTree(dirPath) {
+      const searchTreeFilename = this.get_search_tree_filename(dirPath);
+      if (!fs.existsSync(searchTreeFilename)) {
+        return "";
+      }
+      const buffer = fs.readFileSync(searchTreeFilename);
+      const searchTreeXML = buffer.toString();
+      var searchTree;
+      xml2js.parseString(searchTreeXML, {explictArray: false}, function (err, result) {
+        searchTree = result;
+      });
+      return searchTree;
     }
 
     async getRunningStatus(dirPath) {
@@ -864,9 +883,11 @@ class EqcheckHandler {
         return;
       } else if (commandIn === commandObtainSearchTree) {
         console.log('ObtainSearchTree received with dirPathIn ', dirPathIn);
-        var runStatus = await this.getRunningStatus(dirPathIn);
-        const searchTree = runStatus.running_status.enumerated_cgs;
+        //var runStatus = await this.getRunningStatus(dirPathIn);
+        //const searchTree = runStatus.running_status.enumerated_cgs;
+        const searchTree = await this.getSearchTree(dirPathIn);
         const searchTreeStr = JSON.stringify(searchTree);
+        console.log('returning ', searchTreeStr);
         res.end(searchTreeStr);
         return;
       } else if (commandIn === commandObtainSrcFiles) {

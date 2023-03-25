@@ -884,9 +884,10 @@ class Eqchecker {
                 //console.log(`treeNodes =\n${JSON.stringify(treeNodes)}`);
               }
             } else if (trie_child_tree_node.hasOwnProperty("trie_val")) {
-              console.log(`found trie_val`);
+              //console.log(`found trie_val`);
               const trie_child_val = trie_child_tree_node.trie_val[0];
               treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.cg_enum_status);
+              //console.log(`curname ${curname.join('.')} cg enum_status ${trie_child_val.cg_enum_status}`);
             }
           }
         }
@@ -904,8 +905,8 @@ class Eqchecker {
     const {name: searchTreeName, tree: searchTree, treeNodes: searchTreeNodes} = Eqchecker.cgs_to_tree_rec(cgs_enumerated.trie_child[0], []);
     var ret = { };
     ret[searchTreeName] = searchTree;
-    console.log(`ret =\n${JSON.stringify(ret)}`);
-    console.log(`searchTreeNodes =\n${JSON.stringify(searchTreeNodes)}`);
+    //console.log(`ret =\n${JSON.stringify(ret)}`);
+    //console.log(`searchTreeNodes =\n${JSON.stringify(searchTreeNodes)}`);
     return { searchTree: ret, searchTreeNodes: searchTreeNodes };
   }
 }

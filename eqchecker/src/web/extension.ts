@@ -115,34 +115,27 @@ function getChildren(key: string[] | undefined): string[][] {
   return ret;
 }
 
+function getSearchTreeNodeMarkdownTooltip(searchTreeNode)
+{
+  return searchTreeNode.search_node_status_markdown_tooltip.toString();
+}
+
 function getSearchTreeNodeDescription(searchTreeNode)
 {
-  return searchTreeNode.search_node_status.toString();
-  //console.log(`enum_status = ${enum_status}`);
-  //if (enum_status == "cg_enumerated") {
-  //  return "enum";
-  //} else if (enum_status == "cg_ces_propagated") {
-  //  return "prop";
-  //} else if (enum_status == "cg_invariants_inferred") {
-  //  return "inv";
-  //} else if (enum_status == "cg_equivalence_proof_checked") {
-  //  return "proof";
-  //} else if (enum_status == "cg_safety_checked") {
-  //  return "safe";
-  //} else {
-  //  return "";
-  //}
+  return searchTreeNode.search_node_status_description.toString();
 }
 
 function getTreeItem(key: string[]): vscode.TreeItem {
   const treeElement = getTreeElement(key);
+  const searchNode = getNode(key);
+  const description = getSearchTreeNodeDescription(searchNode);
   // An example of how to use codicons in a MarkdownString in a tree item tooltip.
-  const tooltip = new vscode.MarkdownString(`$(zap) ${key.join('.')}`, true);
+  const markdown_tooltip = getSearchTreeNodeMarkdownTooltip(searchNode);
+  const tooltip = new vscode.MarkdownString(`$(zap) ${key.join('.')}\n\n${markdown_tooltip}`, true);
   //console.log(`key = ${key}, treeElement = ${JSON.stringify(treeElement)}`);
   const children = treeElement ? Object.keys(treeElement) : [];
   var collapsibleState = children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
   const id = key.join('.');
-  const description = getSearchTreeNodeDescription(getNode(key));
   return {
     label: /**vscode.TreeItemLabel**/<any>{ label: key[key.length - 1]/*, highlights: key.length > 1 ? [[key.length - 2, key.length - 1]] : void 0*/ },
     tooltip: tooltip,
@@ -169,17 +162,19 @@ function getTreeElement(element: string[]): any {
 
 function getNode(key: string[]): { key: string[] } {
   if (!Eqchecker.searchTreeNodes[key.join('.')]) {
-    Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, "");
+    Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, "", "");
   }
   return Eqchecker.searchTreeNodes[key.join('.')];
 }
 
 class SearchTreeNode {
   searchKey: string[];
-  search_node_status: string;
-  constructor(readonly key: string[], node_status: string) {
+  search_node_status_markdown_tooltip: string;
+  search_node_status_description: string;
+  constructor(readonly key: string[], tooltip: string, description: string) {
     this.searchKey = key;
-    this.search_node_status = node_status;
+    this.search_node_status_markdown_tooltip = tooltip;
+    this.search_node_status_description = description;
   }
 }
 
@@ -887,7 +882,7 @@ class Eqchecker {
             if (trie_child_tree_node.hasOwnProperty("trie_val")) {
               //console.log(`found trie_val`);
               const trie_child_val = trie_child_tree_node.trie_val[0];
-              treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.correl_entry_status);
+              treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.correl_entry_status_markdown_tooltip, trie_child_val.correl_entry_status_description);
               //console.log(`curname ${curname.join('.')} cg enum_status ${trie_child_val.cg_enum_status}`);
             }
           }

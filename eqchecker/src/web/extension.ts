@@ -561,7 +561,7 @@ class Eqchecker {
   {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainSearchTree, dirPathIn: dirPathIn});
     const response = await this.RequestResponseForCommand(jsonRequest);
-    return response;
+    return response.search_tree;
   }
 
   public static async obtainProofFromServer(dirPathIn)
@@ -900,7 +900,8 @@ class Eqchecker {
 
   public static cgs_enumerated_to_search_tree(cgs_enumerated)
   {
-    const {name: searchTreeName, tree: searchTree, treeNodes: searchTreeNodes} = Eqchecker.cgs_to_tree_rec(cgs_enumerated[0].trie_child[0], []);
+    //console.log(`cgs_enumerated =\n${JSON.stringify(cgs_enumerated)}\n`);
+    const {name: searchTreeName, tree: searchTree, treeNodes: searchTreeNodes} = Eqchecker.cgs_to_tree_rec(cgs_enumerated.trie_child[0], []);
     var ret = { };
     ret[searchTreeName] = searchTree;
     console.log(`ret =\n${JSON.stringify(ret)}`);

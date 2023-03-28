@@ -1040,19 +1040,21 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     var panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir;
 
     //vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
-    if (proof_panels === undefined) {
-      panel_prd =
-        vscode.window.createWebviewPanel(
-            'productCFG',
-            'Product Control Flow Graph',
-            vscode.ViewColumn.Three,
-            {
-              enableScripts: true,
-              retainContextWhenHidden: true
-            }
-        );
-    } else {
-      panel_prd = proof_panels.prd;
+    if (enable_panel_prd) {
+      if (proof_panels === undefined) {
+        panel_prd =
+          vscode.window.createWebviewPanel(
+              'productCFG',
+              'Product Control Flow Graph',
+              vscode.ViewColumn.Three,
+              {
+                enableScripts: true,
+                retainContextWhenHidden: true
+              }
+          );
+      } else {
+        panel_prd = proof_panels.prd;
+      }
     }
     if (proof_panels === undefined) {
       panel_src_code =

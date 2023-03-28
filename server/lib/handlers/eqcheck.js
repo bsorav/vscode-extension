@@ -18,7 +18,7 @@ const temp = require('temp'),
 //temp.track();
 
 let hasSetUpAutoClean = false;
-const defaultUnrollFactor = 64;
+const defaultUnrollFactor = 2;
 
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';

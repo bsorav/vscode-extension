@@ -1035,24 +1035,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  async eqcheckViewProof(webview: vscode.Webview, dirPath)
-  {
+  getPanels(enable_panel_prd, src_ir, dst_ir) {
     const proof_panels = this.proof_panels;
-    const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
-    //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
-    const src_code = proof_response.src_code;
-    //console.log(`src_code = ${src_code}\n`);
-    const dst_code = proof_response.dst_code;
-    const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
-    const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
-    //console.log("eqcheckViewProof src_ir = ", src_ir);
-    const proof = proof_response.proof;
-    //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
-    const graph_hierarchy = proof["graph-hierarchy"];
-    const corr_graph = graph_hierarchy["corr_graph"];
-    const eqcheck_info = corr_graph["eqcheck_info"];
-    const dst_assembly = eqcheck_info["dst_assembly"];
-
     var panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir;
 
     //vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
@@ -1098,6 +1082,61 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     } else {
       panel_dst_code = proof_panels.dst_code;
     }
+    if (src_ir !== undefined) {
+      if (proof_panels === undefined) {
+        panel_src_ir =
+          vscode.window.createWebviewPanel(
+            'src_ir',
+            'Source IR',
+            vscode.ViewColumn.Two,
+            {
+              enableScripts: true,
+              retainContextWhenHidden: true
+            }
+          );
+      } else {
+        panel_src_ir = proof_panels.src_ir;
+      }
+    }
+    if (dst_ir !== undefined) {
+      if (proof_panels === undefined) {
+        panel_dst_ir =
+          vscode.window.createWebviewPanel(
+            'dst_ir',
+            'Destination IR',
+            vscode.ViewColumn.Four,
+            {
+              enableScripts: true,
+              retainContextWhenHidden: true
+            }
+          );
+      } else {
+        panel_dst_ir = proof_panels.dst_ir;
+      }
+    }
+    return [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir];
+  }
+
+  async eqcheckViewProof(webview: vscode.Webview, dirPath)
+  {
+    const proof_panels = this.proof_panels;
+    const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
+    //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
+    const src_code = proof_response.src_code;
+    //console.log(`src_code = ${src_code}\n`);
+    const dst_code = proof_response.dst_code;
+    const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
+    const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
+    //console.log("eqcheckViewProof src_ir = ", src_ir);
+    const proof = proof_response.proof;
+    //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
+    const graph_hierarchy = proof["graph-hierarchy"];
+    const corr_graph = graph_hierarchy["corr_graph"];
+    const eqcheck_info = corr_graph["eqcheck_info"];
+    const dst_assembly = eqcheck_info["dst_assembly"];
+
+    const [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir] = this.getPanels(true, src_ir, dst_ir);
+
     const index_css = webview.asWebviewUri(
       vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/css/index.css')
     );
@@ -1121,39 +1160,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
     this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
 
-    var panel_src_ir, panel_dst_ir;
     if (src_ir !== undefined) {
-      if (proof_panels === undefined) {
-        panel_src_ir =
-          vscode.window.createWebviewPanel(
-            'src_ir',
-            'Source IR',
-            vscode.ViewColumn.Two,
-            {
-              enableScripts: true,
-              retainContextWhenHidden: true
-            }
-          );
-      } else {
-        panel_src_ir = proof_panels.src_ir;
-      }
       this.panel_set_html(panel_src_ir, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
     }
     if (dst_ir !== undefined) {
-      if (proof_panels === undefined) {
-        panel_dst_ir =
-          vscode.window.createWebviewPanel(
-            'dst_ir',
-            'Destination IR',
-            vscode.ViewColumn.Four,
-            {
-              enableScripts: true,
-              retainContextWhenHidden: true
-            }
-          );
-      } else {
-        panel_dst_ir = proof_panels.dst_ir;
-      }
       this.panel_set_html(panel_dst_ir, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
     }
     let panel_prd_loaded = false;

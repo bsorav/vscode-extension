@@ -511,6 +511,13 @@ class Eqchecker {
     request.serverCommand = commandPrepareEqcheck;
     const jsonRequest = JSON.stringify(request);
     const result : any = await Eqchecker.RequestNextChunk(jsonRequest, request, "prepareDirpath");
+
+    const viewRequestRemove =
+        { type: 'removeEqcheckInView',
+          origRequest: request,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+
     const dirPath = result.dirPath;
     request.prepareDirpath = dirPath;
     request.dirPathIn = undefined;

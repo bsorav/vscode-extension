@@ -1138,17 +1138,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
+    console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
-    const cg = proof_response.cg;
-    const src_code = cg.src_code;
+    const src_code = proof_response.src_code;
     //console.log(`src_code = ${src_code}\n`);
-    const dst_code = cg.dst_code;
-    const src_ir = (cg.src_ir === undefined) ? undefined : cg.src_ir;
-    const dst_ir = (cg.dst_ir === undefined) ? undefined : cg.dst_ir;
+    const dst_code = proof_response.dst_code;
+    const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
+    const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
-    const proof = cg.proof;
-    //console.log("eqcheckViewProof proof = ", JSON.stringify(proof));
-    const graph_hierarchy = proof["graph-hierarchy"];
+    const correl_entry = proof_response["proof"]["correl_entry"];
+    //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
+    const graph_hierarchy = correl_entry["cg"];
     const corr_graph = graph_hierarchy["corr_graph"];
     const eqcheck_info = corr_graph["eqcheck_info"];
     const dst_assembly = eqcheck_info["dst_assembly"];
@@ -1330,7 +1330,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     await waitForLoading();
     // Message passing to src and dst webview
     console.log(`Panels loaded. Posting proof to panel_prd.\n`);
-    this.panel_post_message(panel_prd, {command: 'showProof', code: proof});
+    this.panel_post_message(panel_prd, {command: 'showProof', code: graph_hierarchy});
     //console.log("Posted proof to panel_prd\n");
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);

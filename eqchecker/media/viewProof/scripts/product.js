@@ -359,7 +359,8 @@ function drawNetwork(cfg) {
     //var nodeMap = {};
     //var idx = 0;
     //console.log(`drawNetwork: prod_cfg =\n${JSON.stringify(cfg)}\n`);
-    const graph_hierarchy = cfg["graph-hierarchy"];
+    //const graph_hierarchy = cfg["graph-hierarchy"];
+    const graph_hierarchy = cfg;
     const graph = graph_hierarchy["graph"];
     const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
     const nodes_in = graph["nodes"];

@@ -73,18 +73,21 @@ export async function activate(context: vscode.ExtensionContext) {
     Eqchecker.setServer();
   });
   context.subscriptions.push(disposable);
+  disposable = vscode.commands.registerCommand('eqchecker.viewProductCFG', (webview, dirPath, key) => {
+    EqcheckViewProvider.provider.viewProductCFG(webview, dirPath, key);
+  });
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
 
-function aNodeWithIdTreeDataProvider(): vscode.TreeDataProvider<{ key: string[] }> {
+function aNodeWithIdTreeDataProvider(webview, dirPath): vscode.TreeDataProvider<{ key: string[] }> {
   return {
     getChildren: (element: { key: string[] }): { key: string[] }[] => {
       return getChildren(element ? element.key : undefined).map(key => getNode(key));
     },
     getTreeItem: (element: { key: string[] }): vscode.TreeItem => {
-      const treeItem = getTreeItem(element.key);
+      const treeItem = getTreeItem(webview, dirPath, element.key);
       //treeItem.id = element.key.join('.');
       //treeItem.command = enumeratedCGselected(treeItem.id);
       return treeItem;
@@ -128,7 +131,7 @@ function getSearchTreeNodeDescription(searchTreeNode)
   return searchTreeNode.search_node_status_description.toString();
 }
 
-function getTreeItem(key: string[]): vscode.TreeItem {
+function getTreeItem(webview: vscode.Webview, dirPath: string, key: string[]): vscode.TreeItem {
   const treeElement = getTreeElement(key);
   const searchNode = getNode(key);
   const description = getSearchTreeNodeDescription(searchNode);
@@ -144,6 +147,11 @@ function getTreeItem(key: string[]): vscode.TreeItem {
     tooltip: tooltip,
     collapsibleState: collapsibleState,
     id: id,
+    command: {
+      command: 'eqchecker.viewProductCFG',
+      arguments: [webview, dirPath, key],
+      title: 'View Correlation'
+    },
     description: description
   };
 }
@@ -511,6 +519,13 @@ class Eqchecker {
     request.serverCommand = commandPrepareEqcheck;
     const jsonRequest = JSON.stringify(request);
     const result : any = await Eqchecker.RequestNextChunk(jsonRequest, request, "prepareDirpath");
+
+    const viewRequestRemove =
+        { type: 'removeEqcheckInView',
+          origRequest: request,
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+
     const dirPath = result.dirPath;
     request.prepareDirpath = dirPath;
     request.dirPathIn = undefined;
@@ -1119,7 +1134,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir];
   }
 
-  async eqcheckViewProof(webview: vscode.Webview, dirPath)
+  async viewProductCFG(webview: vscode.Webview, dirPath: string, key: string[])
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
@@ -1358,7 +1373,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
-          await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath);
+          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
           //this.proof_panels = new_panels;
@@ -1467,7 +1482,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             Eqchecker.searchTree = undefined;
             Eqchecker.searchTreeNodes = undefined;
             Eqchecker.searchTreeDirPath = undefined;
-            Eqchecker.searchTreeDataProvider = aNodeWithIdTreeDataProvider();
+            Eqchecker.searchTreeDataProvider = aNodeWithIdTreeDataProvider(webviewView.webview, data.eqcheck.dirPath);
             Eqchecker.searchTreeView = vscode.window.createTreeView('eqchecker.searchTreeView', { treeDataProvider: Eqchecker.searchTreeDataProvider, showCollapseAll: true });
           }
           break;
@@ -1484,7 +1499,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //  console.log('searchTreeView already exists');
           //  Eqchecker.searchTreeView.dispose();
           //}
-          Eqchecker.searchTreeDataProvider = aNodeWithIdTreeDataProvider();
+          Eqchecker.searchTreeDataProvider = aNodeWithIdTreeDataProvider(webviewView.webview, data.eqcheck.dirPath);
           Eqchecker.searchTreeView = vscode.window.createTreeView('eqchecker.searchTreeView', { treeDataProvider: Eqchecker.searchTreeDataProvider, showCollapseAll: true });
           Eqchecker.context.subscriptions.push(Eqchecker.searchTreeView);
           console.log('searchTreeView created');

@@ -255,6 +255,33 @@ function getEdgeId(from_pc, to_pc)
   return `${from_pc} -> ${to_pc}`;
 }
 
+function getEdgesFromEC_recursive(ec)
+{
+  if (ec === undefined) {
+    return [];
+  }
+  if (ec.is_epsilon) {
+    return [];
+  }
+  var ret = [];
+  switch (ec.name) {
+    case 'series':
+    case 'parallel':
+      const children = ec.serpar_child;
+      children.forEach(function (child_ec) {
+        const child_ret = getEdgesFromEC_recursive(child_ec);
+        ret = arrayUnique(ret.concat(child_ret));
+      });
+      break;
+    case 'edge_with_unroll':
+      //console.log(`ec =\n${JSON.stringify(ec)}\n`);
+      const eu_edge = { from_pc: ec.from_pc, to_pc: ec.to_pc };
+      ret.push(eu_edge);
+      break;
+  }
+  return ret;
+}
+
 function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
 {
   var nodeMap = {};
@@ -354,6 +381,16 @@ function convert_long_long_map_json_to_associative_array(long_long_map_json)
   return ret;
 }
 
+function cg_edge_belongs(cg_ec_edges, edge)
+{
+  for (var i = 0; i < cg_ec_edges.length; i++) {
+    if (cg_ec_edges[i].from_pc == edge.from_pc && cg_ec_edges[i].to_pc == edge.to_pc) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function drawNetwork(correl_entry) {
 
     //var nodeMap = {};
@@ -387,6 +424,9 @@ function drawNetwork(correl_entry) {
     const dst_insn_pcs = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs"]);
     const dst_pc_to_assembly_index_map = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_pc_to_assembly_index_map"]);
     const dst_assembly_index_to_assembly_line_map = (dst_assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_assembly_index_to_assembly_line_map"]);
+
+    const cg_ec_edges = getEdgesFromEC_recursive(cg_ec);
+    //console.log(`cg_ec_edges length = ${cg_ec_edges.length}`);
 
     //console.log(`dst_insn_pcs =\n`);
     //for (var key in dst_insn_pcs) {
@@ -453,7 +493,14 @@ function drawNetwork(correl_entry) {
       }
 
       var color;
-      color = { color: "blue" }; //can use "green" or "red" here
+
+      if (cg_edge_belongs(cg_ec_edges, edge)) {
+        //console.log(`choosing green`);
+        color = { color: "green" }; //can use "red"
+      } else {
+        //console.log(`choosing blue`);
+        color = { color: "blue" };
+      }
 
       //const label = `${from_label} -> ${to_label}`;
 

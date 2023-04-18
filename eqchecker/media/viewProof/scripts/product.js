@@ -360,6 +360,9 @@ function drawNetwork(correl_entry) {
     //var idx = 0;
     //console.log(`drawNetwork: prod_cfg =\n${JSON.stringify(cfg)}\n`);
     //const graph_hierarchy = cfg["graph-hierarchy"];
+
+    const cg_ec = correl_entry["cg_ec"];
+
     const graph_hierarchy = correl_entry["cg"];
     const graph = graph_hierarchy["graph"];
     const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
@@ -449,10 +452,13 @@ function drawNetwork(correl_entry) {
         to_label = "exit";
       }
 
+      var color;
+      color = { color: "blue" }; //can use "green" or "red" here
+
       //const label = `${from_label} -> ${to_label}`;
 
       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
-      return {from: from_idx, to: to_idx/*, label: label*/};
+      return {from: from_idx, to: to_idx, color: color/*, label: label*/};
     }));
 
     var network = new vis.Network(document.getElementById('cfg'), {

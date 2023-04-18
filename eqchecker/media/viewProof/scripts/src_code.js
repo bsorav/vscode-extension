@@ -438,13 +438,16 @@ window.addEventListener('message', async event => {
     var ctx = canvas.getContext("2d");
 
     switch (message.command) {
-        case "highlight":
+        case "highlight": {
+            clearCanvas(canvas, ctx);
             highlightPathInCode(canvas, ctx, codeEl, message.path, message.subprogram_info, message.nodeMap);
             break;
-        case "clear":
+        }
+        case "clear": {
             clearCanvas(canvas, ctx);
             break;
-        case "data":
+        }
+        case "data": {
             code = message.code;
             //console.log(`code = ${code}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
@@ -457,11 +460,14 @@ window.addEventListener('message', async event => {
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
             break;
-        case "load":
+        }
+        case "load": {
             vscode.postMessage({command:"loaded"});
             break;
-        default:
+        }
+        default: {
             break;
+        }
     }
 
 });

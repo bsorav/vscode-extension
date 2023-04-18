@@ -1138,7 +1138,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
-    console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
+    //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
     //console.log(`src_code = ${src_code}\n`);
@@ -1330,7 +1330,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     await waitForLoading();
     // Message passing to src and dst webview
     console.log(`Panels loaded. Posting proof to panel_prd.\n`);
-    this.panel_post_message(panel_prd, {command: 'showProof', code: graph_hierarchy});
+    this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
     //console.log("Posted proof to panel_prd\n");
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);

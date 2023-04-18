@@ -1134,13 +1134,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir];
   }
 
-  viewProductCFG(webview: vscode.Webview, dirPath: string, key: string[])
-  {
-    const id = key.join('.');
-    console.log(`view proof for ${id} in ${dirPath}`);
-  }
-
-  async eqcheckViewProof(webview: vscode.Webview, dirPath)
+  async viewProductCFG(webview: vscode.Webview, dirPath: string, key: string[])
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
@@ -1378,7 +1372,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
-          await this.eqcheckViewProof(webviewView.webview, data.eqcheck.dirPath);
+          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
           //this.proof_panels = new_panels;

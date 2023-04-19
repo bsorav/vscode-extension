@@ -1379,16 +1379,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ec: src_ec, subprogram_info: src_subprogram_info, syntax_type: "c/llvm"});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "code");
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
-    this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, ec: src_ec, subprogram_info: src_ir_subprogram_info, syntax_type: "c/llvm"});
+    this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ec: dst_ec, subprogram_info: dst_subprogram_info, syntax_type: "c/llvm"});
-      this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, ec: dst_ec, subprogram_info: dst_ir_subprogram_info, syntax_type: "c/llvm"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
+      this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, ec: dst_ec, subprogram_info: dst_subprogram_info, syntax_type: "asm"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);

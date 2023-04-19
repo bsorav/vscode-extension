@@ -480,6 +480,8 @@ window.addEventListener('message', async event => {
             }
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
+            console.log(`message.path = ${JSON.stringify(message.path)}`);
+            //highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
             break;
         }
         case "load": {

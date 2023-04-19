@@ -924,6 +924,16 @@ class Eqchecker {
     //console.log(`searchTreeNodes =\n${JSON.stringify(searchTreeNodes)}`);
     return { searchTree: ret, searchTreeNodes: searchTreeNodes };
   }
+
+  public static tfg_llvm_obtain_subprogram_info(tfg_llvm)
+  {
+    return [tfg_llvm.llvm_subprogram_debug_info, tfg_llvm.llvm_ir_subprogram_debug_info];
+  }
+
+  public static tfg_asm_obtain_subprogram_info(tfg_asm, assembly)
+  {
+    return {line: 0, scope_line: 0};
+  }
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
@@ -1150,13 +1160,24 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
     const graph_hierarchy = correl_entry["cg"];
     const corr_graph = graph_hierarchy["corr_graph"];
+    const src_tfg = corr_graph["src_tfg"];
+    const dst_tfg = corr_graph["dst_tfg"];
+
     const eqcheck_info = corr_graph["eqcheck_info"];
     const dst_assembly = eqcheck_info["dst_assembly"];
 
-    const src_subprogram_info = "";
-    const src_ir_subprogram_info = "";
-    const dst_subprogram_info = "";
-    const dst_ir_subprogram_info = "";
+    const src_tfg_llvm = src_tfg["tfg_llvm"];
+
+    const dst_tfg_llvm = dst_tfg["tfg_llvm"];
+    const dst_tfg_asm = dst_tfg["tfg_asm"];
+
+    const [src_subprogram_info, src_ir_subprogram_info] = Eqchecker.tfg_llvm_obtain_subprogram_info(src_tfg_llvm);
+    var dst_subprogram_info, dst_ir_subprogram_info;
+    if (dst_tfg_llvm === undefined) {
+      dst_subprogram_info = Eqchecker.tfg_asm_obtain_subprogram_info(dst_tfg_asm, dst_assembly);
+    } else {
+      [dst_subprogram_info, dst_ir_subprogram_info] = Eqchecker.tfg_llvm_obtain_subprogram_info(dst_tfg_llvm);
+    }
 
     const [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir] = this.getPanels(true, src_ir, dst_ir);
 
@@ -1338,17 +1359,20 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
     //console.log("Posted proof to panel_prd\n");
 
+    const src_ec = correl_entry["src_ec"];
+    const dst_ec = correl_entry["dst_ec"];
+
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ec: correl_entry["src_ec"], subprogram_info: src_subprogram_info, syntax_type: "c/llvm"});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ec: src_ec, subprogram_info: src_subprogram_info, syntax_type: "c/llvm"});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
-    this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, ec: correl_entry["src_ec"], subprogram_info: src_ir_subprogram_info, syntax_type: "c/llvm"});
+    this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, ec: src_ec, subprogram_info: src_ir_subprogram_info, syntax_type: "c/llvm"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ec: correl_entry["dst_ec"], subprogram_info: dst_subprogram_info, syntax_type: "c/llvm"});
-      this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, ec: correl_entry["dst_ec"], subprogram_info: dst_ir_subprogram_info, syntax_type: "c/llvm"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ec: dst_ec, subprogram_info: dst_subprogram_info, syntax_type: "c/llvm"});
+      this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, ec: dst_ec, subprogram_info: dst_ir_subprogram_info, syntax_type: "c/llvm"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, ec: correl_entry["dst_ec"], subprogram_info: dst_subprogram_info, syntax_type: "asm"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, ec: dst_ec, subprogram_info: dst_subprogram_info, syntax_type: "asm"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);

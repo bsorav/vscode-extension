@@ -281,7 +281,11 @@ class EqcheckHandler {
 
     get_proof_filename(dirPath, cg_name) {
       //console.log('dirPath ', dirPath);
-      return path.join(dirPath, 'eq.proof');
+      if (cg_name === undefined) {
+        return path.join(dirPath, 'eq.proof');
+      } else {
+        return cg_name;
+      }
     }
 
 

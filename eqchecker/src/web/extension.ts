@@ -578,9 +578,10 @@ class Eqchecker {
     return response.search_tree;
   }
 
-  public static async obtainProofFromServer(dirPathIn)
+  public static async obtainProofFromServer(dirPathIn, key : string[])
   {
-    let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn});
+    const cg_name = (key === undefined) ? undefined : key.join('.');
+    let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn, cg_name: cg_name});
     const response = await this.RequestResponseForCommand(jsonRequest);
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
     //const proof = response.proof;
@@ -1147,7 +1148,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   async viewProductCFG(webview: vscode.Webview, dirPath: string, key: string[])
   {
     const proof_panels = this.proof_panels;
-    const proof_response = await Eqchecker.obtainProofFromServer(dirPath);
+    const proof_response = await Eqchecker.obtainProofFromServer(dirPath, key);
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;

@@ -139,24 +139,24 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const from_pc = element.edge.from_pc;
     const to_pc = element.edge.to_pc;
 
-    //console.log(`element.dst_edge = ${JSON.stringify(element.dst_edge)}\n`);
-    const dst_from_pc = element.dst_edge.from_pc;
-    const dst_to_pc = element.dst_edge.to_pc;
-    const dst_unroll_factor_mu = element.dst_edge.unroll_factor_mu;
-    const dst_unroll_factor_delta = element.dst_edge.unroll_factor_delta.unroll;
-    const dst_ec = element.dst_edge.graph_ec;
+    //const dst_from_pc = element.dst_edge.from_pc;
+    //const dst_to_pc = element.dst_edge.to_pc;
+    //const dst_unroll_factor_mu = element.dst_edge.unroll_factor_mu;
+    //const dst_unroll_factor_delta = element.dst_edge.unroll_factor_delta.unroll;
+    //const dst_ec = element.dst_edge.graph_ec;
 
-    const src_from_pc = element.src_edge.from_pc;
-    const src_to_pc = element.src_edge.to_pc;
-    const src_unroll_factor_mu = element.src_edge.unroll_factor_mu;
-    const src_unroll_factor_delta = element.src_edge.unroll_factor_delta.unroll;
-    const src_ec = element.src_edge.graph_ec;
+    //const src_from_pc = element.src_edge.from_pc;
+    //const src_to_pc = element.src_edge.to_pc;
+    //const src_unroll_factor_mu = element.src_edge.unroll_factor_mu;
+    //const src_unroll_factor_delta = element.src_edge.unroll_factor_delta.unroll;
+    //const src_ec = element.src_edge.graph_ec;
 
-    const src_entry = { from_pc: src_from_pc, to_pc: src_to_pc, unroll_factor_mu: src_unroll_factor_mu, unroll_factor_delta: src_unroll_factor_delta, ec: src_ec };
-    const dst_entry = { from_pc: dst_from_pc, to_pc: dst_to_pc, unroll_factor_mu: dst_unroll_factor_mu, unroll_factor_delta: dst_unroll_factor_delta, ec: dst_ec };
+    //const src_entry = { from_pc: src_from_pc, to_pc: src_to_pc, unroll_factor_mu: src_unroll_factor_mu, unroll_factor_delta: src_unroll_factor_delta, ec: src_ec };
+    //const dst_entry = { from_pc: dst_from_pc, to_pc: dst_to_pc, unroll_factor_mu: dst_unroll_factor_mu, unroll_factor_delta: dst_unroll_factor_delta, ec: dst_ec };
 
     const edgeId = getEdgeId(from_pc, to_pc);
-    const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
+    //const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
+    const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: element.dst_edge, src_edge: element.src_edge };
     edgeMap[edgeId] = entry;
     //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
   });

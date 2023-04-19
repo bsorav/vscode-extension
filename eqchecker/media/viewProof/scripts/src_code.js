@@ -157,7 +157,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   const nodeMap = (codetype == "ir") ? ir_nodeMap : code_nodeMap;
   const subprogram_info = (codetype == "ir") ? ir_subprogram_info : code_subprogram_info;
 
-  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.ec, subprogram_info, nodeMap);
+  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.graph_ec, subprogram_info, nodeMap);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
   const is_epsilon = graph_ec.is_epsilon;
@@ -180,7 +180,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
 
   //console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
   var node_with_mu_annotation;
-  if (path.unroll_factor_mu != path.unroll_factor_delta) {
+  if (path.unroll_factor_mu != path.unroll_factor_delta.unroll) {
     node_with_mu_annotation = identifyFirstNodeWithCycle(path);
     //console.log(`node_with_mu_annotation = ${node_with_mu_annotation}\n`);
   }
@@ -195,7 +195,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
         unroll_is_only_mu = true;
       } else if (element.pc === path.to_pc) {
         //unroll_mu = path.unroll_factor_mu;
-        unroll = path.unroll_factor_delta;
+        unroll = path.unroll_factor_delta.unroll;
       }
       drawPointOnNode(element, undefined, unroll, unroll_is_only_mu);
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));

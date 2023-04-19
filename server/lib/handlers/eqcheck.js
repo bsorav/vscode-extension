@@ -125,7 +125,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks;
+        let commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -165,6 +165,7 @@ class EqcheckHandler {
             functionName = req.body.functionName;
             sessionName = req.body.sessionName;
             eqchecks = req.body.eqchecks;
+            cg_name = req.body.cg_name;
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -197,6 +198,7 @@ class EqcheckHandler {
             functionName = req.functionName;
             sessionName = req.sessionName;
             eqchecks = req.eqchecks;
+            cg_name = req.cg_name;
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();
@@ -226,7 +228,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks};
+        return {commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name};
     }
 
     //splitArguments(options) {
@@ -277,7 +279,7 @@ class EqcheckHandler {
         return null;
     }
 
-    get_proof_filename(dirPath) {
+    get_proof_filename(dirPath, cg_name) {
       //console.log('dirPath ', dirPath);
       return path.join(dirPath, 'eq.proof');
     }
@@ -378,7 +380,7 @@ class EqcheckHandler {
         const outFilename = this.get_outfilename(dirPath);
         const runstatusFilename = this.get_runstatus_filename(dirPath);
         const searchTreeFilename = this.get_search_tree_filename(dirPath);
-        const proofFilename = this.get_proof_filename(dirPath);
+        const proofFilename = this.get_proof_filename(dirPath, undefined);
         //const errFilename = this.get_errfilename(dirPath);
 
         return new Promise((resolve, reject) => {
@@ -532,8 +534,8 @@ class EqcheckHandler {
       return buffer.toString();
     }
 
-    async getProofXML(dirPath) {
-      let proofFilename = this.get_proof_filename(dirPath) + ".xml";
+    async getProofXML(dirPath, cg_name) {
+      let proofFilename = this.get_proof_filename(dirPath, cg_name) + ".xml";
       var buffer = await this.readBuffer(proofFilename);
       if (buffer === undefined) return undefined;
       return buffer;
@@ -738,7 +740,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       const {
-          commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks
+          commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -864,7 +866,7 @@ class EqcheckHandler {
         return;
       } else if (commandIn === commandObtainProof) {
         console.log('ObtainProof received with dirPathIn ', dirPathIn);
-        const proof_xml = await this.getProofXML(dirPathIn);
+        const proof_xml = await this.getProofXML(dirPathIn, cg_name);
         //console.log('proof_xml =\n', proof_xml);
 
         var proofObj;

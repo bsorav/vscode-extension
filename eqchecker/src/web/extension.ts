@@ -1230,26 +1230,42 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               this.panel_post_message(panel_src_code, {
                 command: "highlight",
                 path: message.edge.src_edge,
-                subprogram_info: message.src_subprogram_info,
-                nodeMap: message.src_nodeMap
+                tfg: message.src_tfg,
+                eqcheck_info: message.eqcheck_info,
+                srcdst: "src",
+                codetype: "code"
+                //subprogram_info: message.src_subprogram_info,
+                //nodeMap: message.src_nodeMap
               });
               this.panel_post_message(panel_src_ir, {
                 command: "highlight",
                 path: message.edge.src_edge,
-                subprogram_info: message.src_ir_subprogram_info,
-                nodeMap: message.src_ir_nodeMap
+                tfg: message.src_tfg,
+                eqcheck_info: message.eqcheck_info,
+                srcdst: "src",
+                codetype: "ir"
+                //subprogram_info: message.src_ir_subprogram_info,
+                //nodeMap: message.src_ir_nodeMap
               });
               this.panel_post_message(panel_dst_code, {
                 command: "highlight",
                 path: message.edge.dst_edge,
-                subprogram_info: message.dst_subprogram_info,
-                nodeMap: message.dst_nodeMap
+                tfg: message.dst_tfg,
+                eqcheck_info: message.eqcheck_info,
+                srcdst: "dst",
+                codetype: "code"
+                //subprogram_info: message.dst_subprogram_info,
+                //nodeMap: message.dst_nodeMap
               });
               this.panel_post_message(panel_dst_ir, {
                   command: "highlight",
                   path: message.edge.dst_edge,
-                  subprogram_info: message.dst_ir_subprogram_info,
-                  nodeMap: message.dst_ir_nodeMap
+                  tfg: message.dst_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "dst",
+                  codetype: "ir"
+                  //subprogram_info: message.dst_ir_subprogram_info,
+                  //nodeMap: message.dst_ir_nodeMap
               });
               break;
             case "clear":

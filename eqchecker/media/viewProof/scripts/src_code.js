@@ -1,6 +1,7 @@
 //import { highlightPathInCode, clearCanvas} from "./utils.js";
 import {Node, angleFromXAxis, coordAtDist} from "./graphics.js";
-import {arrayUnique} from "./utils.js";
+import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,get_src_dst_node_map,get_ir_node_map,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_ir_line_and_column_names_for_pc} from "./tfg.js";
 
 const vscode = acquireVsCodeApi();
 
@@ -123,7 +124,7 @@ function identifyFirstNodeWithCycle(path)
   return path.from_pc; //XXX : TODO: FIXME: find the first entry to a cycle
 }
 
-export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, nodeMap)
+export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, srcdst, codetype)
 {
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context
@@ -135,6 +136,26 @@ export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, no
   //var NODES = [ { node: {type: "L", x: 6, y: 6}, unroll: 1 }, { node: {type: "L", x: 9, y: 6}, unroll: 1 } ];
 
   //console.log(`path = ${JSON.stringify(path)}`);
+
+  const [assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst);
+
+  const tfg_llvm = tfg["tfg_llvm"];
+  const tfg_asm = tfg["tfg_asm"];
+
+  const nodes = tfg["graph"]["nodes"];
+
+  var code_subprogram_info, ir_subprogram_info;
+  if (tfg_llvm === undefined) {
+    code_subprogram_info = tfg_asm_obtain_subprogram_info(tfg_asm, assembly);
+  } else {
+    [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
+  }
+
+  const code_nodeMap = get_src_dst_node_map(nodes, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+  const ir_nodeMap = get_ir_node_map(nodes, tfg_llvm);
+
+  const nodeMap = (codetype == "ir") ? ir_nodeMap : code_nodeMap;
+  const subprogram_info = (codetype == "ir") ? ir_subprogram_info : code_subprogram_info;
 
   const graph_ec = getNodesEdgesFromPathAndNodeMap(path.ec, subprogram_info, nodeMap);
   const EDGES = graph_ec.edges;
@@ -440,7 +461,7 @@ window.addEventListener('message', async event => {
     switch (message.command) {
         case "highlight": {
             clearCanvas(canvas, ctx);
-            highlightPathInCode(canvas, ctx, codeEl, message.path, message.subprogram_info, message.nodeMap);
+            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
             break;
         }
         case "clear": {

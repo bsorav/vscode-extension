@@ -160,7 +160,6 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     edgeMap[edgeId] = entry;
     //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
   });
-
   return [nodeMap, nodeIdMap, edgeMap/*, src_subprogram_info, src_ir_subprogram_info, dst_subprogram_info, dst_ir_subprogram_info, src_nodeMap, src_ir_nodeMap, dst_nodeMap, dst_ir_nodeMap*/];
 }
 
@@ -172,6 +171,12 @@ function cg_edge_belongs(cg_ec_edges, edge)
     }
   }
   return false;
+}
+
+function mk_array(x) {
+  if (x === undefined) return [];
+  else if (Array.isArray(x)) return x;
+  else return [x];
 }
 
 function drawNetwork(correl_entry) {
@@ -186,9 +191,12 @@ function drawNetwork(correl_entry) {
     const graph_hierarchy = correl_entry["cg"];
     const graph = graph_hierarchy["graph"];
     const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
-    const nodes_in = graph["nodes"];
-    const edges_in = graph["edges"];
-    const cg_edges = graph_with_predicates["edge"];
+    const nodes_in_ = graph["nodes"];
+    const edges_in_ = graph["edges"];
+    const cg_edges_ = graph_with_predicates["edge"];
+    const nodes_in = mk_array(nodes_in_);
+    const edges_in = mk_array(edges_in_);
+    const cg_edges = mk_array(cg_edges_);
     const corr_graph = graph_hierarchy["corr_graph"];
     const src_tfg = corr_graph["src_tfg"];
     const dst_tfg = corr_graph["dst_tfg"];

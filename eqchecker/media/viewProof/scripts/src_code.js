@@ -126,6 +126,9 @@ function identifyFirstNodeWithCycle(path)
 
 export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, srcdst, codetype)
 {
+  if (path === undefined) {
+    return;
+  }
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context
   // code -> <code> element in HTML DOM
@@ -480,7 +483,7 @@ window.addEventListener('message', async event => {
             }
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
-            console.log(`message.path = ${JSON.stringify(message.path)}`);
+            //console.log(`message.path = ${JSON.stringify(message.path)}`);
             highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
             break;
         }

@@ -934,6 +934,29 @@ class Eqchecker {
   {
     return {line: 0, scope_line: 0};
   }
+
+  public static get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
+  {
+    var ret = {};
+    //if (tfg_llvm === null) {
+    //  ret["syntax_type"] = "asm";
+    //} else {
+    //  ret["syntax_type"] = "C/llvm";
+    //}
+    proptree_nodes.forEach(element => {
+      var linename, columnname, line_and_column_names;
+      if (tfg_llvm === undefined) {
+        [linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+      } else {
+        [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
+      }
+      const entry = {pc: element.pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names};
+      ret[entry.pc] = entry;
+    });
+    return ret;
+  }
+
+
 }
 
 class EqcheckViewProvider implements vscode.WebviewViewProvider {
@@ -1170,6 +1193,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
     const dst_tfg_llvm = dst_tfg["tfg_llvm"];
     const dst_tfg_asm = dst_tfg["tfg_asm"];
+
+    const src_nodes = src_tfg["graph"]["nodes"];
+    const dst_nodes = dst_tfg["graph"]["nodes"];
+
+    const src_nodeMap = Eqchecker.get_src_dst_node_map(src_nodes, src_tfg_llvm, undefined, undefined, undefined, undefined, undefined);
+    const src_ir_nodeMap = Eqchecker.get_ir_node_map(src_nodes, src_tfg_llvm);
+    const dst_nodeMap = Eqchecker.get_src_dst_node_map(dst_nodes, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
     const [src_subprogram_info, src_ir_subprogram_info] = Eqchecker.tfg_llvm_obtain_subprogram_info(src_tfg_llvm);
     var dst_subprogram_info, dst_ir_subprogram_info;

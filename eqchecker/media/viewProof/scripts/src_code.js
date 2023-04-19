@@ -459,6 +459,9 @@ window.addEventListener('message', async event => {
             }
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
+            if (message.ec !== undefined) {
+              highlightPathInCode(canvas, ctx, codeEl, message.ec, message.subprogram_info, message.nodeMap);
+            }
             break;
         }
         case "load": {

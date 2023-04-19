@@ -1,6 +1,7 @@
 //import { highlightPathInCode, clearCanvas} from "./utils.js";
 import {Node, angleFromXAxis, coordAtDist} from "./graphics.js";
-import {arrayUnique} from "./utils.js";
+import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,get_src_dst_node_map,get_ir_node_map,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_ir_line_and_column_names_for_pc} from "./tfg.js";
 
 const vscode = acquireVsCodeApi();
 
@@ -123,7 +124,7 @@ function identifyFirstNodeWithCycle(path)
   return path.from_pc; //XXX : TODO: FIXME: find the first entry to a cycle
 }
 
-export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, nodeMap)
+export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, srcdst, codetype)
 {
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context
@@ -136,7 +137,27 @@ export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, no
 
   //console.log(`path = ${JSON.stringify(path)}`);
 
-  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.ec, subprogram_info, nodeMap);
+  const [assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst);
+
+  const tfg_llvm = tfg["tfg_llvm"];
+  const tfg_asm = tfg["tfg_asm"];
+
+  const nodes = tfg["graph"]["nodes"];
+
+  var code_subprogram_info, ir_subprogram_info;
+  if (tfg_llvm === undefined) {
+    code_subprogram_info = tfg_asm_obtain_subprogram_info(tfg_asm, assembly);
+  } else {
+    [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
+  }
+
+  const code_nodeMap = get_src_dst_node_map(nodes, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+  const ir_nodeMap = get_ir_node_map(nodes, tfg_llvm);
+
+  const nodeMap = (codetype == "ir") ? ir_nodeMap : code_nodeMap;
+  const subprogram_info = (codetype == "ir") ? ir_subprogram_info : code_subprogram_info;
+
+  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.graph_ec, subprogram_info, nodeMap);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
   const is_epsilon = graph_ec.is_epsilon;
@@ -159,7 +180,7 @@ export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, no
 
   //console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
   var node_with_mu_annotation;
-  if (path.unroll_factor_mu != path.unroll_factor_delta) {
+  if (path.unroll_factor_mu != path.unroll_factor_delta.unroll) {
     node_with_mu_annotation = identifyFirstNodeWithCycle(path);
     //console.log(`node_with_mu_annotation = ${node_with_mu_annotation}\n`);
   }
@@ -174,7 +195,7 @@ export function highlightPathInCode(canvas, ctx, code, path, subprogram_info, no
         unroll_is_only_mu = true;
       } else if (element.pc === path.to_pc) {
         //unroll_mu = path.unroll_factor_mu;
-        unroll = path.unroll_factor_delta;
+        unroll = path.unroll_factor_delta.unroll;
       }
       drawPointOnNode(element, undefined, unroll, unroll_is_only_mu);
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
@@ -440,7 +461,7 @@ window.addEventListener('message', async event => {
     switch (message.command) {
         case "highlight": {
             clearCanvas(canvas, ctx);
-            highlightPathInCode(canvas, ctx, codeEl, message.path, message.subprogram_info, message.nodeMap);
+            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
             break;
         }
         case "clear": {
@@ -459,6 +480,8 @@ window.addEventListener('message', async event => {
             }
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
+            console.log(`message.path = ${JSON.stringify(message.path)}`);
+            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
             break;
         }
         case "load": {

@@ -284,7 +284,7 @@ class EqcheckHandler {
       if (cg_name === undefined) {
         return path.join(dirPath, 'eq.proof');
       } else {
-        return cg_name;
+        return path.join(dirPath, cg_name);
       }
     }
 

@@ -176,11 +176,19 @@ export function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_p
 
     const linename_prefix = "line ";
     src_linename = line_column_map_get_value_for_pc(src_linename_map, src_pc_default_subsubindex, "linename");
-    src_linename = src_linename.substring(linename_prefix.length);
+    if (src_linename !== undefined) {
+      src_linename = src_linename.substring(linename_prefix.length);
+    } else {
+      console.log(`src_linename is undefined for ${src_pc_default_subsubindex}`);
+    }
 
     const columnname_prefix = " at column ";
     src_columnname = line_column_map_get_value_for_pc(src_columnname_map, src_pc_default_subsubindex, "columnname");
-    src_columnname = src_columnname.substring(columnname_prefix.length);
+    if (src_columnname !== undefined) {
+      src_columnname = src_columnname.substring(columnname_prefix.length);
+    } else {
+      console.log(`src_columnname is undefined for ${src_pc_default_subsubindex}`);
+    }
 
     src_line_and_column_names = line_column_map_get_value_for_pc(src_line_and_column_names_map, src_pc_default_subsubindex, "line_and_column_names");
     //if (src_linename === undefined) {

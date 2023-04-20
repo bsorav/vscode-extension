@@ -66,7 +66,7 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
   //const [entryX, entryY, exitX, exitY] = [1, subprogram_info.scope_line, 1, canvas.height / deltaY];
 
   if (pc === 'L0%0%d') {
-    const entryY = subprogram_info.scope_line;
+    const entryY = subprogram_info === undefined ? undefined : subprogram_info.scope_line;
 
     return { type: "entry", pc: pc, y: entryY, x: entryNodeX };
   } else if (pc.charAt(0) === 'L') {
@@ -129,6 +129,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   if (path === undefined) {
     return;
   }
+  //console.log(`highlightPathInCode: tfg=\n${JSON.stringify(tfg)}\n`);
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context
   // code -> <code> element in HTML DOM
@@ -154,17 +155,22 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
     [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
   }
 
+
   const code_nodeMap = get_src_dst_node_map(nodes, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
   const ir_nodeMap = get_ir_node_map(nodes, tfg_llvm);
 
   const nodeMap = (codetype == "ir") ? ir_nodeMap : code_nodeMap;
   const subprogram_info = (codetype == "ir") ? ir_subprogram_info : code_subprogram_info;
 
+  //console.log(`highlightPathInCode: nodeMap=\n${JSON.stringify(nodeMap)}`);
+
   const graph_ec = getNodesEdgesFromPathAndNodeMap(path.graph_ec, subprogram_info, nodeMap);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
   const is_epsilon = graph_ec.is_epsilon;
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap);
+
+  //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
   if (is_epsilon) {
     drawPointOnNode(from_pc_xy, "stays still", undefined, undefined);

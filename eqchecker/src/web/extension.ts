@@ -142,8 +142,9 @@ function getTreeItem(webview: vscode.Webview, dirPath: string, key: string[]): v
   const children = treeElement ? Object.keys(treeElement) : [];
   var collapsibleState = children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
   const id = key.join('.');
+  const key_last_elem = key[key.length - 1];
   return {
-    label: /**vscode.TreeItemLabel**/<any>{ label: key[key.length - 1]/*, highlights: key.length > 1 ? [[key.length - 2, key.length - 1]] : void 0*/ },
+    label: /**vscode.TreeItemLabel**/<any>{ label: key_last_elem, highlights: searchNode.isStable ? void 0 : [[0, key_last_elem.length]] },
     tooltip: tooltip,
     collapsibleState: collapsibleState,
     id: id,
@@ -173,17 +174,19 @@ function getTreeElement(element: string[]): any {
 
 function getNode(key: string[]): { key: string[] } {
   if (!Eqchecker.searchTreeNodes[key.join('.')]) {
-    Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, "", "");
+    Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, true, "", "");
   }
   return Eqchecker.searchTreeNodes[key.join('.')];
 }
 
 class SearchTreeNode {
   searchKey: string[];
+  isStable: boolean;
   search_node_status_markdown_tooltip: string;
   search_node_status_description: string;
-  constructor(readonly key: string[], tooltip: string, description: string) {
+  constructor(readonly key: string[], is_stable: boolean, tooltip: string, description: string) {
     this.searchKey = key;
+    this.isStable = is_stable;
     this.search_node_status_markdown_tooltip = tooltip;
     this.search_node_status_description = description;
   }
@@ -902,7 +905,8 @@ class Eqchecker {
             if (trie_child_tree_node.hasOwnProperty("trie_val")) {
               //console.log(`found trie_val`);
               const trie_child_val = trie_child_tree_node.trie_val[0];
-              treeNodes[curname.join('.')] = new SearchTreeNode(curname, trie_child_val.correl_entry_status_markdown_tooltip, trie_child_val.correl_entry_status_description);
+              const is_stable = (trie_child_val.correl_entry_status_is_stable == "true");
+              treeNodes[curname.join('.')] = new SearchTreeNode(curname, is_stable, trie_child_val.correl_entry_status_markdown_tooltip, trie_child_val.correl_entry_status_description);
               //console.log(`curname ${curname.join('.')} cg enum_status ${trie_child_val.cg_enum_status}`);
             }
           }

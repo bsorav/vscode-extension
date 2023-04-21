@@ -9,7 +9,7 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var g_prodCfg = null;
-var g_nodeMap = null;
+//var g_nodeMap = null;
 var g_nodeIdMap = null;
 var g_edgeMap = null;
 var g_src_tfg = null;
@@ -244,14 +244,15 @@ function drawNetwork(correl_entry) {
     //  console.log(`${key} -> ${val}`);
     //}
 
-    [g_nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+    var nodeMap;
+    [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
-    //console.log(`g_nodeMap = ${JSON.stringify(g_nodeMap)}`);
+    //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
     var nodes = new vis.DataSet(nodes_in.map(function(node) {
-      const label_orig = g_nodeMap[node.pc].label;
+      const label_orig = nodeMap[node.pc].label;
       //console.log(`label_orig = ${label_orig}`);
       var label = label_orig;
-      const level = g_nodeMap[node.pc].level;
+      const level = nodeMap[node.pc].level;
       //var x = ((level % 2) * 2 - 1) * 500;
       //console.log(`node = ${node.pc}, level = ${level}, x = ${x}`);
       if (node.pc === 'L0%0%d_L0%0%d') {
@@ -259,20 +260,20 @@ function drawNetwork(correl_entry) {
       } else if (node.pc.charAt(0) !== 'L') {
         label = "exit";
       }
-      return {id:g_nodeMap[node.pc].idx, label: label, level: level};
+      return {id:nodeMap[node.pc].idx, label: label, level: level};
     }));
     var edges = new vis.DataSet(edges_in.map(function(edge) {
-      const from_idx = g_nodeMap[edge.from_pc].idx;
-      const to_idx = g_nodeMap[edge.to_pc].idx;
-      const src_linename_from = g_nodeMap[edge.from_pc].src_node.linename;
-      const dst_linename_from = g_nodeMap[edge.from_pc].dst_node.linename;
-      const src_columnname_from = g_nodeMap[edge.from_pc].src_node.columnname;
-      const dst_columnname_from = g_nodeMap[edge.from_pc].dst_node.columnname;
+      const from_idx = nodeMap[edge.from_pc].idx;
+      const to_idx = nodeMap[edge.to_pc].idx;
+      const src_linename_from = nodeMap[edge.from_pc].src_node.linename;
+      const dst_linename_from = nodeMap[edge.from_pc].dst_node.linename;
+      const src_columnname_from = nodeMap[edge.from_pc].src_node.columnname;
+      const dst_columnname_from = nodeMap[edge.from_pc].dst_node.columnname;
 
-      const src_linename_to = g_nodeMap[edge.to_pc].src_node.linename;
-      const dst_linename_to = g_nodeMap[edge.to_pc].dst_node.linename;
-      const src_columnname_to = g_nodeMap[edge.to_pc].src_node.columnname;
-      const dst_columnname_to = g_nodeMap[edge.to_pc].dst_node.columnname;
+      const src_linename_to = nodeMap[edge.to_pc].src_node.linename;
+      const dst_linename_to = nodeMap[edge.to_pc].dst_node.linename;
+      const src_columnname_to = nodeMap[edge.to_pc].src_node.columnname;
+      const dst_columnname_to = nodeMap[edge.to_pc].dst_node.columnname;
 
       var from_label = `(${src_linename_from}c${src_columnname_from}, ${dst_linename_from}c${dst_columnname_from})`;
       var to_label = `(${src_linename_to}c${src_columnname_to},${dst_linename_to}c${dst_columnname_to})`;
@@ -359,7 +360,7 @@ function drawNetwork(correl_entry) {
         }
     });
 
-    return network; //nodeMap:g_nodeMap
+    return network; //nodeMap:nodeMap
 }
 
 function refreshPanel()

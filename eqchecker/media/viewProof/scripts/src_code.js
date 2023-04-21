@@ -469,6 +469,7 @@ window.addEventListener('message', async event => {
 
     switch (message.command) {
         case "highlight": {
+            //console.log(`highlight called on path ${JSON.stringify(message.path)}\n`);
             clearCanvas(canvas, ctx);
             highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
             break;

@@ -179,6 +179,74 @@ function mk_array(x) {
   else return [x];
 }
 
+function locals_map_get_name(locals_map, allocsite)
+{
+  const locals = mk_array(locals_map["graph_local"]);
+  //console.log(`locals = ${JSON.stringify(locals)}\n`);
+  for (var i = 0; i < locals.length; i++) {
+    const local = locals[i];
+    if (local.local_allocsite == allocsite) {
+      const ret = local.local_name;
+      //console.log(`locals_map_get_name returning ${ret} for ${allocsite}\n`);
+      return ret;
+    }
+  }
+  //console.log(`locals_map_get_name returning undefined for ${allocsite}\n`);
+  return undefined;
+}
+
+function get_lsprels(lsprels, locals_map)
+{
+  const lsprel_pairs = mk_array(lsprels["local_sprel_expr_pair"]);
+  var ret = {};
+  //console.log(`lsprel_pairs = ${lsprel_pairs}\n`);
+  for (var i = 0; i < lsprel_pairs.length; i++) {
+    const lsprel_pair = lsprel_pairs[i];
+    const allocsite = lsprel_pair["local_id"];
+    const sprel_expr = lsprel_pair["sprel_expr"];
+    const local_name = locals_map_get_name(locals_map, allocsite);
+    //console.log(`adding ${local_name} -> ${sprel_expr}\n`);
+    ret[local_name] = sprel_expr;
+  }
+  return ret;
+}
+
+function get_alloc_dealloc_map(ad_assumes, locals_map)
+{
+  var ret = {};
+  const pc_lsprels = mk_array(ad_assumes["pc_lsprel"]);
+  //console.log(`pc_lsprels = ${JSON.stringify(pc_lsprels)}\n`);
+  for (var i = 0; i < pc_lsprels.length; i++) {
+    const dst_pc = pc_lsprels[i].pc;
+    const lsprels = get_lsprels(pc_lsprels[i].local_sprel_expr_guesses, locals_map);
+    ret[dst_pc] = lsprels;
+  }
+  return ret;
+}
+
+function get_alloc_dealloc_map_for_edge(ad_map, dst_from_pc, dst_to_pc, allocdealloc)
+{
+  const dst_from_pc_components = dst_from_pc.split('%');
+  const dst_to_pc_components = dst_to_pc.split('%');
+  if (dst_from_pc_components[0] != dst_to_pc_components[0]) {
+    return {};
+  }
+  if (dst_from_pc_components[1] != dst_to_pc_components[1]) {
+    return {};
+  }
+  if (!dst_from_pc_components[2].startsWith(allocdealloc) && !dst_to_pc_components[2].startsWith(allocdealloc)) {
+    return {};
+  }
+  for (var pc in ad_map) {
+    const pc_components = pc.split('%');
+    const pc_to_compare = (allocdealloc == "alloc") ? dst_to_pc_components : dst_from_pc_components;
+    if (pc_components[0] == pc_to_compare[0] && pc_components[1] == pc_to_compare[1]) {
+      return ad_map[pc];
+    }
+  }
+  return {};
+}
+
 function drawNetwork(correl_entry) {
 
     //var nodeMap = {};
@@ -200,6 +268,12 @@ function drawNetwork(correl_entry) {
     const corr_graph = graph_hierarchy["corr_graph"];
     const src_tfg = corr_graph["src_tfg"];
     const dst_tfg = corr_graph["dst_tfg"];
+
+    const alloc_assumes = corr_graph["alloca_pc_local_sprel_assumes"];
+    const dealloc_assumes = corr_graph["dealloca_pc_local_sprel_assumes"];
+
+    const src_graph_with_predicates = src_tfg["graph_with_predicates"];
+    const locals_map = src_graph_with_predicates["graph_locals_map"];
 
     const src_nodes = src_tfg["graph"]["nodes"];
     const dst_nodes = dst_tfg["graph"]["nodes"];
@@ -247,6 +321,9 @@ function drawNetwork(correl_entry) {
     var nodeMap;
     [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
+    const alloc_map = get_alloc_dealloc_map(alloc_assumes, locals_map);
+    const dealloc_map = get_alloc_dealloc_map(dealloc_assumes, locals_map);
+
     //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
     var nodes = new vis.DataSet(nodes_in.map(function(node) {
       const label_orig = nodeMap[node.pc].label;
@@ -265,24 +342,50 @@ function drawNetwork(correl_entry) {
     var edges = new vis.DataSet(edges_in.map(function(edge) {
       const from_idx = nodeMap[edge.from_pc].idx;
       const to_idx = nodeMap[edge.to_pc].idx;
-      const src_linename_from = nodeMap[edge.from_pc].src_node.linename;
-      const dst_linename_from = nodeMap[edge.from_pc].dst_node.linename;
-      const src_columnname_from = nodeMap[edge.from_pc].src_node.columnname;
-      const dst_columnname_from = nodeMap[edge.from_pc].dst_node.columnname;
 
-      const src_linename_to = nodeMap[edge.to_pc].src_node.linename;
-      const dst_linename_to = nodeMap[edge.to_pc].dst_node.linename;
-      const src_columnname_to = nodeMap[edge.to_pc].src_node.columnname;
-      const dst_columnname_to = nodeMap[edge.to_pc].dst_node.columnname;
+      //const src_linename_from = nodeMap[edge.from_pc].src_node.linename;
+      //const dst_linename_from = nodeMap[edge.from_pc].dst_node.linename;
+      //const src_columnname_from = nodeMap[edge.from_pc].src_node.columnname;
+      //const dst_columnname_from = nodeMap[edge.from_pc].dst_node.columnname;
 
-      var from_label = `(${src_linename_from}c${src_columnname_from}, ${dst_linename_from}c${dst_columnname_from})`;
-      var to_label = `(${src_linename_to}c${src_columnname_to},${dst_linename_to}c${dst_columnname_to})`;
+      //const src_linename_to = nodeMap[edge.to_pc].src_node.linename;
+      //const dst_linename_to = nodeMap[edge.to_pc].dst_node.linename;
+      //const src_columnname_to = nodeMap[edge.to_pc].src_node.columnname;
+      //const dst_columnname_to = nodeMap[edge.to_pc].dst_node.columnname;
 
-      if (edge.from_pc === 'L0%0%d_L0%0%d') {
-        from_label = "entry";
+      //var from_label = `(${src_linename_from}c${src_columnname_from}, ${dst_linename_from}c${dst_columnname_from})`;
+      //var to_label = `(${src_linename_to}c${src_columnname_to},${dst_linename_to}c${dst_columnname_to})`;
+
+      //if (edge.from_pc === 'L0%0%d_L0%0%d') {
+      //  from_label = "entry";
+      //}
+      //if (edge.to_pc.charAt(0) !== 'L') {
+      //  to_label = "exit";
+      //}
+
+      const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
+      const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
+
+      const allocs_at_to_pc = get_alloc_dealloc_map_for_edge(alloc_map, dst_from_pc, dst_to_pc, "alloc");
+      const deallocs_at_to_pc = get_alloc_dealloc_map_for_edge(dealloc_map, dst_from_pc, dst_to_pc, "dealloc");
+
+      //console.log(`alloc_map = ${JSON.stringify(alloc_map)}`);
+      //console.log(`dst_to_pc = ${dst_to_pc}, allocs_at_to_pc = ${allocs_at_to_pc}`);
+
+      var label = "";
+
+      if (allocs_at_to_pc !== undefined) {
+        for (const local_name in allocs_at_to_pc) {
+          const sprel = allocs_at_to_pc[local_name];
+          label = `${label}alloc ${local_name}->${sprel}; `;
+        }
       }
-      if (edge.to_pc.charAt(0) !== 'L') {
-        to_label = "exit";
+
+      if (deallocs_at_to_pc !== undefined) {
+        for (const local_name in deallocs_at_to_pc) {
+          const sprel = allocs_at_to_pc[local_name];
+          label = `${label}dealloc ${local_name}->${sprel}; `;
+        }
       }
 
       var color;
@@ -298,7 +401,7 @@ function drawNetwork(correl_entry) {
       //const label = `${from_label} -> ${to_label}`;
 
       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
-      return {from: from_idx, to: to_idx, color: color/*, label: label*/};
+      return {from: from_idx, to: to_idx, color: color, label: label};
     }));
 
     var network = new vis.Network(document.getElementById('cfg'), {

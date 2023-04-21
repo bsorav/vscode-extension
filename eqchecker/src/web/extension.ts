@@ -372,12 +372,12 @@ class Eqchecker {
   private static async populatePreparePhaseInfo(request) //this function is (and should remain) idempotent
   {
     const prepareDirpath = request.prepareDirpath;
-    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
+    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
 
     const dst_filename = dst_filename_arr.toString();
     if (dst_filename === "") {
       console.log('returning false because dst_filename === ""');
-      return { retval: false, common: common, harvest: harvest, object: object };
+      return { retval: false, common: common, harvest: harvest, object: object, compile_log: compile_log };
     }
 
     const dst_filename_is_object = (dst_filename_is_object_str == "true");
@@ -387,6 +387,7 @@ class Eqchecker {
       request.source2Uri = dst_filename.toString();
       request.dstFilenameIsObject = dst_filename_is_object;
       request.source2Text = object;
+      request.compile_log = compile_log;
       console.log(`set source2 to ${request.source2Name}\n`);
     }
 
@@ -404,7 +405,7 @@ class Eqchecker {
           };
       EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
       vscode.window.showInformationMessage(msg);
-      return { retval: false, common: common, harvest: harvest, object: object };
+      return { retval: false, common: common, harvest: harvest, object: object, compile_log: compile_log };
     }
     if (src_only.length > 0) {
       const msg = this.createWarningMessageFromFunctionList('first', src_only);
@@ -414,7 +415,7 @@ class Eqchecker {
       const msg = this.createWarningMessageFromFunctionList('second', dst_only);
       vscode.window.showInformationMessage(msg);
     }
-    return { retval: true, common: common, harvest: harvest, object: object };
+    return { retval: true, common: common, harvest: harvest, object: object, compile_log: compile_log };
   }
 
   public static async submitRunCommand(request/*, dirPath2, common, harvest, object*/) {
@@ -465,6 +466,7 @@ class Eqchecker {
       funRequest.dst_ir = dst_ir;
       funRequest.harvest = preparePhaseResult.harvest;
       funRequest.object = preparePhaseResult.object;
+      funRequest.compile_log = preparePhaseResult.compile_log;
       funRequest.functionName = functionName;
       const jsonRequest = JSON.stringify(funRequest);
       funRequestPromises.push(Eqchecker.RequestNextChunk(jsonRequest, funRequest, "runDirpath"));
@@ -568,7 +570,8 @@ class Eqchecker {
           src_etfg: undefined,
           dst_etfg: undefined,
           harvest: undefined,
-          object: undefined
+          object: undefined,
+          compile_log: undefined
         };
     //console.log(`jsonRequest = ${jsonRequest}\n`);
     return await Eqchecker.submitPrepareCommand(request);

@@ -210,7 +210,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
   });
 
-  window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
+  //window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
 }
 
 function drawText(ctx, x, y, text, size, color){

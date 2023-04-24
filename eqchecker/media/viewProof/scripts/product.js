@@ -200,15 +200,17 @@ function locals_map_get_name(locals_map, allocsite)
 function get_lsprels(lsprels, locals_map)
 {
   const lsprel_pairs = mk_array(lsprels["local_sprel_expr_pair"]);
-  var ret = {};
+  var ret = [];
   //console.log(`lsprel_pairs = ${lsprel_pairs}\n`);
   for (var i = 0; i < lsprel_pairs.length; i++) {
     const lsprel_pair = lsprel_pairs[i];
-    const allocsite = lsprel_pair["local_id"];
-    const sprel_expr = lsprel_pair["sprel_expr"];
-    const local_name = locals_map_get_name(locals_map, allocsite);
+    //const allocsite = lsprel_pair["local_id"];
+    //const sprel_expr = lsprel_pair["sprel_expr"];
+    //const local_name = locals_map_get_name(locals_map, allocsite);
     //console.log(`adding ${local_name} -> ${sprel_expr}\n`);
-    ret[local_name] = sprel_expr;
+    const label = lsprel_pair["local_sprel_expr_label_for_gui"];
+    //ret[local_name] = sprel_expr;
+    ret.push(label);
   }
   return ret;
 }
@@ -231,13 +233,13 @@ function get_alloc_dealloc_map_for_edge(ad_map, dst_from_pc, dst_to_pc, allocdea
   const dst_from_pc_components = dst_from_pc.split('%');
   const dst_to_pc_components = dst_to_pc.split('%');
   if (dst_from_pc_components[0] != dst_to_pc_components[0]) {
-    return {};
+    return [];
   }
   if (dst_from_pc_components[1] != dst_to_pc_components[1]) {
-    return {};
+    return [];
   }
   if (!dst_from_pc_components[2].startsWith(allocdealloc) && !dst_to_pc_components[2].startsWith(allocdealloc)) {
-    return {};
+    return [];
   }
   for (var pc in ad_map) {
     const pc_components = pc.split('%');
@@ -246,7 +248,7 @@ function get_alloc_dealloc_map_for_edge(ad_map, dst_from_pc, dst_to_pc, allocdea
       return ad_map[pc];
     }
   }
-  return {};
+  return [];
 }
 
 function drawNetwork(correl_entry) {
@@ -377,16 +379,19 @@ function drawNetwork(correl_entry) {
       var label = "";
 
       if (allocs_at_to_pc !== undefined) {
-        for (const local_name in allocs_at_to_pc) {
-          const sprel = allocs_at_to_pc[local_name];
-          label = `${label}alloc ${local_name}->${sprel}; `;
+        console.log(`allocs_at_to_pc = ${JSON.stringify(allocs_at_to_pc)}`);
+        for (const l of allocs_at_to_pc) {
+          //const sprel = allocs_at_to_pc[local_name];
+          //label = `${label}alloc ${local_name}->${sprel}; `;
+          label = `${label}a ${l}; `;
         }
       }
 
       if (deallocs_at_to_pc !== undefined) {
-        for (const local_name in deallocs_at_to_pc) {
-          const sprel = allocs_at_to_pc[local_name];
-          label = `${label}dealloc ${local_name}->${sprel}; `;
+        for (const l of deallocs_at_to_pc) {
+          //const sprel = allocs_at_to_pc[local_name];
+          //label = `${label}dealloc ${local_name}->${sprel}; `;
+          label = `${label}d ${l}; `;
         }
       }
 

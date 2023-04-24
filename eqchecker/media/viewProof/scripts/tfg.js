@@ -58,23 +58,31 @@ export function dst_asm_compute_index_to_line_map(dst_insn_pcs, dst_pc_to_assemb
 
 export function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
 {
-  var dst_linename, dst_columnname, dst_line_and_column_names;
+  var dst_insn_pc, dst_linename, dst_columnname, dst_line_and_column_names;
   const dst_index = dst_pc.split('%')[0];
   if (dst_pc === 'L0%0%d') {
+    dst_insn_pc = ""; //unused
     dst_linename = ""; //unused
     dst_columnname = ""; //unused
     dst_line_and_column_names = dst_linename; //unused
   } else if (dst_index.charAt(0) === 'L') {
     const index_name = dst_index.substring(1);
+    dst_insn_pc = dst_insn_pcs[index_name];
+    //console.log(`before: dst_insn_pc = ${dst_insn_pc}`);
+    dst_insn_pc = parseInt(dst_insn_pc);
+    //console.log(`after: dst_insn_pc = ${dst_insn_pc}`);
+    dst_insn_pc = "0x" + dst_insn_pc.toString(16);
+    //console.log(`after: dst_insn_pc = ${dst_insn_pc}`);
     dst_linename = dst_insn_index_to_assembly_line_map[index_name];
     dst_columnname = default_columnname_for_assembly;
     dst_line_and_column_names = dst_linename + dst_columnname;
   } else {
+    dst_insn_pc = ""; //unused
     dst_linename = ""; //unused
     dst_columnname = ""; //unused
     dst_line_and_column_names = dst_linename; //unused
   }
-  return [dst_linename, dst_columnname, dst_line_and_column_names];
+  return [dst_insn_pc, dst_linename, dst_columnname, dst_line_and_column_names];
 }
 
 
@@ -112,13 +120,13 @@ export function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_asse
   //  ret["syntax_type"] = "C/llvm";
   //}
   proptree_nodes.forEach(element => {
-    var linename, columnname, line_and_column_names;
+    var linename, columnname, line_and_column_names, insn_pc;
     if (tfg_llvm === undefined) {
-      [linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+      [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
     } else {
       [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
     }
-    const entry = {pc: element.pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names};
+    const entry = {pc: element.pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names, insn_pc: insn_pc};
     ret[entry.pc] = entry;
   });
   return ret;

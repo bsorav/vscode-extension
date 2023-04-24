@@ -108,17 +108,19 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
-    var dst_ir_linename, dst_ir_columnname;
+    var dst_ir_linename, dst_ir_columnname, dst_insn_pc;
     if (dst_tfg_llvm === undefined) {
-      [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+      [dst_insn_pc, dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
     } else {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
       [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
+      dst_insn_pc = "dst.l" + dst_linename;
     }
     //console.log(`element.pc = ${element.pc}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);
 
     //const label = src_line_and_column_names + " ; " + dst_line_and_column_names;
-    const label = "dst.l" + dst_linename;
+    //const label = "dst.l" + dst_linename;
+    const label = dst_insn_pc;
 
     const src_entry = {pc: src_pc, linename: src_linename, ir_linename: src_ir_linename, columnname: src_columnname, ir_columnname: src_ir_columnname, line_and_column_names: src_line_and_column_names};
     const dst_entry = {pc: dst_pc, linename: dst_linename, ir_linename: dst_ir_linename, columnname: dst_columnname, ir_columnname: dst_ir_columnname, line_and_column_names: dst_line_and_column_names};

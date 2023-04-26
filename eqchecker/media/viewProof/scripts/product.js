@@ -99,6 +99,27 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
   //var src_nodeMap = {};
   //var dst_nodeMap = {};
 
+  nodes_in.sort(function(a, b) {
+    const a_dst_pc = a.split('_')[1];
+    const a_dst_pc_index = a_dst_pc.split('%')[0];
+
+    const b_dst_pc = b.split('_')[1];
+    const b_dst_pc_index = b_dst_pc.split('%')[0];
+
+    if (b_dst_pc_index.charAt(0) === 'E' && a_dst_pc_index.charAt(0) === 'L') {
+      return -1;
+    }
+    if (b_dst_pc_index.charAt(0) === 'L' && a_dst_pc_index.charAt(0) === 'E') {
+      return 1;
+    }
+
+    const a_index_name = a_dst_pc_index.substring(1);
+    const b_index_name = b_dst_pc_index.substring(1);
+    const a_idx = parseInt(a_index_name);
+    const b_idx = parseInt(b_index_name);
+    return a_idx - b_idx;
+  });
+
   var idx = 0;
   nodes_in.forEach(element => {
     const src_pc = element.split('_')[0];

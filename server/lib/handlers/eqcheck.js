@@ -908,8 +908,13 @@ class EqcheckHandler {
         const src_files = await this.getSrcFiles(dirPathIn);
         const dst_files = await this.getDstFiles(dirPathIn);
 
+        const src_code = (src_files.src === undefined) ? undefined : src_files.src.toString();
+        const src_ir = (src_files.ir === undefined) ? undefined : src_files.ir.toString();
+        const dst_code = (dst_files.dst === undefined) ? undefined : dst_files.dst.toString();
+        const dst_ir = (dst_files.ir === undefined) ? undefined : dst_files.ir.toString();
+
         //console.log(`src_code = ${src_files.src}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_files.src, src_ir: src_files.ir, dst_code: dst_files.dst, dst_ir: dst_files.ir});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;

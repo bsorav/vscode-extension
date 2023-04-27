@@ -9,7 +9,7 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var g_prodCfg = null;
-var g_nodeMap = null;
+//var g_nodeMap = null;
 var g_nodeIdMap = null;
 var g_edgeMap = null;
 var g_src_tfg = null;
@@ -99,36 +99,59 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
   //var src_nodeMap = {};
   //var dst_nodeMap = {};
 
+  nodes_in.sort(function(a, b) {
+    const a_dst_pc = a.split('_')[1];
+    const a_dst_pc_index = a_dst_pc.split('%')[0];
+
+    const b_dst_pc = b.split('_')[1];
+    const b_dst_pc_index = b_dst_pc.split('%')[0];
+
+    if (b_dst_pc_index.charAt(0) === 'E' && a_dst_pc_index.charAt(0) === 'L') {
+      return -1;
+    }
+    if (b_dst_pc_index.charAt(0) === 'L' && a_dst_pc_index.charAt(0) === 'E') {
+      return 1;
+    }
+
+    const a_index_name = a_dst_pc_index.substring(1);
+    const b_index_name = b_dst_pc_index.substring(1);
+    const a_idx = parseInt(a_index_name);
+    const b_idx = parseInt(b_index_name);
+    return a_idx - b_idx;
+  });
+
   var idx = 0;
   nodes_in.forEach(element => {
-    const src_pc = element.pc.split('_')[0];
-    const dst_pc = element.pc.split('_')[1];
+    const src_pc = element.split('_')[0];
+    const dst_pc = element.split('_')[1];
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
     const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
-    var dst_ir_linename, dst_ir_columnname;
+    var dst_ir_linename, dst_ir_columnname, dst_insn_pc;
     if (dst_tfg_llvm === undefined) {
-      [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+      [dst_insn_pc, dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
     } else {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
       [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
+      dst_insn_pc = "dst.l" + dst_linename;
     }
-    //console.log(`element.pc = ${element.pc}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);
+    //console.log(`element.pc = ${element}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);
 
     //const label = src_line_and_column_names + " ; " + dst_line_and_column_names;
-    const label = "dst.l" + dst_linename;
+    //const label = "dst.l" + dst_linename;
+    const label = dst_insn_pc;
 
     const src_entry = {pc: src_pc, linename: src_linename, ir_linename: src_ir_linename, columnname: src_columnname, ir_columnname: src_ir_columnname, line_and_column_names: src_line_and_column_names};
     const dst_entry = {pc: dst_pc, linename: dst_linename, ir_linename: dst_ir_linename, columnname: dst_columnname, ir_columnname: dst_ir_columnname, line_and_column_names: dst_line_and_column_names};
 
-    const entry = {idx: idx, pc: element.pc, src_node: src_entry, dst_node: dst_entry, label: label, level: idx};
+    const entry = {idx: idx, pc: element, src_node: src_entry, dst_node: dst_entry, label: label, level: idx};
 
     nodeMap[entry.pc] = entry;
     nodeIdMap[entry.idx] = entry;
 
-    //console.log(`Adding to nodeIdMap at index ${entry.idx}, pc ${element.pc}\n`);
+    //console.log(`Adding to nodeIdMap at index ${entry.idx}, pc ${element}\n`);
     //src_nodeMap[src_entry.pc] = src_entry;
     //dst_nodeMap[dst_entry.pc] = dst_entry;
 
@@ -136,8 +159,8 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
   });
 
   cg_edges.forEach(element => {
-    const from_pc = element.edge.from_pc;
-    const to_pc = element.edge.to_pc;
+    const from_pc = element.from_pc;
+    const to_pc = element.to_pc;
 
     //const dst_from_pc = element.dst_edge.from_pc;
     //const dst_to_pc = element.dst_edge.to_pc;
@@ -156,7 +179,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
 
     const edgeId = getEdgeId(from_pc, to_pc);
     //const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
-    const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: element.dst_edge, src_edge: element.src_edge };
+    const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: element.dst_edge, src_edge: element.src_edge, allocs: element.allocs, deallocs: element.deallocs };
     edgeMap[edgeId] = entry;
     //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
   });
@@ -179,6 +202,79 @@ function mk_array(x) {
   else return [x];
 }
 
+function locals_map_get_name(locals_map, allocsite)
+{
+  const locals = mk_array(locals_map["graph_local"]);
+  //console.log(`locals = ${JSON.stringify(locals)}\n`);
+  for (var i = 0; i < locals.length; i++) {
+    const local = locals[i];
+    if (local.local_allocsite == allocsite) {
+      const ret = local.local_name;
+      //console.log(`locals_map_get_name returning ${ret} for ${allocsite}\n`);
+      return ret;
+    }
+  }
+  //console.log(`locals_map_get_name returning undefined for ${allocsite}\n`);
+  return undefined;
+}
+
+function get_lsprels(lsprels, locals_map)
+{
+  //console.log(`lsprels = ${JSON.stringify(lsprels)}`);
+  const lsprel_pairs = mk_array(lsprels["local_sprel_expr_pair"]);
+  var ret = [];
+  //console.log(`lsprel_pairs = ${lsprel_pairs}\n`);
+  for (var i = 0; i < lsprel_pairs.length; i++) {
+    const lsprel_pair = lsprel_pairs[i];
+    //const allocsite = lsprel_pair["local_id"];
+    //const sprel_expr = lsprel_pair["sprel_expr"];
+    //const local_name = locals_map_get_name(locals_map, allocsite);
+    //console.log(`adding ${local_name} -> ${sprel_expr}\n`);
+    //console.log(`lsprel_pair = ${JSON.stringify(lsprel_pair)}\n`);
+    const label = lsprel_pair["local_sprel_expr_label_for_gui"];
+    //ret[local_name] = sprel_expr;
+    ret.push(label);
+  }
+  //console.log(`ret = ${JSON.stringify(ret)}`);
+  return ret;
+}
+
+//function get_alloc_dealloc_map(ad_assumes, locals_map)
+//{
+//  var ret = {};
+//  const pc_lsprels = mk_array(ad_assumes["pc_lsprel"]);
+//  //console.log(`pc_lsprels = ${JSON.stringify(pc_lsprels)}\n`);
+//  for (var i = 0; i < pc_lsprels.length; i++) {
+//    const dst_pc = pc_lsprels[i].pc;
+//    const lsprels = get_lsprels(pc_lsprels[i].local_sprel_expr_guesses, locals_map);
+//    ret[dst_pc] = lsprels;
+//  }
+//  return ret;
+//}
+
+//function get_alloc_dealloc_map_for_edge(ad_map, dst_from_pc, dst_to_pc, allocdealloc)
+//{
+//  const dst_from_pc_components = dst_from_pc.split('%');
+//  const dst_to_pc_components = dst_to_pc.split('%');
+//  if (dst_from_pc_components[0] != dst_to_pc_components[0]) {
+//    return [];
+//  }
+//  if (dst_from_pc_components[1] != dst_to_pc_components[1]) {
+//    return [];
+//  }
+//  if (!dst_from_pc_components[2].startsWith(allocdealloc) && !dst_to_pc_components[2].startsWith(allocdealloc)) {
+//    return [];
+//  }
+//  for (var pc in ad_map) {
+//    const pc_components = pc.split('%');
+//    const pc_to_compare = (allocdealloc == "alloc") ? dst_to_pc_components : dst_from_pc_components;
+//    if (pc_components[0] == pc_to_compare[0] && pc_components[1] == pc_to_compare[1]) {
+//      return ad_map[pc];
+//    }
+//  }
+//  return [];
+//}
+
 function drawNetwork(correl_entry) {
 
     //var nodeMap = {};
@@ -191,15 +287,25 @@ function drawNetwork(correl_entry) {
     const graph_hierarchy = correl_entry["cg"];
     const graph = graph_hierarchy["graph"];
     const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
-    const nodes_in_ = graph["nodes"];
-    const edges_in_ = graph["edges"];
-    const cg_edges_ = graph_with_predicates["edge"];
-    const nodes_in = mk_array(nodes_in_);
-    const edges_in = mk_array(edges_in_);
-    const cg_edges = mk_array(cg_edges_);
+    //const nodes_in_ = graph["nodes"];
+    //const edges_in_ = graph["edges"];
+    //const nodes_in = mk_array(nodes_in_);
+    //const edges_in = mk_array(edges_in_);
     const corr_graph = graph_hierarchy["corr_graph"];
+    const cg_collapsed_nodes_and_edges = corr_graph["collapsed_nodes_and_edges_for_gui"];
     const src_tfg = corr_graph["src_tfg"];
     const dst_tfg = corr_graph["dst_tfg"];
+    //const cg_edges_ = graph_with_predicates["edge"];
+    const cg_edges_ = cg_collapsed_nodes_and_edges["collapsed_edge"];
+    const cg_edges = mk_array(cg_edges_);
+    const cg_nodes_ = cg_collapsed_nodes_and_edges["node_pc_after_collapse"];
+    const cg_nodes = mk_array(cg_nodes_);
+
+    const alloc_assumes = corr_graph["alloca_pc_local_sprel_assumes"];
+    const dealloc_assumes = corr_graph["dealloca_pc_local_sprel_assumes"];
+
+    const src_graph_with_predicates = src_tfg["graph_with_predicates"];
+    const locals_map = src_graph_with_predicates["graph_locals_map"];
 
     const src_nodes = src_tfg["graph"]["nodes"];
     const dst_nodes = dst_tfg["graph"]["nodes"];
@@ -244,44 +350,86 @@ function drawNetwork(correl_entry) {
     //  console.log(`${key} -> ${val}`);
     //}
 
-    [g_nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+    var nodeMap;
+    [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
-    //console.log(`g_nodeMap = ${JSON.stringify(g_nodeMap)}`);
-    var nodes = new vis.DataSet(nodes_in.map(function(node) {
-      const label_orig = g_nodeMap[node.pc].label;
+    //const alloc_map = get_alloc_dealloc_map(alloc_assumes, locals_map);
+    //const dealloc_map = get_alloc_dealloc_map(dealloc_assumes, locals_map);
+
+    //console.log(`cg_edges = ${JSON.stringify(cg_edges)}`);
+
+    //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
+    var nodes = new vis.DataSet(cg_nodes.map(function(node) {
+      const label_orig = nodeMap[node].label;
       //console.log(`label_orig = ${label_orig}`);
       var label = label_orig;
-      const level = g_nodeMap[node.pc].level;
+      const level = nodeMap[node].level;
       //var x = ((level % 2) * 2 - 1) * 500;
-      //console.log(`node = ${node.pc}, level = ${level}, x = ${x}`);
-      if (node.pc === 'L0%0%d_L0%0%d') {
+      //console.log(`node = ${node}, level = ${level}, x = ${x}`);
+      if (node === 'L0%0%d_L0%0%d') {
         label = "entry";
-      } else if (node.pc.charAt(0) !== 'L') {
+      } else if (node.charAt(0) !== 'L') {
         label = "exit";
       }
-      return {id:g_nodeMap[node.pc].idx, label: label, level: level};
+      return {id:nodeMap[node].idx, label: label, level: level};
     }));
-    var edges = new vis.DataSet(edges_in.map(function(edge) {
-      const from_idx = g_nodeMap[edge.from_pc].idx;
-      const to_idx = g_nodeMap[edge.to_pc].idx;
-      const src_linename_from = g_nodeMap[edge.from_pc].src_node.linename;
-      const dst_linename_from = g_nodeMap[edge.from_pc].dst_node.linename;
-      const src_columnname_from = g_nodeMap[edge.from_pc].src_node.columnname;
-      const dst_columnname_from = g_nodeMap[edge.from_pc].dst_node.columnname;
+    var edges = new vis.DataSet(cg_edges.map(function(edge) {
+      //console.log(`edge from_pc ${edge.from_pc} to_pc ${edge.to_pc}`);
+      const from_idx = nodeMap[edge.from_pc].idx;
+      const to_idx = nodeMap[edge.to_pc].idx;
 
-      const src_linename_to = g_nodeMap[edge.to_pc].src_node.linename;
-      const dst_linename_to = g_nodeMap[edge.to_pc].dst_node.linename;
-      const src_columnname_to = g_nodeMap[edge.to_pc].src_node.columnname;
-      const dst_columnname_to = g_nodeMap[edge.to_pc].dst_node.columnname;
+      //const src_linename_from = nodeMap[edge.from_pc].src_node.linename;
+      //const dst_linename_from = nodeMap[edge.from_pc].dst_node.linename;
+      //const src_columnname_from = nodeMap[edge.from_pc].src_node.columnname;
+      //const dst_columnname_from = nodeMap[edge.from_pc].dst_node.columnname;
 
-      var from_label = `(${src_linename_from}c${src_columnname_from}, ${dst_linename_from}c${dst_columnname_from})`;
-      var to_label = `(${src_linename_to}c${src_columnname_to},${dst_linename_to}c${dst_columnname_to})`;
+      //const src_linename_to = nodeMap[edge.to_pc].src_node.linename;
+      //const dst_linename_to = nodeMap[edge.to_pc].dst_node.linename;
+      //const src_columnname_to = nodeMap[edge.to_pc].src_node.columnname;
+      //const dst_columnname_to = nodeMap[edge.to_pc].dst_node.columnname;
 
-      if (edge.from_pc === 'L0%0%d_L0%0%d') {
-        from_label = "entry";
+      //var from_label = `(${src_linename_from}c${src_columnname_from}, ${dst_linename_from}c${dst_columnname_from})`;
+      //var to_label = `(${src_linename_to}c${src_columnname_to},${dst_linename_to}c${dst_columnname_to})`;
+
+      //if (edge.from_pc === 'L0%0%d_L0%0%d') {
+      //  from_label = "entry";
+      //}
+      //if (edge.to_pc.charAt(0) !== 'L') {
+      //  to_label = "exit";
+      //}
+
+      const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
+      const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
+
+      const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
+
+      //console.log(`g_edgeMap[edgeId] = ${JSON.stringify(g_edgeMap[edgeId])}`);
+
+      const allocs_at_to_pc = g_edgeMap[edgeId].allocs;
+      const deallocs_at_to_pc = g_edgeMap[edgeId].deallocs;
+
+      const allocs = get_lsprels(allocs_at_to_pc, locals_map);
+      const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
+
+      //const allocs_at_to_pc = get_alloc_dealloc_map_for_edge(alloc_map, dst_from_pc, dst_to_pc, "alloc");
+      //const deallocs_at_to_pc = get_alloc_dealloc_map_for_edge(dealloc_map, dst_from_pc, dst_to_pc, "dealloc");
+
+      //console.log(`alloc_map = ${JSON.stringify(alloc_map)}`);
+      //console.log(`dst_to_pc = ${dst_to_pc}, allocs_at_to_pc = ${allocs_at_to_pc}`);
+
+      var label = "";
+
+      //console.log(`allocs = ${JSON.stringify(allocs)}`);
+      for (const l of allocs) {
+        //const sprel = allocs_at_to_pc[local_name];
+        //label = `${label}alloc ${local_name}->${sprel}; `;
+        label = `${label}a ${l}; `;
       }
-      if (edge.to_pc.charAt(0) !== 'L') {
-        to_label = "exit";
+
+      for (const l of deallocs) {
+        //const sprel = allocs_at_to_pc[local_name];
+        //label = `${label}dealloc ${local_name}->${sprel}; `;
+        label = `${label}d ${l}; `;
       }
 
       var color;
@@ -297,7 +445,7 @@ function drawNetwork(correl_entry) {
       //const label = `${from_label} -> ${to_label}`;
 
       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
-      return {from: from_idx, to: to_idx, color: color/*, label: label*/};
+      return {from: from_idx, to: to_idx, color: color, label: label};
     }));
 
     var network = new vis.Network(document.getElementById('cfg'), {
@@ -359,7 +507,7 @@ function drawNetwork(correl_entry) {
         }
     });
 
-    return network; //nodeMap:g_nodeMap
+    return network; //nodeMap:nodeMap
 }
 
 function refreshPanel()

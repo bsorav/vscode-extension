@@ -1172,7 +1172,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_tfg = corr_graph["dst_tfg"];
 
     const eqcheck_info = corr_graph["eqcheck_info"];
-    const dst_assembly = eqcheck_info["dst_assembly"];
+    const dst_assembly = eqcheck_info["dst_assembly_with_pcs"];
 
     const src_tfg_llvm = src_tfg["tfg_llvm"];
 

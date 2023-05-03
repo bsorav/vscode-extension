@@ -129,6 +129,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   if (path === undefined) {
     return;
   }
+  window.scroll({left:window.scrollWidth, top:window.scrollHeight, behavior:'smooth'});
   //console.log(`highlightPathInCode: tfg=\n${JSON.stringify(tfg)}\n`);
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context
@@ -210,7 +211,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
   });
 
-  //window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
+  window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
 }
 
 function drawText(ctx, x, y, text, size, color){
@@ -479,8 +480,10 @@ window.addEventListener('message', async event => {
             break;
         }
         case "data": {
+            scroll(0, 0);
+            clearCanvas(canvas, ctx);
             code = message.code;
-            //console.log(`code = ${code}\n`);
+            //console.log(`code = ${JSON.stringify(code)}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             if (message.syntax_type === "asm") {
               codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');

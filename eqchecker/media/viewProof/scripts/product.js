@@ -374,6 +374,7 @@ function drawNetwork(correl_entry) {
       return {id:nodeMap[node].idx, label: label, level: level};
     }));
     var edges = new vis.DataSet(cg_edges.map(function(edge) {
+      //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
       //console.log(`edge from_pc ${edge.from_pc} to_pc ${edge.to_pc}`);
       const from_idx = nodeMap[edge.from_pc].idx;
       const to_idx = nodeMap[edge.to_pc].idx;

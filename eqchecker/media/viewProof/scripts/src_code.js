@@ -78,44 +78,64 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
   }
 }
 
-function edge_with_unroll_convert_to_xy(ec, subprogram_info, nodeMap)
+function edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap)
 {
-  const from_node = node_convert_to_xy(ec.from_pc, ec.from_pc_unroll, subprogram_info, nodeMap);
-  const to_node = node_convert_to_xy(ec.to_pc, ec.to_pc_unroll, subprogram_info, nodeMap);
+  const from_node = node_convert_to_xy(edge_id.from_pc, 1, subprogram_info, nodeMap);
+  const to_node = node_convert_to_xy(edge_id.to_pc, ec.to_pc_unroll, subprogram_info, nodeMap);
   return { from_node: from_node, to_node: to_node };
 }
 
-function getNodesEdgesFromPathAndNodeMap_recursive(ec, subprogram_info, nodeMap)
-{
-  if (ec.is_epsilon) {
-    return { is_epsilon: true, edges: [], nodes: [] };
-  }
-  var graph_ec = { is_epsilon: false, edges: [], nodes: [] };
-  switch (ec.name) {
-    case 'series':
-    case 'parallel':
-      const children = ec.serpar_child;
-      children.forEach(function (child_ec) {
-        const child_graph_ec = getNodesEdgesFromPathAndNodeMap_recursive(child_ec, subprogram_info, nodeMap);
-        graph_ec.edges = arrayUnique(graph_ec.edges.concat(child_graph_ec.edges));
-        graph_ec.nodes = arrayUnique(graph_ec.nodes.concat(child_graph_ec.nodes));
-      });
-      break;
-    case 'edge_with_unroll':
-      //console.log(`ec =\n${JSON.stringify(ec)}\n`);
-      const eu_edge = edge_with_unroll_convert_to_xy(ec, subprogram_info, nodeMap);
-      graph_ec.nodes.push(eu_edge.from_node);
-      graph_ec.nodes.push(eu_edge.to_node);
-      graph_ec.nodes = arrayUnique(graph_ec.nodes);
-      graph_ec.edges.push(eu_edge);
-      break;
-  }
-  return graph_ec;
-}
+//function edge_with_unroll_convert_to_xy(ec, subprogram_info, nodeMap)
+//{
+//  const from_node = node_convert_to_xy(ec.from_pc, ec.from_pc_unroll, subprogram_info, nodeMap);
+//  const to_node = node_convert_to_xy(ec.to_pc, ec.to_pc_unroll, subprogram_info, nodeMap);
+//  return { from_node: from_node, to_node: to_node };
+//}
+
+//function getNodesEdgesFromPathAndNodeMap_recursive(ec, subprogram_info, nodeMap)
+//{
+//  if (ec.is_epsilon) {
+//    return { is_epsilon: true, edges: [], nodes: [] };
+//  }
+//  var graph_ec = { is_epsilon: false, edges: [], nodes: [] };
+//  switch (ec.name) {
+//    case 'series':
+//    case 'parallel':
+//      const children = ec.serpar_child;
+//      children.forEach(function (child_ec) {
+//        const child_graph_ec = getNodesEdgesFromPathAndNodeMap_recursive(child_ec, subprogram_info, nodeMap);
+//        graph_ec.edges = arrayUnique(graph_ec.edges.concat(child_graph_ec.edges));
+//        graph_ec.nodes = arrayUnique(graph_ec.nodes.concat(child_graph_ec.nodes));
+//      });
+//      break;
+//    case 'edge_with_unroll':
+//      //console.log(`ec =\n${JSON.stringify(ec)}\n`);
+//      const eu_edge = edge_with_unroll_convert_to_xy(ec, subprogram_info, nodeMap);
+//      graph_ec.nodes.push(eu_edge.from_node);
+//      graph_ec.nodes.push(eu_edge.to_node);
+//      graph_ec.nodes = arrayUnique(graph_ec.nodes);
+//      graph_ec.edges.push(eu_edge);
+//      break;
+//  }
+//  return graph_ec;
+//}
 
 function getNodesEdgesFromPathAndNodeMap(path, subprogram_info, nodeMap)
 {
-  var graph_ec = getNodesEdgesFromPathAndNodeMap_recursive(path, subprogram_info, nodeMap);
+  if (ec == undefined) {
+    return { is_epsilon: true, edges: [], nodes: [] };
+  }
+
+  var graph_ec = { is_epsilon: false, edges: [], nodes: [] };
+
+  path.forEach(function (edge_id) {
+    //console.log(`ec =\n${JSON.stringify(ec)}\n`);
+    const eu_edge = edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap);
+    graph_ec.nodes.push(eu_edge.from_node);
+    graph_ec.nodes.push(eu_edge.to_node);
+    graph_ec.nodes = arrayUnique(graph_ec.nodes);
+    graph_ec.edges.push(eu_edge);
+  });
   return graph_ec;
 }
 
@@ -165,7 +185,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
 
   //console.log(`highlightPathInCode: nodeMap=\n${JSON.stringify(nodeMap)}`);
 
-  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.graph_ec, subprogram_info, nodeMap);
+  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.graph_ec_constituent_edge_list, subprogram_info, nodeMap);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
   const is_epsilon = graph_ec.is_epsilon;

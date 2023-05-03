@@ -174,7 +174,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
   if (is_epsilon) {
-    drawPointOnNode(from_pc_xy, "stays still", undefined, undefined);
+    drawPointOnNode(from_pc_xy, "stays still", undefined, undefined, true, true);
     return;
   }
 
@@ -207,7 +207,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
         //unroll_mu = path.unroll_factor_mu;
         unroll = path.unroll_factor_delta.unroll;
       }
-      drawPointOnNode(element, undefined, unroll, unroll_is_only_mu);
+      drawPointOnNode(element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
   });
 
@@ -220,9 +220,17 @@ function drawText(ctx, x, y, text, size, color){
     ctx.fillText(text, x, y);
 }
 
-function drawCircle(ctx, x, y, radius, color) {
+function drawNode(ctx, x, y, radius, color, is_start_pc, is_stop_pc) {
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    if (is_start_pc) {
+      ctx.ellipse(x, y, radius, 3*radius, 0, 0, 2 * Math.PI);
+      color = "rgb(0,255,0)";
+    } else if (is_stop_pc) {
+      ctx.rect(x-radius, y-radius, 2*radius, 6*radius);
+      color = "rgb(0,0,0)";
+    } else {
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+    }
     ctx.fillStyle = color;
     ctx.fill();
 }
@@ -241,7 +249,7 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node, text, unroll, unroll_is_only_mu)
+function drawPointOnNode(node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
 {
     //node = node.split("_");
     //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
@@ -260,7 +268,7 @@ function drawPointOnNode(node, text, unroll, unroll_is_only_mu)
     if(unroll > 1){
         let r = 10;
         color = "rgb(252, 3, 219)";
-        drawCircle(ctx, x1, y1, 3, color);
+        drawNode(ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
         ctx.lineWidth = 1;
         drawArc(ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
         drawArrowHead(ctx, x1, y1-r, 0, color);
@@ -274,7 +282,7 @@ function drawPointOnNode(node, text, unroll, unroll_is_only_mu)
         drawText(ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
     } else {
         color = "rgb(255, 0, 0)";
-        drawCircle(ctx, x1, y1, 3, color);
+        drawNode(ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
     }
     if (text !== undefined) {
       let r = 5;
@@ -319,12 +327,12 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     if (node1.type === "entry") {
       var label_node = node1;
       label_node.y = (node1.y*1) - entryLabelGap;
-      drawPointOnNode(label_node, "ENTRY", undefined, undefined);
+      drawPointOnNode(label_node, "ENTRY", undefined, undefined, true, false);
     }
     if (node2.type === "exit") {
       node2.x = node1.x;
       node2.y = (node1.y*1) + exitLabelGap;
-      drawPointOnNode(node2, "EXIT", undefined, undefined);
+      drawPointOnNode(node2, "EXIT", undefined, undefined, false, true);
     }
 
     //console.log(`Drawing an edge: (${node1.type},${node1.x},${node1.y}) -> (${node2.type},${node2.x},${node2.y})`);

@@ -135,7 +135,7 @@ export function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_asse
 export function obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst)
 {
   const assembly = (srcdst == "dst") ? eqcheck_info["dst_assembly"] : undefined;
-  const insn_pcs = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs"]);
+  const insn_pcs = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs_for_gui"]);
   const pc_to_assembly_index_map = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_pc_to_assembly_index_map"]);
   const assembly_index_to_assembly_line_map = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_assembly_index_to_assembly_line_map"]);
   const insn_index_to_assembly_line_map = (srcdst == "src" || assembly==="") ? undefined : dst_asm_compute_index_to_line_map(insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map);

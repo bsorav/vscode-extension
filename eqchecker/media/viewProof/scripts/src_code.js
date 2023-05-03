@@ -1,7 +1,7 @@
 //import { highlightPathInCode, clearCanvas} from "./utils.js";
 import {Node, angleFromXAxis, coordAtDist} from "./graphics.js";
 import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
-import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,get_src_dst_node_map,get_ir_node_map,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_ir_line_and_column_names_for_pc} from "./tfg.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info/*,get_src_dst_node_map,get_ir_node_map*/,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_ir_line_and_column_names_for_pc} from "./tfg.js";
 
 const vscode = acquireVsCodeApi();
 
@@ -70,6 +70,10 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
 
     return { type: "entry", pc: pc, y: entryY, x: entryNodeX };
   } else if (pc.charAt(0) === 'L') {
+    if (nodeMap[pc] === undefined) {
+      console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
+      console.log(`pc = ${pc}`);
+    }
     const linename = nodeMap[pc].linename;
     const columnname = nodeMap[pc].columnname;
     return { type: "L", pc: pc, x: columnname, y: linename, unroll: pc_unroll.unroll };
@@ -81,7 +85,7 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
 function edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap)
 {
   const from_node = node_convert_to_xy(edge_id.from_pc, 1, subprogram_info, nodeMap);
-  const to_node = node_convert_to_xy(edge_id.to_pc, ec.to_pc_unroll, subprogram_info, nodeMap);
+  const to_node = node_convert_to_xy(edge_id.to_pc, 1, subprogram_info, nodeMap);
   return { from_node: from_node, to_node: to_node };
 }
 
@@ -120,17 +124,45 @@ function edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap)
 //  return graph_ec;
 //}
 
-function getNodesEdgesFromPathAndNodeMap(path, subprogram_info, nodeMap)
+
+function mk_array(x) {
+  if (x === undefined) return [];
+  else if (Array.isArray(x)) return x;
+  else return [x];
+}
+
+function add_to_nodeMap(nodeMap, pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map)
 {
-  if (ec == undefined) {
-    return { is_epsilon: true, edges: [], nodes: [] };
+  if (nodeMap[pc] === undefined) {
+    var linename, columnname, line_and_column_names, insn_pc;
+    if (tfg_llvm === undefined) {
+      [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, pc, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+    } else {
+      [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, pc);
+    }
+    const entry = {pc: pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names, insn_pc: insn_pc};
+    nodeMap[pc] = entry;
+  }
+}
+
+function getNodesEdgesFromPath(path, subprogram_info, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map)
+{
+  const edge_ids = mk_array(path.edge_id);
+  if (edge_ids.length == 0) {
+    return { is_epsilon: true, edges: [], nodes: [], nodeMap: {} };
   }
 
-  var graph_ec = { is_epsilon: false, edges: [], nodes: [] };
+  var graph_ec = { is_epsilon: false, edges: [], nodes: [], nodeMap: {} };
 
-  path.forEach(function (edge_id) {
+  edge_ids.forEach(function (edge_id) {
     //console.log(`ec =\n${JSON.stringify(ec)}\n`);
-    const eu_edge = edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap);
+    const from_pc = edge_id.from_pc;
+    const to_pc = edge_id.to_pc;
+    var linename, columnname, line_and_column_names, insn_pc;
+    add_to_nodeMap(graph_ec.nodeMap, from_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+    add_to_nodeMap(graph_ec.nodeMap, to_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+
+    const eu_edge = edge_id_convert_to_xy(edge_id, subprogram_info, graph_ec.nodeMap);
     graph_ec.nodes.push(eu_edge.from_node);
     graph_ec.nodes.push(eu_edge.to_node);
     graph_ec.nodes = arrayUnique(graph_ec.nodes);
@@ -177,17 +209,18 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   }
 
 
-  const code_nodeMap = get_src_dst_node_map(nodes, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
-  const ir_nodeMap = get_ir_node_map(nodes, tfg_llvm);
+  //const code_nodeMap = get_src_dst_node_map(nodes, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+  //const ir_nodeMap = get_ir_node_map(nodes, tfg_llvm);
 
-  const nodeMap = (codetype == "ir") ? ir_nodeMap : code_nodeMap;
+  //const nodeMap = (codetype == "ir") ? ir_nodeMap : code_nodeMap;
   const subprogram_info = (codetype == "ir") ? ir_subprogram_info : code_subprogram_info;
 
   //console.log(`highlightPathInCode: nodeMap=\n${JSON.stringify(nodeMap)}`);
 
-  const graph_ec = getNodesEdgesFromPathAndNodeMap(path.graph_ec_constituent_edge_list, subprogram_info, nodeMap);
+  const graph_ec = getNodesEdgesFromPath(path.graph_ec_constituent_edge_list, subprogram_info, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
+  const nodeMap = graph_ec.nodeMap;
   const is_epsilon = graph_ec.is_epsilon;
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap);
 

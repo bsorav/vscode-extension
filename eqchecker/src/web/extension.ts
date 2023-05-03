@@ -172,7 +172,7 @@ function getTreeElement(element: string[]): any {
   return parent;
 }
 
-function getNode(key: string[]): { key: string[] } {
+function getNode(key: string[]): { key: string[], isStable: boolean } {
   if (!Eqchecker.searchTreeNodes[key.join('.')]) {
     Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, true, "", "");
   }
@@ -1387,7 +1387,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "code");
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "code"});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});

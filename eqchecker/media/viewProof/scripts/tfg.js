@@ -97,40 +97,40 @@ export function tfg_asm_obtain_subprogram_info(tfg_asm, assembly)
   return {line: 0, scope_line: 0};
 }
 
-export function get_ir_node_map(proptree_nodes, tfg_llvm)
-{
-  var ret = {};
-  proptree_nodes.forEach(element => {
-    var linename, columnname;
-    if (tfg_llvm !== undefined) {
-      [linename, columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, element.pc);
-    }
-    const entry = {pc: element.pc, linename: linename, columnname: columnname};
-    ret[entry.pc] = entry;
-  });
-  return ret;
-}
+//export function get_ir_node_map(proptree_nodes, tfg_llvm)
+//{
+//  var ret = {};
+//  proptree_nodes.forEach(element => {
+//    var linename, columnname;
+//    if (tfg_llvm !== undefined) {
+//      [linename, columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, element.pc);
+//    }
+//    const entry = {pc: element.pc, linename: linename, columnname: columnname};
+//    ret[entry.pc] = entry;
+//  });
+//  return ret;
+//}
 
-export function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
-{
-  var ret = {};
-  //if (tfg_llvm === null) {
-  //  ret["syntax_type"] = "asm";
-  //} else {
-  //  ret["syntax_type"] = "C/llvm";
-  //}
-  proptree_nodes.forEach(element => {
-    var linename, columnname, line_and_column_names, insn_pc;
-    if (tfg_llvm === undefined) {
-      [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
-    } else {
-      [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
-    }
-    const entry = {pc: element.pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names, insn_pc: insn_pc};
-    ret[entry.pc] = entry;
-  });
-  return ret;
-}
+//export function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
+//{
+//  var ret = {};
+//  //if (tfg_llvm === null) {
+//  //  ret["syntax_type"] = "asm";
+//  //} else {
+//  //  ret["syntax_type"] = "C/llvm";
+//  //}
+//  proptree_nodes.forEach(element => {
+//    var linename, columnname, line_and_column_names, insn_pc;
+//    if (tfg_llvm === undefined) {
+//      [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+//    } else {
+//      [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
+//    }
+//    const entry = {pc: element.pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names, insn_pc: insn_pc};
+//    ret[entry.pc] = entry;
+//  });
+//  return ret;
+//}
 
 export function obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst)
 {

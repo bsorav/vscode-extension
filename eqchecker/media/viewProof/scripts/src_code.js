@@ -86,7 +86,8 @@ function edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap)
 {
   const from_node = node_convert_to_xy(edge_id.from_pc, 1, subprogram_info, nodeMap);
   const to_node = node_convert_to_xy(edge_id.to_pc, 1, subprogram_info, nodeMap);
-  return { from_node: from_node, to_node: to_node };
+  //console.log(`from_pc = ${edge_id.from_pc}, to_pc = ${edge_id.to_pc}, edge_id.is_fallthrough = ${edge_id.is_fallthrough}`);
+  return { from_node: from_node, to_node: to_node, is_fallthrough: edge_id.is_fallthrough };
 }
 
 //function edge_with_unroll_convert_to_xy(ec, subprogram_info, nodeMap)
@@ -212,6 +213,10 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
     [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
   }
 
+  var is_source_code = false;
+  if (tfg_llvm !== undefined && codetype != "ir") {
+    is_source_code = true;
+  }
 
   //const code_nodeMap = get_src_dst_node_map(nodes, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
   //const ir_nodeMap = get_ir_node_map(nodes, tfg_llvm);
@@ -240,7 +245,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   }
 
   EDGES.forEach(element => {
-      drawEdgeBetweenPoints(element.from_node, element.to_node/*, element.dashed*/);
+      drawEdgeBetweenPoints(element.from_node, element.to_node, element.is_fallthrough, is_source_code);
   });
 
   //let scrollHeight = window.scrollHeight;
@@ -357,11 +362,12 @@ function drawPointOnNode(node, text, unroll, unroll_is_only_mu, is_start_pc, is_
 
 
 
-function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
+function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
 {
     // node1 is predecessor
     // node2 is successor
     // Draw edge between node1 and node2
+    //console.log(`node1 = ${node1.pc}, node2 = ${node2.pc}, node1.x = ${node1.x}, node2.x = ${node2.x}, is_fallthrough = ${is_fallthrough}`);
 
     let pattern = [];
 
@@ -417,14 +423,27 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     //  return;
     //}
 
-    if (y1 > y2 || (y1 === y2 && x1 > x2)) {
-        if (x1 >= x2) {
-            var loc = 1;
-            var anticlockwise = true;
-        }
-        else {
-            var loc = -1;
-            var anticlockwise = false;
+    const backward_jump = (y1 > y2 || (y1 === y2 && x1 > x2));
+    const forward_jump = false && !is_source_code && is_fallthrough != "true" && node1.x == node2.x;
+    //if (forward_jump) {
+    //  console.log(`forward jump for ${JSON.stringify(node1)}->${JSON.stringify(node2)}`);
+    //}
+    //console.log(`node1 = ${node1.pc}, node2 = ${node2.pc}, node1.x = ${node1.x}, node2.x = ${node2.x}, is_fallthrough = ${is_fallthrough}, backward_jump = ${backward_jump}, forward_jump = ${forward_jump}`);
+
+    if (backward_jump || forward_jump) { //back jump || forward jump
+        var loc, anticlockwise;
+        if (backward_jump) {
+          if (x1 >= x2) {
+              loc = 1;
+              anticlockwise = true;
+          }
+          else {
+              loc = -1;
+              anticlockwise = false;
+          }
+        } else {
+          loc = 1
+          anticlockwise = true;
         }
         var prependicular_to_theta = -1 * (x2 - x1) / (y2 - y1);
 

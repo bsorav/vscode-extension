@@ -441,15 +441,15 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
             distance_of_arc_center_from_line_center = 0;
         }
         else{
-            distance_of_arc_center_from_line_center  = Math.tan(angle_between_radius_and_line_between_coords/2) * dist / 2;
+            distance_of_arc_center_from_line_center  = Math.tan(angle_between_radius_and_line_between_coords) * dist / 2;
         }
         var line_center = { x: (coord1.x + coord2.x) / 2, y: (coord1.y + coord2.y) / 2 };
 
 
-        var arc_center = coordAtDist(line_center.x, line_center.y, prependicular_to_theta, -1 * loc * dist);
+        var arc_center = coordAtDist(line_center.x, line_center.y, prependicular_to_theta, -1 * loc * distance_of_arc_center_from_line_center);
 
         if (y1 === y2){
-            arc_center = {x: line_center.x, y: line_center.y + loc*dist};
+            arc_center = {x: line_center.x, y: line_center.y + loc*distance_of_arc_center_from_line_center};
         }
 
         //var theta1 = Math.atan((coord1.y - c2.y) / (coord1.x - c2.x));

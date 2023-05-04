@@ -35,8 +35,8 @@ function setupCanvas(){
     let startX, startY;
 
     var onMouseMove = function (event) {
-      const deltaX = event.clientX - startX;
-      const deltaY = event.clientY - startY;
+      const deltaX = startX - event.clientX;
+      const deltaY = startY - event.clientY;
 
       window.scrollBy(deltaX, deltaY);
 
@@ -184,7 +184,8 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   if (path === undefined) {
     return;
   }
-  window.scroll({left:window.scrollWidth, top:window.scrollHeight, behavior:'smooth'});
+  scroll(0, 0);
+  //window.scroll({left:window.scrollWidth, top:window.scrollHeight, behavior:'smooth'});
   //console.log(`highlightPathInCode: tfg=\n${JSON.stringify(tfg)}\n`);
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context

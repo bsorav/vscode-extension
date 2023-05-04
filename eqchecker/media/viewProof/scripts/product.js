@@ -4,7 +4,7 @@
 */
 
 import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
-import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_ir_line_and_column_names_for_pc} from "./tfg.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc} from "./tfg.js";
 
 const vscode = acquireVsCodeApi();
 
@@ -126,7 +126,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const dst_pc = element.split('_')[1];
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
-    const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
+    //const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
     var dst_ir_linename, dst_ir_columnname, dst_insn_pc;
@@ -143,8 +143,8 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     //const label = "dst.l" + dst_linename;
     const label = dst_insn_pc;
 
-    const src_entry = {pc: src_pc, linename: src_linename, ir_linename: src_ir_linename, columnname: src_columnname, ir_columnname: src_ir_columnname, line_and_column_names: src_line_and_column_names};
-    const dst_entry = {pc: dst_pc, linename: dst_linename, ir_linename: dst_ir_linename, columnname: dst_columnname, ir_columnname: dst_ir_columnname, line_and_column_names: dst_line_and_column_names};
+    const src_entry = {pc: src_pc, linename: src_linename/*, ir_linename: src_ir_linename*/, columnname: src_columnname/*, ir_columnname: src_ir_columnname*/, line_and_column_names: src_line_and_column_names};
+    const dst_entry = {pc: dst_pc, linename: dst_linename/*, ir_linename: dst_ir_linename*/, columnname: dst_columnname/*, ir_columnname: dst_ir_columnname*/, line_and_column_names: dst_line_and_column_names};
 
     const entry = {idx: idx, pc: element, src_node: src_entry, dst_node: dst_entry, label: label, level: idx};
 

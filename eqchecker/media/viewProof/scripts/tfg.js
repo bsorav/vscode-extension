@@ -143,25 +143,48 @@ export function obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst)
   return [assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map];
 }
 
-export function tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, pc)
-{
-  var ir_linename;
-  const ir_linename_map = tfg_llvm["ir_linename_map"];
-  if (ir_linename_map === undefined) {
-    return [0,0];
-  }
+//export function tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, pc)
+//{
+//  var ir_linename;
+//  const ir_linename_map = tfg_llvm["ir_linename_map"];
+//  if (ir_linename_map === undefined) {
+//    return [0,0];
+//  }
+//
+//  const index = pc.split('%')[0];
+//  if (index.charAt(0) === 'L' && pc !== 'L0%0%d') {
+//    var pc_components = pc.split('%');
+//    pc_components[2] = "d";
+//    const pc_default_subsubindex = pc_components.join('%');
+//
+//    ir_linename = line_column_map_get_value_for_pc(ir_linename_map, pc_default_subsubindex, "ir_linename");
+//  } else {
+//    ir_linename = ""; //unused
+//  }
+//  return [ir_linename, default_columnname_for_ir];
+//}
 
-  const index = pc.split('%')[0];
-  if (index.charAt(0) === 'L' && pc !== 'L0%0%d') {
-    var pc_components = pc.split('%');
+export function tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc)
+{
+  const ll_linenum_map = src_tfg_llvm["ll_filename_linenum_map"];
+  if (ll_linenum_map === undefined) {
+    //console.log(`returning [0,0] because could not find ll_linename_map`);
+    return [0, 0];
+  }
+  var linenum;
+  const index = src_pc.split('%')[0];
+  if (index.charAt(0) === 'L') {
+    var pc_components = src_pc.split('%');
     pc_components[2] = "d";
     const pc_default_subsubindex = pc_components.join('%');
 
-    ir_linename = line_column_map_get_value_for_pc(ir_linename_map, pc_default_subsubindex, "ir_linename");
-  } else {
-    ir_linename = ""; //unused
+    linenum = line_column_map_get_value_for_pc(ll_linenum_map, pc_default_subsubindex, "ll_filename_linenum");
   }
-  return [ir_linename, default_columnname_for_ir];
+  if (linenum === undefined) {
+    //console.log(`returning [0,0] because linenum is undefined for ${src_pc}`);
+    linenum = ll_linenum_map['L0%0%d'];
+  }
+  return [linenum, default_columnname_for_ir];
 }
 
 export function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc)

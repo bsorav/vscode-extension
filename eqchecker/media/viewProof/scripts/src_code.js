@@ -218,10 +218,14 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   //console.log(`highlightPathInCode: nodeMap=\n${JSON.stringify(nodeMap)}`);
 
   const graph_ec = getNodesEdgesFromPath(path.graph_ec_constituent_edge_list, subprogram_info, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+
+  add_to_nodeMap(graph_ec.nodeMap, path.from_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+
   const EDGES = graph_ec.edges;
   const NODES = graph_ec.nodes;
   const nodeMap = graph_ec.nodeMap;
   const is_epsilon = graph_ec.is_epsilon;
+
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap);
 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);

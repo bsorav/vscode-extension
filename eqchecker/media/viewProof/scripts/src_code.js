@@ -372,7 +372,7 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
 
     let deltaY = styles.lineHeight.replace("px", "") * 1;
     const delta2Y = parseInt(styles.getPropertyValue("line-height"));
-    let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
+    let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7; // 3/7 is roughly the ratio of width to height (as taken from the Internet)
 
     if (node1.x === undefined) {
       node1.x = defaultNodeX;
@@ -408,14 +408,14 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
     let color2 = 'rgb(52, 58, 235, 0.8)';
     let theta = angleFromXAxis(x1, y1, x2, y2);
 
-    if (x1 === x2 && y1 === y2) {
-      let radius = deltaX*3;
-      // drawCircle(x1, y1, 2, color1);
-      drawArc(ctx, x1 + radius, y1, radius, 0, 2*Math.PI, false, color2, pattern);
-      drawArrowHead(ctx, x1 + 2*radius, y1, 3*Math.PI/2, color1);
-      // drawCircle(x2, y2, 2, color1);
-      return;
-    }
+    //if (x1 === x2 && y1 === y2) {
+    //  let radius = deltaX*3;
+    //  // drawCircle(x1, y1, 2, color1);
+    //  drawArc(ctx, x1 + radius, y1, radius, 0, 2*Math.PI, false, color2, pattern);
+    //  drawArrowHead(ctx, x1 + 2*radius, y1, 3*Math.PI/2, color1);
+    //  // drawCircle(x2, y2, 2, color1);
+    //  return;
+    //}
 
     if (y1 > y2 || (y1 === y2 && x1 > x2)) {
         if (x1 >= x2) {
@@ -426,45 +426,50 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
             var loc = -1;
             var anticlockwise = false;
         }
-        var m1 = -1 * (x2 - x1) / (y2 - y1);
+        var prependicular_to_theta = -1 * (x2 - x1) / (y2 - y1);
 
         var coord1 = {x:x1, y:y1};
         var coord2 = {x:x2, y:y2};
 
         var dist = Math.sqrt((coord1.x - coord2.x) ** 2 + (coord1.y - coord2.y) ** 2);
-        if(dist < 30){
-            dist = 0;
+
+        const distance_threshold_for_drawing_arc = 30;
+        const angle_between_radius_and_line_between_coords = 1.309; //between 45 and 60 degrees
+
+        var distance_of_arc_center_from_line_center;
+        if (dist < distance_threshold_for_drawing_arc) {
+            distance_of_arc_center_from_line_center = 0;
         }
         else{
-            dist = Math.tan(1.309) * dist / 2;
+            distance_of_arc_center_from_line_center  = Math.tan(angle_between_radius_and_line_between_coords/2) * dist / 2;
         }
-        var c1 = { x: (coord1.x + coord2.x) / 2, y: (coord1.y + coord2.y) / 2 };
+        var line_center = { x: (coord1.x + coord2.x) / 2, y: (coord1.y + coord2.y) / 2 };
 
 
-        var c2 = coordAtDist(c1.x, c1.y, m1, -1 * loc * dist);
+        var arc_center = coordAtDist(line_center.x, line_center.y, prependicular_to_theta, -1 * loc * dist);
+
+        if (y1 === y2){
+            arc_center = {x: line_center.x, y: line_center.y + loc*dist};
+        }
+
+        //var theta1 = Math.atan((coord1.y - c2.y) / (coord1.x - c2.x));
+        //var theta2 = Math.atan((coord2.y - c2.y) / (coord2.x - c2.x));
+        var radius = Math.sqrt((coord1.x - arc_center.x) ** 2 + (coord1.y - arc_center.y) ** 2);
+
+        //if (loc === -1) {
+        //    theta1 = Math.PI + theta1;
+        //    theta2 = Math.PI + theta2;
+        //}
+        var theta1 = angleFromXAxis(arc_center.x, arc_center.y, coord1.x, coord1.y);
+        var theta2 = angleFromXAxis(arc_center.x, arc_center.y, coord2.x, coord2.y);
+
+        var point_in_middle_of_arc = coordAtDist(line_center.x, line_center.y, prependicular_to_theta, loc * (radius - distance_of_arc_center_from_line_center));
 
         if(y1 === y2){
-            c2 = {x: c1.x, y: c1.y + loc*dist};
+            point_in_middle_of_arc = {x:arc_center.x, y:(arc_center.y - radius)};
         }
 
-        var theta1 = Math.atan((coord1.y - c2.y) / (coord1.x - c2.x));
-        var theta2 = Math.atan((coord2.y - c2.y) / (coord2.x - c2.x));
-        var r = Math.sqrt((coord1.x - c2.x) ** 2 + (coord1.y - c2.y) ** 2);
-
-        if (loc === -1) {
-            theta1 = Math.PI + theta1;
-            theta2 = Math.PI + theta2;
-        }
-        theta1 = angleFromXAxis(c2.x, c2.y, coord1.x, coord1.y);
-        theta2 = angleFromXAxis(c2.x, c2.y, coord2.x, coord2.y);
-
-        var p = coordAtDist(c1.x, c1.y, m1, loc * (r - dist));
-
-        if(y1 === y2){
-            p = {x:c2.x, y:(c2.y - r)};
-        }
-
-        var ntheta = angleFromXAxis(c2.x, c2.y, p.x, p.y);
+        var ntheta = angleFromXAxis(arc_center.x, arc_center.y, point_in_middle_of_arc.x, point_in_middle_of_arc.y);
         if(loc === -1){
             ntheta = Math.PI/2 + ntheta;
         }
@@ -473,8 +478,8 @@ function drawEdgeBetweenPoints(node1, node2/*, dashed*/)
         }
 
         // drawCircle(ctx, x1, y1, 2, color1);
-        drawArc(ctx, c2.x, c2.y, r, theta1, theta2, anticlockwise, color2, pattern);
-        drawArrowHead(ctx, p.x, p.y, ntheta, color1);
+        drawArc(ctx, arc_center.x, arc_center.y, radius, theta1, theta2, anticlockwise, color2, pattern);
+        drawArrowHead(ctx, point_in_middle_of_arc.x, point_in_middle_of_arc.y, ntheta, color1);
         // drawCircle(ctx, x2, y2, 2, color1);
 
     } else if (y1 <= y2) {

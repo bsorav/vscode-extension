@@ -355,7 +355,7 @@ class EqcheckHandler {
       return (json === undefined) ? undefined : Buffer.from(json.data);
     }
 
-    run_eqcheck(sourceJSON, src_irJSON, src_etfgJSON, optimizedJSON, dst_irJSON, dst_etfgJSON, objectJSON, compile_logJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, dryRun, llvm2tfg_only) {
+    run_eqcheck(sourceJSON, src_irJSON, src_etfgJSON, optimizedJSON, dst_irJSON, dst_etfgJSON, objectJSON, compile_logJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn/*dryRun, llvm2tfg_only*/) {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
         const source = this.readFileObjectToUint8Array(sourceJSON);
@@ -459,7 +459,7 @@ class EqcheckHandler {
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
             var dryRunArg = [];
-            if (dryRun) {
+            if (commandIn === commandPrepareEqcheck) {
               dryRunArg = ['--dry-run'];
             } else {
               console.log(`functionName = ${functionName}`);
@@ -467,8 +467,11 @@ class EqcheckHandler {
                 dryRunArg = ['-f', functionName];
               }
             }
-            if (llvm2tfg_only) {
+            if (commandIn === commandPointsToAnalysis) {
               dryRunArg.push('--llvm2tfg-only');
+            }
+            if (commandIn === commandSubmitEqcheck) {
+              dryRunArg.push('--submit-eqcheck');
             }
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
             var eq32_args = ([ sourceFilename ]).concat(redirect).concat(proof).concat(dstObjArg).concat(dstCompileLogArg).concat(unroll).concat(dryRunArg).concat(src_names).concat(dst_names);
@@ -802,10 +805,11 @@ class EqcheckHandler {
           //}
 
           const dirPath =  (dirPathIn === undefined) ? await this.newTempDir() : dirPathIn;
-          const dryRun = (commandIn === commandPrepareEqcheck);
-          const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
+          //const dryRun = (commandIn === commandPrepareEqcheck);
+          //const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
+          //const submit_eqcheck = (commandIn === commandSubmitEqchek);
 
-          this.run_eqcheck(source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, dryRun, llvm2tfg_only)
+          this.run_eqcheck(source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn/*dryRun, llvm2tfg_only*/)
               .then(
                   result => {
                       res.end(JSON.stringify({retcode: 0}));

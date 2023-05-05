@@ -182,8 +182,9 @@ export function tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc)
   }
   if (linenum === undefined) {
     //console.log(`returning [0,0] because linenum is undefined for ${src_pc}`);
-    linenum = ll_linenum_map['L0%0%d'];
+    linenum = line_column_map_get_value_for_pc(ll_linenum_map, 'L0%0%d', "ll_filename_linenum");
   }
+  //console.log(`linenum = ${linenum} for ${src_pc}`);
   return [linenum, default_columnname_for_ir];
 }
 

@@ -56,7 +56,7 @@ function setupCanvas(){
     });
 }
 
-function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
+function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
 {
   let canvas = document.getElementById("canvas");
   let styles = window.getComputedStyle(document.getElementById("code"));
@@ -65,7 +65,7 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
 
   //const [entryX, entryY, exitX, exitY] = [1, subprogram_info.scope_line, 1, canvas.height / deltaY];
 
-  if (pc === 'L0%0%d') {
+  if (pc === 'L0%0%d' && codetype != "ir") {
     const entryY = subprogram_info === undefined ? undefined : subprogram_info.scope_line;
 
     return { type: "entry", pc: pc, y: entryY, x: entryNodeX };
@@ -82,10 +82,10 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap)
   }
 }
 
-function edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap)
+function edge_id_convert_to_xy(edge_id, subprogram_info, nodeMap, codetype)
 {
-  const from_node = node_convert_to_xy(edge_id.from_pc, 1, subprogram_info, nodeMap);
-  const to_node = node_convert_to_xy(edge_id.to_pc, 1, subprogram_info, nodeMap);
+  const from_node = node_convert_to_xy(edge_id.from_pc, 1, subprogram_info, nodeMap, codetype);
+  const to_node = node_convert_to_xy(edge_id.to_pc, 1, subprogram_info, nodeMap, codetype);
   //console.log(`from_pc = ${edge_id.from_pc}, to_pc = ${edge_id.to_pc}, edge_id.is_fallthrough = ${edge_id.is_fallthrough}`);
   return { from_node: from_node, to_node: to_node, is_fallthrough: edge_id.is_fallthrough };
 }
@@ -158,6 +158,10 @@ function getNodesEdgesFromPath(path, codetype, subprogram_info, tfg_llvm, tfg_as
 
   var graph_ec = { is_epsilon: false, edges: [], nodes: [], nodeMap: {} };
 
+  //if (tfg_llvm !== undefined) {
+  //  console.log(`ll_filename_linenum_map = ${JSON.stringify(tfg_llvm["ll_filename_linenum_map"])}`);
+  //}
+
   edge_ids.forEach(function (edge_id) {
     //console.log(`ec =\n${JSON.stringify(ec)}\n`);
     const from_pc = edge_id.from_pc;
@@ -166,7 +170,7 @@ function getNodesEdgesFromPath(path, codetype, subprogram_info, tfg_llvm, tfg_as
     add_to_nodeMap(graph_ec.nodeMap, codetype, from_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
     add_to_nodeMap(graph_ec.nodeMap, codetype, to_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
 
-    const eu_edge = edge_id_convert_to_xy(edge_id, subprogram_info, graph_ec.nodeMap);
+    const eu_edge = edge_id_convert_to_xy(edge_id, subprogram_info, graph_ec.nodeMap, codetype);
     graph_ec.nodes.push(eu_edge.from_node);
     graph_ec.nodes.push(eu_edge.to_node);
     graph_ec.nodes = arrayUnique(graph_ec.nodes);
@@ -235,7 +239,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   const nodeMap = graph_ec.nodeMap;
   const is_epsilon = graph_ec.is_epsilon;
 
-  const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap);
+  const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap, codetype);
 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
@@ -275,7 +279,10 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
       }
       drawPointOnNode(element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
+      //console.log(`${element.pc}: element.y = ${element.y}, deltaY = ${deltaY} topNode = ${topNode}`);
   });
+
+  //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);
 
   //window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
   scroll(0, topNode);

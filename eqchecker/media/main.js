@@ -20,6 +20,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     const vscode = acquireVsCodeApi();
 
     const oldState = vscode.getState() || { eqchecks: [] };
+    //const oldState = { eqchecks: [] };
     //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     let eqchecks = oldState.eqchecks;
@@ -58,7 +59,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
             case 'addEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name/*, message.source1Text*/, message.source2Uri, message.source2Name/*, message.source2Text*/, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);
                     break;
                 }
             case 'updateEqcheckInView':
@@ -77,6 +78,16 @@ const viewStateViewSearchTree = 'viewSearchTree';
                     //console.log("received eqcheckCancelled message '" + message.type + "'");
                     updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
                     break;
+                }
+            case 'loadEqchecks':
+                {
+                  for (const eqcheck of message.eqchecks) {
+                    if (!eqcheckExistsAlready(eqcheck)) {
+                      addEqcheckInView(eqcheck.dirPath, eqcheck.source1Uri, eqcheck.source1Name, eqcheck.source1Text, eqcheck.source2Uri, eqcheck.source2Name, eqcheck.source2Text, eqcheck.functionName, getStatusMessage(eqcheck.runState, eqcheck.statusMessage), eqcheck.runState, eqcheck.prepareDirpath, eqcheck.pointsToDirpath);
+                    }
+                  }
+                  displayEqcheckList(eqchecks);
+                  vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(message.eqchecks)});
                 }
         }
     });
@@ -308,8 +319,11 @@ const viewStateViewSearchTree = 'viewSearchTree';
         eqcheck.statusMessage = "Cancelling...";
         displayEqcheckList(eqchecks);
         vscode.postMessage({ type: 'eqcheckCancel', eqcheck: eqcheck});
+        eqcheck.statusMessage = 'Cancelled';
+        eqcheck.runState = runStateStatusTerminated;
       }
     }
+
 
     function removeEqcheck(eqcheck) {
       //console.log(`removing eqcheck =\n${JSON.stringify(eqcheck)}`);
@@ -331,12 +345,13 @@ const viewStateViewSearchTree = 'viewSearchTree';
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       //const eqcheck = evt.currentTarget.eqcheck;
       const eqcheck = eqcheckRightClickMenu.eqcheck;
-      eqcheckCancel(eqcheck);
+      //eqcheckCancel(eqcheck);
 
       console.log('eqcheckClear clicked');
       eqcheckRightClickMenu.style.display = "none";
 
       removeEqcheck(eqcheck);
+      vscode.postMessage({ type: 'eqcheckClear', eqcheck: eqcheck});
       displayEqcheckList(eqchecks);
     };
 
@@ -347,14 +362,22 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
       console.log('viewSearchTree clicked');
       eqcheckRightClickMenu.style.display = "none";
+
+      vscode.postMessage({ type: 'eqcheckViewSearchTree', eqcheck: eqcheck });
     };
 
-    function cancelAndClearAllEqchecksListener() {
+    function cancelAllEqchecksListener() {
       hideStartButtonRightClickMenu();
       for (const eqcheck of eqchecks) {
         eqcheckCancel(eqcheck);
       }
+      displayEqcheckList(eqchecks);
+    }
+
+    function clearAllEqchecksListener() {
+      hideStartButtonRightClickMenu();
       eqchecks = [];
+      vscode.postMessage({ type: 'eqcheckClear', eqcheck: undefined});
       displayEqcheckList(eqchecks);
     }
 
@@ -393,43 +416,35 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
       var items = startButtonRightClickMenu.querySelectorAll(".item");
 
-      items[0].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[0].removeEventListener('click', hideProofListener);
-      items[0].removeEventListener('click', saveSessionListener);
-      items[0].removeEventListener('click', loadSessionListener);
-
-      items[1].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[1].removeEventListener('click', hideProofListener);
-      items[1].removeEventListener('click', saveSessionListener);
-      items[1].removeEventListener('click', loadSessionListener);
-
-      items[2].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[2].removeEventListener('click', hideProofListener);
-      items[2].removeEventListener('click', saveSessionListener);
-      items[2].removeEventListener('click', loadSessionListener);
-
-      items[3].removeEventListener('click', cancelAndClearAllEqchecksListener);
-      items[3].removeEventListener('click', hideProofListener);
-      items[3].removeEventListener('click', saveSessionListener);
-      items[3].removeEventListener('click', loadSessionListener);
+      for (const item of items) {
+        item.removeEventListener('click', cancelAllEqchecksListener);
+        item.removeEventListener('click', clearAllEqchecksListener);
+        item.removeEventListener('click', hideProofListener);
+        item.removeEventListener('click', saveSessionListener);
+        item.removeEventListener('click', loadSessionListener);
+      }
 
       if (anyEqcheckInViewStateViewProof()) {
         items[0].innerHTML = 'Hide Proof';
         items[0].addEventListener('click', hideProofListener);
+        items[1].innerHTML = 'Cancel all eqchecks';
+        items[1].addEventListener('click', cancelAllEqchecksListener);
+        items[2].innerHTML = 'Clear all eqchecks';
+        items[2].addEventListener('click', clearAllEqchecksListener);
+        items[3].innerHTML = 'Save Session';
+        items[3].addEventListener('click', saveSessionListener);
+        items[4].innerHTML = 'Load Session';
+        items[4].addEventListener('click', loadSessionListener);
+      } else {
+        items[0].innerHTML = 'Cancel all eqchecks';
+        items[0].addEventListener('click', cancelAllEqchecksListener);
         items[1].innerHTML = 'Clear all eqchecks';
-        items[1].addEventListener('click', cancelAndClearAllEqchecksListener);
+        items[1].addEventListener('click', clearAllEqchecksListener);
         items[2].innerHTML = 'Save Session';
         items[2].addEventListener('click', saveSessionListener);
-        items[3].innerHTML = 'Restore Session';
+        items[3].innerHTML = 'Load Session';
         items[3].addEventListener('click', loadSessionListener);
-      } else {
-        items[0].innerHTML = 'Clear all eqchecks';
-        items[0].addEventListener('click', cancelAndClearAllEqchecksListener);
-        items[1].innerHTML = 'Save Session';
-        items[1].addEventListener('click', saveSessionListener);
-        items[2].innerHTML = 'Restore Session';
-        items[2].addEventListener('click', loadSessionListener);
-        items[3].innerHTML = '';
+        items[4].innerHTML = '';
       }
       startButtonRightClickMenu.style.display = "inline";
       startButtonRightClickMenu.classList.add("visible");
@@ -460,25 +475,34 @@ const viewStateViewSearchTree = 'viewSearchTree';
         items[0].removeEventListener('click', hideProofListener);
         items[0].removeEventListener('click', eqcheckCancelListener);
         items[0].removeEventListener('click', eqcheckClearListener);
+        items[0].removeEventListener('click', viewSearchTreeListener);
 
         items[1].removeEventListener('click', viewProofListener);
         items[1].removeEventListener('click', hideProofListener);
         items[1].removeEventListener('click', eqcheckCancelListener);
         items[1].removeEventListener('click', eqcheckClearListener);
+        items[1].removeEventListener('click', viewSearchTreeListener);
 
         items[2].removeEventListener('click', viewProofListener);
         items[2].removeEventListener('click', hideProofListener);
         items[2].removeEventListener('click', eqcheckCancelListener);
         items[2].removeEventListener('click', eqcheckClearListener);
+        items[2].removeEventListener('click', viewSearchTreeListener);
+
+        items[3].removeEventListener('click', viewProofListener);
+        items[3].removeEventListener('click', hideProofListener);
+        items[3].removeEventListener('click', eqcheckCancelListener);
+        items[3].removeEventListener('click', eqcheckClearListener);
+        items[3].removeEventListener('click', viewSearchTreeListener);
 
         items[0].innerHTML = '';
         items[1].innerHTML = '';
         items[2].innerHTML = '';
+        items[3].innerHTML = '';
 
         eqcheckRightClickMenu.style.display = "inline";
 
         if (eqcheck.runState == runStateStatusFoundProof) {
-          items[0].removeEventListener('click', eqcheckCancelListener);
           if (eqcheck.viewState != viewStateViewProof) {
             items[0].innerHTML = 'View Proof';
             items[0].addEventListener('click', viewProofListener);
@@ -488,13 +512,19 @@ const viewStateViewSearchTree = 'viewSearchTree';
             items[0].addEventListener('click', hideProofListener);
           }
           items[1].innerHTML = 'View Search Tree';
-          items[2].innerHTML = 'Clear';
-          items[2].addEventListener('click', eqcheckClearListener);
+          items[1].addEventListener('click', viewSearchTreeListener);
+          items[2].innerHTML = 'Cancel';
+          items[2].addEventListener('click', eqcheckCancelListener);
+          items[3].innerHTML = 'Clear';
+          items[3].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';
             items[0].addEventListener('click', eqcheckCancelListener);
             items[1].innerHTML = 'View Search Tree';
+            items[1].addEventListener('click', viewSearchTreeListener);
+            items[2].innerHTML = 'Clear';
+            items[2].addEventListener('click', eqcheckClearListener);
           } else {
             items[0].innerHTML = 'Clear';
             items[0].addEventListener('click', eqcheckClearListener);
@@ -506,14 +536,17 @@ const viewStateViewSearchTree = 'viewSearchTree';
           items[0].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTimedOut) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusTerminated) {
           items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
         } else {
@@ -615,6 +648,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       for (const eqcheck of eqchecks) {
         if (eqcheckMatchesOrigRequest(eqcheck, origRequest)) {
           eqcheckToRemove = eqcheck;
+          console.log(`updateEqcheckInView match found. eqcheckToRemove.source2Name = ${eqcheck.source2Name}, origRequest.source2Name = ${origRequest.source2Name}. eqcheckToRemove.dirPath = ${eqcheckToRemove.dirPath}, dirPathIn = ${eqcheckToRemove.dirPathIn}, origRequest.dirPath = ${origRequest.dirPath}, dirPathIn = ${origRequest.dirPathIn}\n`);
           break;
         }
       }
@@ -636,6 +670,19 @@ const viewStateViewSearchTree = 'viewSearchTree';
       //;
     }
 
+    function eqcheckExistsAlready(eqcheck)
+    {
+      for (const eqc of eqchecks) {
+        if (eqcheck.dirPath !== undefined && eqc.dirPath !== undefined && eqcheck.dirPath.toString() == eqc.dirPath.toString()) {
+          return true;
+        }
+        if (eqcheck.prepareDirpath !== undefined && eqc.prepareDirpath !== undefined && eqcheck.prepareDirpath.toString() == eqc.prepareDirpath.toString()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     /**
      * @param _dirPath : string, _source1Uri : string, _source1Name: string, _source2Uri: string, _source2Name: string, _functionName: string, _statusMessage: string, _runState: string
      */
@@ -643,25 +690,29 @@ const viewStateViewSearchTree = 'viewSearchTree';
         _dirPath,
         _source1Uri,
         _source1Name,
-        //_source1Text,
+        _source1Text,
         _source2Uri,
         _source2Name,
-        //_source2Text,
+        _source2Text,
         _functionName,
         _statusMessage,
-        _runState
+        _runState,
+        _prepareDirpath,
+        _pointsToDirpath
     ) {
       const eqcheck = {
         dirPath: _dirPath,
         source1Uri: _source1Uri,
         source1Name: _source1Name,
-        //source1Text: _source1Text,
+        source1Text: _source1Text,
         source2Uri: _source2Uri,
         source2Name: _source2Name,
-        //source2Text: _source2Text,
+        source2Text: _source2Text,
         functionName: _functionName,
         statusMessage : _statusMessage,
         runState: _runState,
+        prepareDirpath: _prepareDirpath,
+        pointsToDirpath: _pointsToDirpath,
         viewState: viewStateBase,
       }
       console.log(`adding eqcheck.functionName \n${JSON.stringify(eqcheck.functionName)}`);

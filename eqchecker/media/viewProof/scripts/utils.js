@@ -463,3 +463,16 @@ export function arrayUnique(array) {
 
     return a;
 }
+
+export function convert_long_long_map_json_to_associative_array(long_long_map_json)
+{
+  var ret = {};
+  const pairs = long_long_map_json.long_long_pair;
+  if (pairs === undefined) {
+    return {};
+  }
+  for (var i = 0; i < pairs.length; i++) {
+    ret[pairs[i].long_val_key] = pairs[i].long_val_value;
+  }
+  return ret;
+}

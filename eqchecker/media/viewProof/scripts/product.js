@@ -134,7 +134,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
       [dst_insn_pc, dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
     } else {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
-      [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
+      //[dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
       dst_insn_pc = "dst.l" + dst_linename;
     }
     //console.log(`element.pc = ${element}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);

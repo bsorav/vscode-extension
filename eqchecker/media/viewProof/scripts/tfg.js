@@ -1,8 +1,8 @@
 import {convert_long_long_map_json_to_associative_array} from "./utils.js";
 
 
-const default_columnname_for_assembly = 4;
-const default_columnname_for_ir = 4;
+const default_columnname_for_assembly = 14;
+const default_columnname_for_ir = 10;
 
 
 function dst_asm_compute_index_to_line_map_helper(index, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map)

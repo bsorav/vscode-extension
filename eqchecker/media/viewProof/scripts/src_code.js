@@ -424,7 +424,7 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
     //}
 
     const backward_jump = (y1 > y2 || (y1 === y2 && x1 > x2));
-    const forward_jump = false && !is_source_code && is_fallthrough != "true" && node1.x == node2.x;
+    const forward_jump = !backward_jump && !is_source_code && is_fallthrough != "true" && node1.x == node2.x;
     //if (forward_jump) {
     //  console.log(`forward jump for ${JSON.stringify(node1)}->${JSON.stringify(node2)}`);
     //}
@@ -470,6 +470,9 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
         if (y1 === y2){
             arc_center = {x: line_center.x, y: line_center.y + loc*distance_of_arc_center_from_line_center};
         }
+        if (x1 === x2 && forward_jump){
+            arc_center = {x: line_center.x + loc*distance_of_arc_center_from_line_center, y: line_center.y};
+        }
 
         //var theta1 = Math.atan((coord1.y - c2.y) / (coord1.x - c2.x));
         //var theta2 = Math.atan((coord2.y - c2.y) / (coord2.x - c2.x));
@@ -487,6 +490,10 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
         if(y1 === y2){
             point_in_middle_of_arc = {x:arc_center.x, y:(arc_center.y - radius)};
         }
+        if(x1 === x2 && forward_jump){
+            point_in_middle_of_arc = {x:arc_center.x - radius, y:arc_center.y};
+        }
+
 
         var ntheta = angleFromXAxis(arc_center.x, arc_center.y, point_in_middle_of_arc.x, point_in_middle_of_arc.y);
         if(loc === -1){

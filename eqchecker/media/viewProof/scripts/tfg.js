@@ -1,7 +1,7 @@
 import {convert_long_long_map_json_to_associative_array} from "./utils.js";
 
 
-const default_columnname_for_assembly = 14;
+const default_columnname_for_assembly = 16;
 const default_columnname_for_ir = 10;
 
 

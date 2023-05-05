@@ -172,7 +172,7 @@ function getTreeElement(element: string[]): any {
   return parent;
 }
 
-function getNode(key: string[]): { key: string[] } {
+function getNode(key: string[]): { key: string[], isStable: boolean } {
   if (!Eqchecker.searchTreeNodes[key.join('.')]) {
     Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, true, "", "");
   }
@@ -993,7 +993,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-  public static getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri, highlight_script: vscode.Uri) {
+  public static getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/src_code.html')).toString();
     //return eval('`' + html + '`');
 
@@ -1005,10 +1005,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
-        <link rel="stylesheet" href="${prism_ln_css}">
+        <link rel="stylesheet" href=${prism_ln_css}>
         <script type="module" src=${prism_ln_script}></script>
         <script type="module" src=${prism_nasm_script}></script>
-        <script type="module" src=${highlight_script}></script>
     </head>
     <body class="full-view">
         <div class=" full-view">
@@ -1022,7 +1021,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-  public static getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri, highlight_script: vscode.Uri) {
+  public static getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/dst_code.html')).toString();
     //return eval('`' + html + '`');
 
@@ -1038,7 +1037,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <link rel="stylesheet" href="${prism_ln_css}">
     <script type="module" src=${prism_ln_script}></script>
     <script type="module" src=${prism_nasm_script}></script>
-    <script type="module" src=${highlight_script}></script>
 </head>
 
 <body class="full-view">
@@ -1198,7 +1196,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const prism_ln_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css'));
     const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
     const prism_nasm_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/components/prism-nasm.min.js'));
-    const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
+    //const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
     const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
@@ -1209,14 +1207,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     // Set the webview content
 
     this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network));
-    this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
-    this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
+    this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
+    this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
 
     if (src_ir !== undefined) {
-      this.panel_set_html(panel_src_ir, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
+      this.panel_set_html(panel_src_ir, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
     }
     if (dst_ir !== undefined) {
-      this.panel_set_html(panel_dst_ir, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script, highlight_script));
+      this.panel_set_html(panel_dst_ir, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
     }
     let panel_prd_loaded = false;
     let panel_src_code_loaded = false;
@@ -1387,7 +1385,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "code");
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "code"});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});

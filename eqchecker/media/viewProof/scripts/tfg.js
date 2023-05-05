@@ -1,8 +1,8 @@
 import {convert_long_long_map_json_to_associative_array} from "./utils.js";
 
 
-const default_columnname_for_assembly = 4;
-const default_columnname_for_ir = 4;
+const default_columnname_for_assembly = 16;
+const default_columnname_for_ir = 10;
 
 
 function dst_asm_compute_index_to_line_map_helper(index, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map)
@@ -97,45 +97,45 @@ export function tfg_asm_obtain_subprogram_info(tfg_asm, assembly)
   return {line: 0, scope_line: 0};
 }
 
-export function get_ir_node_map(proptree_nodes, tfg_llvm)
-{
-  var ret = {};
-  proptree_nodes.forEach(element => {
-    var linename, columnname;
-    if (tfg_llvm !== undefined) {
-      [linename, columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, element.pc);
-    }
-    const entry = {pc: element.pc, linename: linename, columnname: columnname};
-    ret[entry.pc] = entry;
-  });
-  return ret;
-}
+//export function get_ir_node_map(proptree_nodes, tfg_llvm)
+//{
+//  var ret = {};
+//  proptree_nodes.forEach(element => {
+//    var linename, columnname;
+//    if (tfg_llvm !== undefined) {
+//      [linename, columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, element.pc);
+//    }
+//    const entry = {pc: element.pc, linename: linename, columnname: columnname};
+//    ret[entry.pc] = entry;
+//  });
+//  return ret;
+//}
 
-export function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
-{
-  var ret = {};
-  //if (tfg_llvm === null) {
-  //  ret["syntax_type"] = "asm";
-  //} else {
-  //  ret["syntax_type"] = "C/llvm";
-  //}
-  proptree_nodes.forEach(element => {
-    var linename, columnname, line_and_column_names, insn_pc;
-    if (tfg_llvm === undefined) {
-      [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
-    } else {
-      [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
-    }
-    const entry = {pc: element.pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names, insn_pc: insn_pc};
-    ret[entry.pc] = entry;
-  });
-  return ret;
-}
+//export function get_src_dst_node_map(proptree_nodes, tfg_llvm, tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map)
+//{
+//  var ret = {};
+//  //if (tfg_llvm === null) {
+//  //  ret["syntax_type"] = "asm";
+//  //} else {
+//  //  ret["syntax_type"] = "C/llvm";
+//  //}
+//  proptree_nodes.forEach(element => {
+//    var linename, columnname, line_and_column_names, insn_pc;
+//    if (tfg_llvm === undefined) {
+//      [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, element.pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+//    } else {
+//      [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, element.pc);
+//    }
+//    const entry = {pc: element.pc, linename: linename, columnname: columnname, line_and_column_names: line_and_column_names, insn_pc: insn_pc};
+//    ret[entry.pc] = entry;
+//  });
+//  return ret;
+//}
 
 export function obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst)
 {
   const assembly = (srcdst == "dst") ? eqcheck_info["dst_assembly"] : undefined;
-  const insn_pcs = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs"]);
+  const insn_pcs = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_insn_pcs_for_gui"]);
   const pc_to_assembly_index_map = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_pc_to_assembly_index_map"]);
   const assembly_index_to_assembly_line_map = (srcdst == "src" || assembly==="") ? undefined : convert_long_long_map_json_to_associative_array(eqcheck_info["dst_assembly_index_to_assembly_line_map"]);
   const insn_index_to_assembly_line_map = (srcdst == "src" || assembly==="") ? undefined : dst_asm_compute_index_to_line_map(insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map);
@@ -143,25 +143,49 @@ export function obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst)
   return [assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map];
 }
 
-export function tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, pc)
-{
-  var ir_linename;
-  const ir_linename_map = tfg_llvm["ir_linename_map"];
-  if (ir_linename_map === undefined) {
-    return [0,0];
-  }
+//export function tfg_llvm_obtain_ir_line_and_column_names_for_pc(tfg_llvm, pc)
+//{
+//  var ir_linename;
+//  const ir_linename_map = tfg_llvm["ir_linename_map"];
+//  if (ir_linename_map === undefined) {
+//    return [0,0];
+//  }
+//
+//  const index = pc.split('%')[0];
+//  if (index.charAt(0) === 'L' && pc !== 'L0%0%d') {
+//    var pc_components = pc.split('%');
+//    pc_components[2] = "d";
+//    const pc_default_subsubindex = pc_components.join('%');
+//
+//    ir_linename = line_column_map_get_value_for_pc(ir_linename_map, pc_default_subsubindex, "ir_linename");
+//  } else {
+//    ir_linename = ""; //unused
+//  }
+//  return [ir_linename, default_columnname_for_ir];
+//}
 
-  const index = pc.split('%')[0];
-  if (index.charAt(0) === 'L' && pc !== 'L0%0%d') {
-    var pc_components = pc.split('%');
+export function tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc)
+{
+  const ll_linenum_map = src_tfg_llvm["ll_filename_linenum_map"];
+  if (ll_linenum_map === undefined) {
+    //console.log(`returning [0,0] because could not find ll_linename_map`);
+    return [0, 0];
+  }
+  var linenum;
+  const index = src_pc.split('%')[0];
+  if (index.charAt(0) === 'L') {
+    var pc_components = src_pc.split('%');
     pc_components[2] = "d";
     const pc_default_subsubindex = pc_components.join('%');
 
-    ir_linename = line_column_map_get_value_for_pc(ir_linename_map, pc_default_subsubindex, "ir_linename");
-  } else {
-    ir_linename = ""; //unused
+    linenum = line_column_map_get_value_for_pc(ll_linenum_map, pc_default_subsubindex, "ll_filename_linenum");
   }
-  return [ir_linename, default_columnname_for_ir];
+  if (linenum === undefined) {
+    //console.log(`returning [0,0] because linenum is undefined for ${src_pc}`);
+    linenum = line_column_map_get_value_for_pc(ll_linenum_map, 'L0%0%d', "ll_filename_linenum");
+  }
+  //console.log(`linenum = ${linenum} for ${src_pc}`);
+  return [linenum, default_columnname_for_ir];
 }
 
 export function tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc)

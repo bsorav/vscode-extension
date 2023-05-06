@@ -41,6 +41,10 @@ const runStateStatusSafetyCheckFailed = 'safety_check_failed';
 const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';
 
+const prepareSuffix = "/prepare";
+const pointsToSuffix = "/pointsTo";
+const submitSuffix = "/submit.";
+
 function def(a) {
   return (a === undefined) ? "undef" : "def";
 }
@@ -125,7 +129,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name;
+        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -159,6 +163,7 @@ class EqcheckHandler {
             unrollFactor = req.body.unrollFactor || defaultUnrollFactor;
             commandIn = req.body.serverCommand;
             dirPathIn = req.body.dirPathIn;
+            prepareDirpath = req.body.prepareDirpath;
             offsetIn = req.body.offsetIn;
             srcName = "src.".concat(req.body.source1Name);
             optName = (req.body.source2Name === undefined) ? undefined : "opt.".concat(req.body.source2Name);
@@ -192,6 +197,7 @@ class EqcheckHandler {
             unrollFactor = req.unrollFactor || defaultUnrollFactor;
             commandIn = req.serverCommand;
             dirPathIn = req.dirPathIn;
+            prepareDirpath = req.prepareDirpath;
             offsetIn = req.offsetIn;
             srcName = "src.".concat(req.source1Name);
             //optName = "opt.".concat(req.source2Name);
@@ -230,7 +236,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name};
+        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name};
     }
 
     //splitArguments(options) {
@@ -384,6 +390,10 @@ class EqcheckHandler {
         //console.log(`sourceTxt = ${sourceTxt}\n`);
         const sourceError = this.checkSource(sourceTxt);
         if (sourceError) throw sourceError;
+
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath);
+        }
 
         //const sourceFilename = this.get_src_filename(dirPath);
         var sourceFilename = path.join(dirPath, srcName);
@@ -735,6 +745,26 @@ class EqcheckHandler {
                     res.end(JSON.stringify({retcode: -1, stderr: [{text: error}]}));
     }
 
+    identify_dir_for_command(dirName, commandIn, functionName)
+    {
+      if (!dirName.endsWith(prepareSuffix) && !dirName.endsWith(pointsToSuffix)) {
+        return dirName;
+      }
+      var ret;
+      if (dirName.endsWith(prepareSuffix)) {
+        ret = dirName.substring(0, dirName.length - prepareSuffix.length)
+      } else if (dirName.endsWith(pointsToSuffix)) {
+        ret = dirName.substring(0, dirName.length - pointsToSuffix.length)
+      }
+      if (commandIn === commandPrepareEqcheck) {
+        return ret + prepareSuffix;
+      } else if (commandIn === commandPointsToAnalysis) {
+        return ret + pointsToSuffix;
+      } else {
+        return ret + submitSuffix + functionName;
+      }
+    }
+
     dryRunInfoGetFunctions(fmap) {
       //console.log(`fmap = ${JSON.stringify(fmap)}\n`);
       var ret = [];
@@ -771,7 +801,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       const {
-          commandIn, dirPathIn, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name
+          commandIn, dirPathIn, prepareDirpath, offsetIn, source, src_ir, src_etfg, optimized, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -804,7 +834,17 @@ class EqcheckHandler {
           //    return next(new Error("Bad request"));
           //}
 
-          const dirPath =  (dirPathIn === undefined) ? await this.newTempDir() : dirPathIn;
+          var dirPath;
+          if (dirPathIn === undefined) {
+            if (commandIn === commandPrepareEqcheck) {
+              dirPath = (await this.newTempDir()) + prepareSuffix;
+            } else {
+              assert(prepareDirpath !== undefined, "both dirPathIn and prepareDirpath are undefined when the command is not Prepare");
+              dirPath = this.identify_dir_for_command(prepareDirpath, commandIn, functionName);
+            }
+          } else {
+            dirPath = this.identify_dir_for_command(dirPathIn, commandIn, functionName);
+          }
           //const dryRun = (commandIn === commandPrepareEqcheck);
           //const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
           //const submit_eqcheck = (commandIn === commandSubmitEqchek);

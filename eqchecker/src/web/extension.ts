@@ -436,6 +436,7 @@ class Eqchecker {
     const src_etfg = response.etfg;
     const src_ir = response.ir;
     const src_bc = response.bc;
+    const source1 = response.src;
 
     const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: pointsToDirpath});
     const response2 = (await this.RequestResponseForCommand(jsonRequest4));
@@ -443,6 +444,7 @@ class Eqchecker {
     const dst_etfg = response2.etfg;
     const dst_ir = response2.ir;
     const dst_bc = response2.bc;
+    const source2 = response2.dst;
     //console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
 
     console.log(`preparePhaseResult.common = ${preparePhaseResult.common.join(" ")}`);
@@ -472,6 +474,8 @@ class Eqchecker {
       funRequest.dst_bc = dst_bc;
       funRequest.src_ir = src_ir;
       funRequest.dst_ir = dst_ir;
+      funRequest.source1 = source1;
+      funRequest.source2 = source2;
 
       //if (src_etfg !== undefined) {
       //  funRequest.source1 = src_etfg;
@@ -525,6 +529,8 @@ class Eqchecker {
     request.src_ir = preparePhaseResult.src_ir;
     request.dst_bc = preparePhaseResult.dst_bc;
     request.dst_ir = preparePhaseResult.dst_ir;
+    request.source1 = preparePhaseResult.src_filename;
+    request.source2 = preparePhaseResult.dst_filename;
 
     //if (preparePhaseResult.src_bc === undefined) {
     //  request.source1 = preparePhaseResult.src_filename;
@@ -1194,7 +1200,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
-    //console.log(`src_code = ${src_code}\n`);
+    console.log(`src_code = ${src_code}\n`);
     const dst_code = proof_response.dst_code;
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;

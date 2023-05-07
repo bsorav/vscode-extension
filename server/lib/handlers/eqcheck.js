@@ -730,7 +730,7 @@ class EqcheckHandler {
         const etfgFilenameJSON = runStatus.running_status.dst_tfg_filename;
         const etfgFilename = (etfgFilenameJSON === undefined) ? undefined : etfgFilenameJSON.join();
 
-        console.log(`getDstFiles: etfgFilename = ${etfgFilename}`);
+        //console.log(`getDstFiles: etfgFilename = ${etfgFilename}`);
         var bc, ir, etfg;
         if (fs.existsSync(bcFilename)) {
           //ir = await this.readBuffer(irFilename);
@@ -1055,9 +1055,9 @@ class EqcheckHandler {
         const compile_logFilename = this.get_compile_log_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
         const harvestFilename = this.get_harvest_filename_for_object_filename(objectFilename);
         //console.log(`runStatus = ${JSON.stringify(runStatus)}\n`);
-        console.log(`dstFilename = ${dstFilename}\n`);
-        console.log(`dstFilenameIsObject = ${dstFilenameIsObject}\n`);
-        console.log(`objectFilename = ${objectFilename}\n`);
+        //console.log(`dstFilename = ${dstFilename}\n`);
+        //console.log(`dstFilenameIsObject = ${dstFilenameIsObject}\n`);
+        //console.log(`objectFilename = ${objectFilename}\n`);
         //console.log(`harvestFilename = ${harvestFilename}\n`);
         //console.log(`running_status = ${JSON.stringify(runStatus.running_status)}`);
         //console.log(`dry_run_info = ${JSON.stringify(runStatus.running_status.dry_run_info)}`);
@@ -1106,7 +1106,7 @@ class EqcheckHandler {
         //const searchTree = runStatus.running_status.enumerated_cgs;
         const searchTree = await this.getSearchTree(dirPathIn);
         const searchTreeStr = JSON.stringify(searchTree);
-        console.log('returning ', searchTreeStr);
+        //console.log('returning ', searchTreeStr);
         res.end(searchTreeStr);
         return;
       } else if (commandIn === commandObtainSrcFiles) {

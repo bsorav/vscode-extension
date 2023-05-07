@@ -169,8 +169,8 @@ class EqcheckHandler {
             dirPathIn = req.body.dirPathIn;
             prepareDirpath = req.body.prepareDirpath;
             offsetIn = req.body.offsetIn;
-            srcName = "src.".concat(req.body.source1Name);
-            optName = (req.body.source2Name === undefined) ? undefined : "opt.".concat(req.body.source2Name);
+            srcName = req.body.source1Name;
+            optName = req.body.source2Name;
             dstFilenameIsObject = req.body.dstFilenameIsObject;
             functionName = req.body.functionName;
             sessionName = req.body.sessionName;
@@ -207,9 +207,9 @@ class EqcheckHandler {
             dirPathIn = req.dirPathIn;
             prepareDirpath = req.prepareDirpath;
             offsetIn = req.offsetIn;
-            srcName = "src.".concat(req.source1Name);
+            srcName = req.source1Name;
             //optName = "opt.".concat(req.source2Name);
-            optName = (req.source2Name === undefined) ? undefined : "opt.".concat(req.source2Name);
+            optName = req.source2Name;
             dstFilenameIsObject = req.dstFilenameIsObject;
             functionName = req.functionName;
             sessionName = req.sessionName;
@@ -374,6 +374,12 @@ class EqcheckHandler {
 
         const source = (source_filename === undefined) ? this.readFileObjectToUint8Array(source_contents) : undefined;
         const optimized = (optimized_filename === undefined) ? this.readFileObjectToUint8Array(optimized_contents) : undefined;
+        if (source !== undefined) {
+          srcName = "src.".concat(srcName);
+        }
+        if (optimized !== undefined) {
+          optName = "opt.".concat(optName);
+        }
         //const src_ir = this.buffer_from_json(src_irJSON);
         //const src_etfg = this.buffer_from_json(src_etfgJSON);
         //const dst_ir = this.buffer_from_json(dst_irJSON);
@@ -664,7 +670,7 @@ class EqcheckHandler {
       const runStatus = await this.getRunningStatus(dirPath);
       const srcFilenameJSON = runStatus.running_status.src_filename;
       //console.log(`srcFilenameJSON = ${srcFilenameJSON}\n`);
-      const srcFilename = srcFilenameJSON.join();
+      const srcFilename = (srcFilenameJSON === undefined) ? undefined : srcFilenameJSON.join();
       //console.log(`srcFilename = ${srcFilename}\n`);
       const bcFilenameJSON = runStatus.running_status.src_bc_filename;
       const bcFilename = (bcFilenameJSON === undefined) ? undefined : bcFilenameJSON.join();
@@ -676,8 +682,8 @@ class EqcheckHandler {
       //const irFilename = srcFilename + ".ll";
       //const etfgFilename = srcFilename + ".etfg";
 
-      console.log(`${dirPath}: bcFilename = ${bcFilename}`);
-      console.log(`${dirPath}: irFilename = ${irFilename}`);
+      //console.log(`${dirPath}: bcFilename = ${bcFilename}`);
+      //console.log(`${dirPath}: irFilename = ${irFilename}`);
 
       //const src = await this.readBuffer(srcFilename);
       const src = fs.existsSync(srcFilename) ? srcFilename : undefined;
@@ -686,11 +692,11 @@ class EqcheckHandler {
       const bc = fs.existsSync(bcFilename) ? bcFilename : undefined;
       const ir = fs.existsSync(irFilename) ? irFilename : undefined;
 
-      console.log(`${dirPath}: bc = ${bcFilename}`);
-      console.log(`${dirPath}: ir = ${irFilename}`);
+      //console.log(`${dirPath}: ir = ${irFilename}`);
 
       //const etfg = await this.readBuffer(etfgFilename);
       const etfg = fs.existsSync(etfgFilename) ? etfgFilename : undefined;
+      //console.log(`${dirPath}: src = ${src}`);
       return { src: src, bc: bc, ir: ir, etfg: etfg };
     }
 
@@ -1084,10 +1090,10 @@ class EqcheckHandler {
         const src_files = await this.getSrcFiles(dirPathIn);
         const dst_files = await this.getDstFiles(dirPathIn);
 
-        const src_code = (src_files.src === undefined) ? undefined : src_files.src.toString();
-        const src_ir = (src_files.ir === undefined) ? undefined : src_files.ir.toString();
-        const dst_code = (dst_files.dst === undefined) ? undefined : dst_files.dst.toString();
-        const dst_ir = (dst_files.ir === undefined) ? undefined : dst_files.ir.toString();
+        const src_code = (src_files.src === undefined) ? undefined : (await this.readBuffer(src_files.src)).toString();
+        const src_ir = (src_files.ir === undefined) ? undefined : (await this.readBuffer(src_files.ir)).toString();
+        const dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
+        const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
 
         //console.log(`src_code = ${src_files.src}\n`);
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir});

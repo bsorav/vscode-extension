@@ -1507,7 +1507,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               continue;
             }
 
-            const request = { dirPathIn: eqcheck.dirPath, source1Uri: eqcheck.source1Uri, source1Name: eqcheck.source1Name, source1Text: eqcheck.source1Text, source2Uri: eqcheck.source2Uri, source2Name: eqcheck.source2Name, source2Text: eqcheck.source2Text, functionName: eqcheck.functionName, prepareDirpath: eqcheck.prepareDirpath, pointsToDirpath: eqcheck.pointsToDirpath, runDirpath: eqcheck.runDirpath };
+            const request = { dirPath: eqcheck.dirPath, dirPathIn: eqcheck.dirPath, source1Uri: eqcheck.source1Uri, source1Name: eqcheck.source1Name, source1Text: eqcheck.source1Text, source2Uri: eqcheck.source2Uri, source2Name: eqcheck.source2Name, source2Text: eqcheck.source2Text, functionName: eqcheck.functionName, prepareDirpath: eqcheck.prepareDirpath, pointsToDirpath: eqcheck.pointsToDirpath, runDirpath: eqcheck.runDirpath, source1: eqcheck.source1, src_bc: eqcheck.src_bc, src_ir: eqcheck.src_ir, src_etfg: eqcheck.src_etfg, source2: eqcheck.source2, dst_bc: eqcheck.dst_bc, dst_ir: eqcheck.dst_ir, dst_etfg: eqcheck.dst_etfg };
 
             //console.log(`eqcheck =\n${JSON.stringify(eqcheck)}\n`);
             //console.log(`eqcheck.runState =${eqcheck.runState}\n`);

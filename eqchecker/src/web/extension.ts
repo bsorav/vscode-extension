@@ -372,17 +372,20 @@ class Eqchecker {
   private static async populatePreparePhaseInfo(request) //this function is (and should remain) idempotent
   {
     const prepareDirpath = request.prepareDirpath;
-    const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
+    const {src_filename: src_filename_arr, dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, src_bc: src_bc, src_ir: src_ir, dst_bc: dst_bc, dst_ir: dst_ir, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
 
+    const src_filename = src_filename_arr.toString();
     const dst_filename = dst_filename_arr.toString();
     if (dst_filename === "") {
       console.log('returning false because dst_filename === ""');
-      return { retval: false, common: common, harvest: harvest, object: object, compile_log: compile_log };
+      return { retval: false, src_filename: src_filename, dst_filename: dst_filename, src_bc: src_bc, dst_bc: dst_bc, src_ir: src_ir, dst_ir: dst_ir, common: common, harvest: harvest, object: object, compile_log: compile_log };
     }
 
     const dst_filename_is_object = (dst_filename_is_object_str == "true");
 
     if (request.source2Uri === undefined) {
+      request.source1Name = posix.basename(src_filename.toString(), undefined);
+      request.source1Uri = src_filename.toString();
       request.source2Name = posix.basename(dst_filename.toString(), undefined);
       request.source2Uri = dst_filename.toString();
       request.dstFilenameIsObject = dst_filename_is_object;
@@ -405,7 +408,7 @@ class Eqchecker {
           };
       EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
       vscode.window.showInformationMessage(msg);
-      return { retval: false, common: common, harvest: harvest, object: object, compile_log: compile_log };
+      return { retval: false, src_filename: src_filename, dst_filename: dst_filename, src_bc: src_bc, dst_bc: dst_bc, src_ir: src_ir, dst_ir: dst_ir, common: common, harvest: harvest, object: object, compile_log: compile_log };
     }
     if (src_only.length > 0) {
       const msg = this.createWarningMessageFromFunctionList('first', src_only);
@@ -415,7 +418,8 @@ class Eqchecker {
       const msg = this.createWarningMessageFromFunctionList('second', dst_only);
       vscode.window.showInformationMessage(msg);
     }
-    return { retval: true, common: common, harvest: harvest, object: object, compile_log: compile_log };
+    console.log(`populatePreparePhaseInfo: src_bc = ${src_bc}`);
+    return { retval: true, src_filename: src_filename, src_bc: src_bc, src_ir: src_ir, dst_filename: dst_filename, dst_bc: dst_bc, dst_ir: dst_ir, common: common, harvest: harvest, object: object, compile_log: compile_log };
   }
 
   public static async submitRunCommand(request/*, dirPath2, common, harvest, object*/) {
@@ -431,12 +435,14 @@ class Eqchecker {
     //console.log(`obtain src files response = ${JSON.stringify(response)}\n`);
     const src_etfg = response.etfg;
     const src_ir = response.ir;
+    const src_bc = response.bc;
 
     const jsonRequest4 = JSON.stringify({serverCommand: commandObtainDstFiles, dirPathIn: pointsToDirpath});
     const response2 = (await this.RequestResponseForCommand(jsonRequest4));
     //console.log(`obtain dst files response2 = ${JSON.stringify(response2)}\n`);
     const dst_etfg = response2.etfg;
     const dst_ir = response2.ir;
+    const dst_bc = response2.bc;
     //console.log(`dst_etfg = ${JSON.stringify(dst_etfg)}\n`);
 
     console.log(`preparePhaseResult.common = ${preparePhaseResult.common.join(" ")}`);
@@ -462,8 +468,21 @@ class Eqchecker {
       funRequest.dirPath = request.dirPathIn;
       funRequest.src_etfg = src_etfg;
       funRequest.dst_etfg = dst_etfg;
+      funRequest.src_bc = src_bc;
+      funRequest.dst_bc = dst_bc;
       funRequest.src_ir = src_ir;
       funRequest.dst_ir = dst_ir;
+
+      //if (src_etfg !== undefined) {
+      //  funRequest.source1 = src_etfg;
+      //} else if (src_bc !== undefined) {
+      //  funRequest.source1 = src_bc;
+      //}
+      //if (dst_etfg !== undefined) {
+      //  funRequest.source2 = dst_etfg;
+      //} else if (dst_bc !== undefined) {
+      //  funRequest.source2 = dst_bc;
+      //}
       funRequest.harvest = preparePhaseResult.harvest;
       funRequest.object = preparePhaseResult.object;
       funRequest.compile_log = preparePhaseResult.compile_log;
@@ -502,6 +521,22 @@ class Eqchecker {
       return false;
     }
 
+    request.src_bc = preparePhaseResult.src_bc;
+    request.src_ir = preparePhaseResult.src_ir;
+    request.dst_bc = preparePhaseResult.dst_bc;
+    request.dst_ir = preparePhaseResult.dst_ir;
+
+    //if (preparePhaseResult.src_bc === undefined) {
+    //  request.source1 = preparePhaseResult.src_filename;
+    //} else {
+    //  request.source1 = preparePhaseResult.src_bc;
+    //}
+    //if (preparePhaseResult.dst_bc === undefined) {
+    //  request.source2 = preparePhaseResult.dst_filename;
+    //} else {
+    //  request.source2 = preparePhaseResult.dst_bc;
+    //}
+
     request.serverCommand = commandPointsToAnalysis;
     const jsonRequest2 = JSON.stringify(request);
     const result: any = await Eqchecker.RequestNextChunk(jsonRequest2, request, "pointsToDirpath");
@@ -534,6 +569,8 @@ class Eqchecker {
     const dirPath = result.dirPath;
     request.prepareDirpath = dirPath;
     request.dirPathIn = undefined;
+    request.source1Text = undefined;
+    request.source2Text = undefined;
     return await Eqchecker.submitPointsToCommand(request);
   }
 

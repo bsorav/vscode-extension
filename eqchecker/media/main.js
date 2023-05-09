@@ -299,6 +299,21 @@ const viewStateViewSearchTree = 'viewSearchTree';
       viewProof(eqcheck);
     };
 
+    function viewScanReport(eqcheck) {
+      console.log('ViewScanReport clicked');
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      eqcheckRightClickMenu.style.display = "none";
+      vscode.postMessage({ type: 'eqcheckViewScanReport', eqcheck: eqcheck});
+    };
+
+    function viewScanReportListener(evt) {
+      console.log('ViewScanReportListener called');
+      const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+      //const eqcheck = evt.currentTarget.eqcheck;
+      const eqcheck = eqcheckRightClickMenu.eqcheck;
+      viewScanReport(eqcheck);
+    };
+
     function hideProofListener(evt) {
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
@@ -476,29 +491,41 @@ const viewStateViewSearchTree = 'viewSearchTree';
         items[0].removeEventListener('click', eqcheckCancelListener);
         items[0].removeEventListener('click', eqcheckClearListener);
         items[0].removeEventListener('click', viewSearchTreeListener);
+        items[0].removeEventListener('click', viewScanReportListener);
 
         items[1].removeEventListener('click', viewProofListener);
         items[1].removeEventListener('click', hideProofListener);
         items[1].removeEventListener('click', eqcheckCancelListener);
         items[1].removeEventListener('click', eqcheckClearListener);
         items[1].removeEventListener('click', viewSearchTreeListener);
+        items[1].removeEventListener('click', viewScanReportListener);
 
         items[2].removeEventListener('click', viewProofListener);
         items[2].removeEventListener('click', hideProofListener);
         items[2].removeEventListener('click', eqcheckCancelListener);
         items[2].removeEventListener('click', eqcheckClearListener);
         items[2].removeEventListener('click', viewSearchTreeListener);
+        items[2].removeEventListener('click', viewScanReportListener);
 
         items[3].removeEventListener('click', viewProofListener);
         items[3].removeEventListener('click', hideProofListener);
         items[3].removeEventListener('click', eqcheckCancelListener);
         items[3].removeEventListener('click', eqcheckClearListener);
         items[3].removeEventListener('click', viewSearchTreeListener);
+        items[3].removeEventListener('click', viewScanReportListener);
+
+        items[4].removeEventListener('click', viewProofListener);
+        items[4].removeEventListener('click', hideProofListener);
+        items[4].removeEventListener('click', eqcheckCancelListener);
+        items[4].removeEventListener('click', eqcheckClearListener);
+        items[4].removeEventListener('click', viewSearchTreeListener);
+        items[4].removeEventListener('click', viewScanReportListener);
 
         items[0].innerHTML = '';
         items[1].innerHTML = '';
         items[2].innerHTML = '';
         items[3].innerHTML = '';
+        items[4].innerHTML = '';
 
         eqcheckRightClickMenu.style.display = "inline";
 
@@ -511,12 +538,14 @@ const viewStateViewSearchTree = 'viewSearchTree';
             items[0].innerHTML = 'Hide Proof';
             items[0].addEventListener('click', hideProofListener);
           }
-          items[1].innerHTML = 'View Search Tree';
-          items[1].addEventListener('click', viewSearchTreeListener);
-          items[2].innerHTML = 'Cancel';
-          items[2].addEventListener('click', eqcheckCancelListener);
-          items[3].innerHTML = 'Clear';
-          items[3].addEventListener('click', eqcheckClearListener);
+          items[1].innerHTML = 'Code Analysis Report';
+          items[1].addEventListener('click', viewScanReportListener);
+          items[2].innerHTML = 'View Search Tree';
+          items[2].addEventListener('click', viewSearchTreeListener);
+          items[3].innerHTML = 'Cancel';
+          items[3].addEventListener('click', eqcheckCancelListener);
+          items[4].innerHTML = 'Clear';
+          items[4].addEventListener('click', eqcheckClearListener);
         } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';

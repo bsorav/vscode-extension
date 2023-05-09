@@ -20,6 +20,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandObtainScanviewReportURL = 'obtainScanviewReportURL';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
@@ -638,6 +639,13 @@ class Eqchecker {
     return response;
   }
 
+  public static async obtainScanviewReportURLFromServer(dirPathIn)
+  {
+    let jsonRequest = JSON.stringify({serverCommand: commandObtainScanviewReportURL, dirPathIn: dirPathIn});
+    const response = await this.RequestResponseForCommand(jsonRequest);
+    return response;
+  }
+
   public static async obtainFunctionListsAfterPreparePhase(dirPathIn)
   {
     let jsonRequest = JSON.stringify({serverCommand: commandObtainFunctionListsAfterPreparePhase, dirPathIn: dirPathIn});
@@ -1012,13 +1020,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       <link rel="stylesheet" href=${scanview_css}>
     </head>
 
-    <body>
-      <div id="report">hello</div>
+    <body class="full-view"">
+        <div id="report"></div>
     </body>
     </html>`;
-
     return eval('`' + html + '`');
   }
+
 
   public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri)
   {
@@ -1481,6 +1489,33 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     );
     const scanview_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.js'));
     this.panel_set_html(this.scanview_panel, EqcheckViewProvider.getScanviewWebviewContent(Eqchecker.extensionUri.fsPath, scanview_script, scanview_css));
+
+    var scanview_panel_loaded = false;
+    this.scanview_panel.webview.onDidReceiveMessage(
+      message => {
+        switch (message.command) {
+          case 'loaded':
+            //console.log("scanview panel loaded.\n");
+            scanview_panel_loaded = true;
+            //vscode.window.showErrorMessage(message.text);
+            break;
+        }
+      },
+      undefined,
+      Eqchecker.context.subscriptions
+    );
+
+    async function waitForScanviewLoad(){
+      while (scanview_panel_loaded === false) {
+          //console.log(`scanview_panel_loaded ${scanview_panel_loaded} is still false`);
+          await Eqchecker.wait(1000);
+      }
+    }
+    await waitForScanviewLoad();
+
+    const scanview_url = await Eqchecker.obtainScanviewReportURLFromServer(dirPath);
+
+    this.panel_post_message(this.scanview_panel, {command: 'scanviewReport', url: scanview_url.scanview_report_url});
   }
 
   public resolveWebviewView(

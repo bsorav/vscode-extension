@@ -1153,6 +1153,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 retainContextWhenHidden: true
               }
           );
+        panel_prd.onDidDispose(
+          () => {
+            this.proof_panels.panel_prd = undefined;
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
       } else {
         panel_prd = proof_panels.prd;
       }
@@ -1168,6 +1175,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             retainContextWhenHidden: true
           }
         );
+        panel_src_code.onDidDispose(
+          () => {
+            this.proof_panels.panel_src_code = undefined;
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
     } else {
       panel_src_code = proof_panels.src_code;
     }
@@ -1182,6 +1196,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             retainContextWhenHidden: true
           }
         );
+        panel_dst_code.onDidDispose(
+          () => {
+            this.proof_panels.panel_dst_code = undefined;
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
+
     } else {
       panel_dst_code = proof_panels.dst_code;
     }
@@ -1197,6 +1219,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               retainContextWhenHidden: true
             }
           );
+        panel_src_ir.onDidDispose(
+          () => {
+            this.proof_panels.panel_src_ir = undefined;
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
       } else {
         panel_src_ir = proof_panels.src_ir;
       }
@@ -1213,6 +1242,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               retainContextWhenHidden: true
             }
           );
+        panel_dst_ir.onDidDispose(
+          () => {
+            this.proof_panels.panel_dst_ir = undefined;
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
       } else {
         panel_dst_ir = proof_panels.dst_ir;
       }
@@ -1483,6 +1519,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 retainContextWhenHidden: true
               }
           );
+      this.scanview_panel.onDidDispose(
+        () => {
+          this.scanview_panel = undefined;
+        },
+        null,
+        Eqchecker.context.subscriptions
+      );
     }
     const scanview_css = webview.asWebviewUri(
       vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.css')

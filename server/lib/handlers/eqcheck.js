@@ -91,9 +91,12 @@ function initialise(/*compilerEnv*/) {
 }
 
 class EqcheckHandler {
-    constructor(superoptInstall/*, awsProps*/) {
+    constructor(hostname, port, superoptInstall, codeAnalysisURL) {
         this.compilersById = {};
+        this.hostname = hostname;
+        this.port = port;
         this.superoptInstall = superoptInstall;
+        this.codeAnalysisURL = codeAnalysisURL;
         //this.compilerEnv = compilationEnvironment;
         this.factories = {};
         //this.textBanner = this.compilerEnv.ceProps('textBanner');
@@ -914,6 +917,17 @@ class EqcheckHandler {
       return ret;
     }
 
+    get_scanview_report_dir(top_level_dir)
+    {
+      const scan_prefix = "scan.";
+      const scan_dirs = fs.readdirSync(top_level_dir, { withFileTypes: true }).filter(dirent => (dirent.isDirectory() && dirent.name.substr(0, scan_prefix.length) == scan_prefix));
+      //console.log(`top_level_dir = ${top_level_dir}`);
+      //console.log(`scan_dirs = ${JSON.stringify(scan_dirs)}`);
+      const scan_dir = scan_dirs[0].name;
+      const report_dirs = fs.readdirSync(top_level_dir + "/" + scan_dir, { withFileTypes: true });
+      return top_level_dir + "/" + scan_dir + "/" + report_dirs[0].name;
+    }
+
     async handle(req, res, next) {
       //console.log('eqchecker handler called');
       //const eqchecker = this.get_eqchecker();
@@ -1104,8 +1118,11 @@ class EqcheckHandler {
       } else if (commandIn === commandObtainScanviewReportURL) {
         console.log('ObtainScanviewReportURL received with dirPathIn ', dirPathIn);
 
-        //console.log(`src_code = ${src_files.src}\n`);
-        const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report_url: 'http://vayu.cse.iitd.ac.in:8181/'});
+        const top_level_dir = dirPathIn + "/..";
+        const scanview_report_dir = this.get_scanview_report_dir(top_level_dir);
+        const scanview_report_url = "https://" + this.hostname + ":" + this.port + this.codeAnalysisURL + "/" + scanview_report_dir + "/index.html";
+        console.log(`returning ${scanview_report_url}`);
+        const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report_url: scanview_report_url});
         //console.log("proofStr:\n" + proofStr);
         res.end(scanviewReportStr);
         return;

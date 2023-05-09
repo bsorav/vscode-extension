@@ -30,11 +30,13 @@ const defArgs = {
   tmpDir: opts.tmpDir || '/tmp',
 };
 
+const codeAnalysisURL = "/codeAnalysis";
+
 async function main() {
     const CompilationEnvironment = require('./lib/compilation-env');
     const compilationEnvironment = new CompilationEnvironment(/*compilerProps, compilationQueue, defArgs.doCache*/);
     const EqcheckHandler = require('./lib/handlers/eqcheck').Handler;
-    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall/*, awsProps*/);
+    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall, codeAnalysisURL);
 
     const StorageHandler = require('./lib/storage/storage');
     const storageHandler = StorageHandler.storageFactory('local'/*, compilerProps, awsProps*/, '/');
@@ -57,6 +59,11 @@ async function main() {
         .on('error', err => logger.error('Caught error in web handler; continuing:', err))
         .use(express.json())
         .use('/', router)
+        .use(codeAnalysisURL, (req, res) => {
+          console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);
+          const path = req.originalUrl.substring(codeAnalysisURL.length);
+          res.send(`codeAnalysis page with path ${path}`);
+        })
         //.post('/test', (req, res) => {
         //    console.log('method:\n' + req.method);
         //    console.log('headers:\n' + JSON.stringify(req.headers));
@@ -98,11 +105,6 @@ async function main() {
             //    mobileViewer: isMobileViewer(req)
             //}, req.query));
             res.send("Index page\n");
-        })
-        .get('/codeAnalysis', (req, res) => {
-            console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);
-            //res.render('eqcheck', renderConfig({embedded: false}, req.query));
-            res.send("Eqcheck page\n");
         })
         .get('/eqcheck', (req, res) => {
             console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);

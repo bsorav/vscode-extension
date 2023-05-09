@@ -992,6 +992,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   public static provider : EqcheckViewProvider;
   private _view?: vscode.WebviewView;
   private proof_panels;
+  private scanview_panel;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -999,6 +1000,24 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
   public static initializeEqcheckViewProvider(_extensionUri: vscode.Uri) {
     EqcheckViewProvider.provider = new EqcheckViewProvider(_extensionUri);
+  }
+
+  public static getScanviewWebviewContent(context_path: string, scanview_script: vscode.Uri, scanview_css: vscode.Uri)
+  {
+    const html =
+    `<!doctype html>
+    <html>
+    <head>
+      <script type="module" src=${scanview_script}></script>
+      <link rel="stylesheet" href=${scanview_css}>
+    </head>
+
+    <body>
+      <div id="report">hello</div>
+    </body>
+    </html>`;
+
+    return eval('`' + html + '`');
   }
 
   public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri)
@@ -1444,6 +1463,26 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //return new_panels;
   }
 
+  async viewScanReport(webview: vscode.Webview, dirPath: string) {
+    if (this.scanview_panel === undefined) {
+      this.scanview_panel =
+          vscode.window.createWebviewPanel(
+              'codeAnalysis',
+              'CodeAnalysis',
+              vscode.ViewColumn.One,
+              {
+                enableScripts: true,
+                retainContextWhenHidden: true
+              }
+          );
+    }
+    const scanview_css = webview.asWebviewUri(
+      vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.css')
+    );
+    const scanview_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.js'));
+    this.panel_set_html(this.scanview_panel, EqcheckViewProvider.getScanviewWebviewContent(Eqchecker.extensionUri.fsPath, scanview_script, scanview_css));
+  }
+
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
@@ -1492,6 +1531,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             }
             this.proof_panels = undefined;
           }
+          break;
+        }
+        case 'eqcheckViewScanReport': {
+          console.log('viewScanReport received');
+          await this.viewScanReport(webviewView.webview, data.eqcheck.dirPath);
           break;
         }
         case 'eqchecksLoaded': {
@@ -1704,6 +1748,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="EqcheckRightClickMenuItem2" class="item"></div>
         <div id="EqcheckRightClickMenuItem3" class="item"></div>
         <div id="EqcheckRightClickMenuItem4" class="item"></div>
+        <div id="EqcheckRightClickMenuItem5" class="item"></div>
         </div>
         <script nonce="${nonce}" src="${mainScriptUri}"></script>
       </body>

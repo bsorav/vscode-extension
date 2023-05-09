@@ -34,7 +34,7 @@ async function main() {
     const CompilationEnvironment = require('./lib/compilation-env');
     const compilationEnvironment = new CompilationEnvironment(/*compilerProps, compilationQueue, defArgs.doCache*/);
     const EqcheckHandler = require('./lib/handlers/eqcheck').Handler;
-    const eqcheckHandler = new EqcheckHandler(defArgs.superoptInstall/*, awsProps*/);
+    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall/*, awsProps*/);
 
     const StorageHandler = require('./lib/storage/storage');
     const storageHandler = StorageHandler.storageFactory('local'/*, compilerProps, awsProps*/, '/');
@@ -98,6 +98,11 @@ async function main() {
             //    mobileViewer: isMobileViewer(req)
             //}, req.query));
             res.send("Index page\n");
+        })
+        .get('/codeAnalysis', (req, res) => {
+            console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);
+            //res.render('eqcheck', renderConfig({embedded: false}, req.query));
+            res.send("Eqcheck page\n");
         })
         .get('/eqcheck', (req, res) => {
             console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);

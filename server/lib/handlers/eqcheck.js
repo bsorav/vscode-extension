@@ -91,8 +91,10 @@ function initialise(/*compilerEnv*/) {
 }
 
 class EqcheckHandler {
-    constructor(superoptInstall/*, awsProps*/) {
+    constructor(hostname, port, superoptInstall/*, awsProps*/) {
         this.compilersById = {};
+        this.hostname = hostname;
+        this.port = port;
         this.superoptInstall = superoptInstall;
         //this.compilerEnv = compilationEnvironment;
         this.factories = {};
@@ -1104,8 +1106,9 @@ class EqcheckHandler {
       } else if (commandIn === commandObtainScanviewReportURL) {
         console.log('ObtainScanviewReportURL received with dirPathIn ', dirPathIn);
 
+        const scanview_report_url = "https://" + this.hostname + ":" + this.port + "/codeAnalysis";
         //console.log(`src_code = ${src_files.src}\n`);
-        const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report_url: 'http://vayu.cse.iitd.ac.in:8181/'});
+        const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report_url: scanview_report_url});
         //console.log("proofStr:\n" + proofStr);
         res.end(scanviewReportStr);
         return;

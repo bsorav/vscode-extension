@@ -1136,6 +1136,29 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  set_proof_panels_to_undef_if_all_disposed()
+  {
+    if (this.proof_panels === undefined) {
+      return;
+    }
+    if (this.proof_panels.prd !== undefined) {
+      return;
+    }
+    if (this.proof_panels.src_code !== undefined) {
+      return;
+    }
+    if (this.proof_panels.dst_code !== undefined) {
+      return;
+    }
+    if (this.proof_panels.src_ir !== undefined) {
+      return;
+    }
+    if (this.proof_panels.dst_ir !== undefined) {
+      return;
+    }
+    this.proof_panels = undefined;
+  }
+
   getPanels(enable_panel_prd, src_ir, dst_ir) {
     const proof_panels = this.proof_panels;
     var panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir;
@@ -1156,6 +1179,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         panel_prd.onDidDispose(
           () => {
             this.proof_panels.panel_prd = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1178,6 +1202,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         panel_src_code.onDidDispose(
           () => {
             this.proof_panels.panel_src_code = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1199,6 +1224,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         panel_dst_code.onDidDispose(
           () => {
             this.proof_panels.panel_dst_code = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1222,6 +1248,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         panel_src_ir.onDidDispose(
           () => {
             this.proof_panels.panel_src_ir = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1245,6 +1272,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         panel_dst_ir.onDidDispose(
           () => {
             this.proof_panels.panel_dst_ir = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
           },
           null,
           Eqchecker.context.subscriptions

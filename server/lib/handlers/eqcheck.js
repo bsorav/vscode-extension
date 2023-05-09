@@ -25,6 +25,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandObtainScanviewReportURL = 'obtainScanviewReportURL';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
@@ -1100,6 +1101,15 @@ class EqcheckHandler {
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
+      } else if (commandIn === commandObtainScanviewReportURL) {
+        console.log('ObtainScanviewReportURL received with dirPathIn ', dirPathIn);
+
+        //console.log(`src_code = ${src_files.src}\n`);
+        const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report_url: 'http://vayu.cse.iitd.ac.in:8181/'});
+        //console.log("proofStr:\n" + proofStr);
+        res.end(scanviewReportStr);
+        return;
+
       } else if (commandIn === commandObtainSearchTree) {
         console.log('ObtainSearchTree received with dirPathIn ', dirPathIn);
         //var runStatus = await this.getRunningStatus(dirPathIn);

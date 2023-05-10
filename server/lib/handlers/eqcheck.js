@@ -1218,7 +1218,8 @@ class EqcheckHandler {
         const top_level_dir = dirPathIn;// + "/..";
         var scanview_report_dir = this.get_scanview_report_dir(top_level_dir);
         if (scanview_report_dir === undefined) {
-          res.end("File not found");
+          const response = {dirPath: dirPathIn, scanview_report: "No errors found by the code analyzer"};
+          res.end(JSON.stringify(response));
           return;
         }
         if (source === undefined) {

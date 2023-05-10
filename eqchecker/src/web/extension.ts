@@ -1535,7 +1535,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //return new_panels;
   }
 
-  async viewScanReport(webview: vscode.Webview, dirPath: string) {
+  async viewScanReport(webview: vscode.Webview, dirPath: string, filename: string) {
     if (this.scanview_panel !== undefined) {
       this.scanview_panel.dispose();
     }
@@ -1557,7 +1557,22 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       Eqchecker.context.subscriptions
     );
 
-    const scanview_report_response = await Eqchecker.obtainScanviewReportFromServer(dirPath, undefined);
+    this.scanview_panel.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.command) {
+          case 'linkClicked':
+            console.log(`linkClicked received on dirPath ${message.dirPath} filename ${message.filename}`);
+            await this.viewScanReport(webview, message.dirPath, message.filename);
+            break;
+          default:
+            break;
+        }
+      },
+      undefined,
+      Eqchecker.context.subscriptions
+    );
+
+    const scanview_report_response = await Eqchecker.obtainScanviewReportFromServer(dirPath, filename);
     const scanview_report = scanview_report_response.scanview_report;
 
     //console.log(`scanview_report = ${scanview_report}`);
@@ -1650,8 +1665,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'eqcheckViewScanReport': {
-          console.log('viewScanReport received');
-          await this.viewScanReport(webviewView.webview, data.eqcheck.dirPath);
+          console.log(`viewScanReport received with dirPath ${data.dirPath} filename ${data.filename}`);
+          await this.viewScanReport(webviewView.webview, data.dirPath + "/..", data.filename);
           break;
         }
         case 'eqchecksLoaded': {

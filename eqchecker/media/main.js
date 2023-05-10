@@ -303,7 +303,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
       console.log('ViewScanReport clicked');
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       eqcheckRightClickMenu.style.display = "none";
-      vscode.postMessage({ type: 'eqcheckViewScanReport', eqcheck: eqcheck});
+      console.log(`main.js: dirPath=${eqcheck.dirPath}`);
+      vscode.postMessage({ type: 'eqcheckViewScanReport', dirPath: eqcheck.dirPath});
     };
 
     function viewScanReportListener(evt) {

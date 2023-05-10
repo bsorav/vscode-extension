@@ -20,7 +20,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
-const commandObtainScanviewReportURL = 'obtainScanviewReportURL';
+const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
@@ -639,9 +639,9 @@ class Eqchecker {
     return response;
   }
 
-  public static async obtainScanviewReportURLFromServer(dirPathIn)
+  public static async obtainScanviewReportFromServer(dirPathIn, filename)
   {
-    let jsonRequest = JSON.stringify({serverCommand: commandObtainScanviewReportURL, dirPathIn: dirPathIn});
+    let jsonRequest = JSON.stringify({serverCommand: commandObtainScanviewReport, dirPathIn: dirPathIn, source1: filename});
     const response = await this.RequestResponseForCommand(jsonRequest);
     return response;
   }
@@ -1136,6 +1136,29 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  set_proof_panels_to_undef_if_all_disposed()
+  {
+    if (this.proof_panels === undefined) {
+      return;
+    }
+    if (this.proof_panels.prd !== undefined) {
+      return;
+    }
+    if (this.proof_panels.src_code !== undefined) {
+      return;
+    }
+    if (this.proof_panels.dst_code !== undefined) {
+      return;
+    }
+    if (this.proof_panels.src_ir !== undefined) {
+      return;
+    }
+    if (this.proof_panels.dst_ir !== undefined) {
+      return;
+    }
+    this.proof_panels = undefined;
+  }
+
   getPanels(enable_panel_prd, src_ir, dst_ir) {
     const proof_panels = this.proof_panels;
     var panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir;
@@ -1153,6 +1176,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 retainContextWhenHidden: true
               }
           );
+        panel_prd.onDidDispose(
+          () => {
+            this.proof_panels.panel_prd = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
       } else {
         panel_prd = proof_panels.prd;
       }
@@ -1168,6 +1199,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             retainContextWhenHidden: true
           }
         );
+        panel_src_code.onDidDispose(
+          () => {
+            this.proof_panels.panel_src_code = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
     } else {
       panel_src_code = proof_panels.src_code;
     }
@@ -1182,6 +1221,15 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             retainContextWhenHidden: true
           }
         );
+        panel_dst_code.onDidDispose(
+          () => {
+            this.proof_panels.panel_dst_code = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
+
     } else {
       panel_dst_code = proof_panels.dst_code;
     }
@@ -1197,6 +1245,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               retainContextWhenHidden: true
             }
           );
+        panel_src_ir.onDidDispose(
+          () => {
+            this.proof_panels.panel_src_ir = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
       } else {
         panel_src_ir = proof_panels.src_ir;
       }
@@ -1213,6 +1269,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               retainContextWhenHidden: true
             }
           );
+        panel_dst_ir.onDidDispose(
+          () => {
+            this.proof_panels.panel_dst_ir = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed();
+          },
+          null,
+          Eqchecker.context.subscriptions
+        );
       } else {
         panel_dst_ir = proof_panels.dst_ir;
       }
@@ -1447,7 +1511,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
     await waitForLoading();
     // Message passing to src and dst webview
-    console.log(`Panels loaded. Posting proof to panel_prd.\n`);
+    //console.log(`Panels loaded. Posting proof to panel_prd.\n`);
     this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
     //console.log("Posted proof to panel_prd\n");
 
@@ -1472,50 +1536,67 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   }
 
   async viewScanReport(webview: vscode.Webview, dirPath: string) {
-    if (this.scanview_panel === undefined) {
-      this.scanview_panel =
-          vscode.window.createWebviewPanel(
-              'codeAnalysis',
-              'CodeAnalysis',
-              vscode.ViewColumn.One,
-              {
-                enableScripts: true,
-                retainContextWhenHidden: true
-              }
-          );
+    if (this.scanview_panel !== undefined) {
+      this.scanview_panel.dispose();
     }
-    const scanview_css = webview.asWebviewUri(
-      vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.css')
-    );
-    const scanview_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.js'));
-    this.panel_set_html(this.scanview_panel, EqcheckViewProvider.getScanviewWebviewContent(Eqchecker.extensionUri.fsPath, scanview_script, scanview_css));
-
-    var scanview_panel_loaded = false;
-    this.scanview_panel.webview.onDidReceiveMessage(
-      message => {
-        switch (message.command) {
-          case 'loaded':
-            //console.log("scanview panel loaded.\n");
-            scanview_panel_loaded = true;
-            //vscode.window.showErrorMessage(message.text);
-            break;
-        }
+    this.scanview_panel =
+        vscode.window.createWebviewPanel(
+            'codeAnalysis',
+            'CodeAnalysis',
+            vscode.ViewColumn.One,
+            {
+              enableScripts: true,
+              retainContextWhenHidden: true
+            }
+        );
+    this.scanview_panel.onDidDispose(
+      () => {
+        this.scanview_panel = undefined;
       },
-      undefined,
+      null,
       Eqchecker.context.subscriptions
     );
 
-    async function waitForScanviewLoad(){
-      while (scanview_panel_loaded === false) {
-          //console.log(`scanview_panel_loaded ${scanview_panel_loaded} is still false`);
-          await Eqchecker.wait(1000);
-      }
-    }
-    await waitForScanviewLoad();
+    const scanview_report_response = await Eqchecker.obtainScanviewReportFromServer(dirPath, undefined);
+    const scanview_report = scanview_report_response.scanview_report;
 
-    const scanview_url = await Eqchecker.obtainScanviewReportURLFromServer(dirPath);
+    //console.log(`scanview_report = ${scanview_report}`);
+    //console.log(`scanview_report = ${JSON.stringify(scanview_report)}`);
+    //console.log(`scanview_report = ${scanview_report.toString()}`);
+    this.panel_set_html(this.scanview_panel, scanview_report);
 
-    this.panel_post_message(this.scanview_panel, {command: 'scanviewReport', url: scanview_url.scanview_report_url});
+
+    //const scanview_css = webview.asWebviewUri(
+    //  vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.css')
+    //);
+    //const scanview_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/scanview.js'));
+    //this.panel_set_html(this.scanview_panel, EqcheckViewProvider.getScanviewWebviewContent(Eqchecker.extensionUri.fsPath, scanview_script, scanview_css));
+
+    //var scanview_panel_loaded = false;
+    //this.scanview_panel.webview.onDidReceiveMessage(
+    //  message => {
+    //    switch (message.command) {
+    //      case 'loaded':
+    //        //console.log("scanview panel loaded.\n");
+    //        scanview_panel_loaded = true;
+    //        //vscode.window.showErrorMessage(message.text);
+    //        break;
+    //    }
+    //  },
+    //  undefined,
+    //  Eqchecker.context.subscriptions
+    //);
+
+    //async function waitForScanviewLoad(){
+    //  while (scanview_panel_loaded === false) {
+    //      //console.log(`scanview_panel_loaded ${scanview_panel_loaded} is still false`);
+    //      await Eqchecker.wait(1000);
+    //  }
+    //}
+    //await waitForScanviewLoad();
+
+    //this.panel_set_html(this.scanview_panel, scanview_report);
+    //this.panel_post_message(this.scanview_panel, {command: 'scanviewReport', url: scanview_url.scanview_report_url});
   }
 
   public resolveWebviewView(

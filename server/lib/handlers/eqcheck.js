@@ -25,7 +25,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
-const commandObtainScanviewReportURL = 'obtainScanviewReportURL';
+const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
 const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPreparePhase';
@@ -91,12 +91,12 @@ function initialise(/*compilerEnv*/) {
 }
 
 class EqcheckHandler {
-    constructor(hostname, port, superoptInstall, codeAnalysisURL) {
+    constructor(hostname, port, superoptInstall/*, codeAnalysisURL*/) {
         this.compilersById = {};
         this.hostname = hostname;
         this.port = port;
         this.superoptInstall = superoptInstall;
-        this.codeAnalysisURL = codeAnalysisURL;
+        //this.codeAnalysisURL = codeAnalysisURL;
         //this.compilerEnv = compilationEnvironment;
         this.factories = {};
         //this.textBanner = this.compilerEnv.ceProps('textBanner');
@@ -1115,14 +1115,17 @@ class EqcheckHandler {
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
-      } else if (commandIn === commandObtainScanviewReportURL) {
-        console.log('ObtainScanviewReportURL received with dirPathIn ', dirPathIn);
+      } else if (commandIn === commandObtainScanviewReport) {
+        console.log(`ObtainScanviewReport received with dirPathIn ${dirPathIn} source ${source}`);
 
         const top_level_dir = dirPathIn + "/..";
         const scanview_report_dir = this.get_scanview_report_dir(top_level_dir);
-        const scanview_report_url = "https://" + this.hostname + ":" + this.port + this.codeAnalysisURL + "/" + scanview_report_dir + "/index.html";
-        console.log(`returning ${scanview_report_url}`);
-        const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report_url: scanview_report_url});
+        const scanview_report_file = (source === undefined) ? scanview_report_dir + "/index.html" : scanview_report_dir + "/" + source;
+        //const scanview_report_url = "https://" + this.hostname + ":" + this.port + this.codeAnalysisURL + "/" + scanview_report_dir + "/index.html";
+        //console.log(`returning ${scanview_report_url}`);
+        const html = fs.readFileSync(scanview_report_file).toString();
+        //console.log(`returning:\n${html}\n`);
+        const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report: html});
         //console.log("proofStr:\n" + proofStr);
         res.end(scanviewReportStr);
         return;

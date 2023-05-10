@@ -315,29 +315,29 @@ class EqcheckHandler {
       return path.join(dirPath, 'eqcheck.example.out');
     }
 
-    get_object_filename_for_dst_filename(dst_filename, dst_filename_is_object) {
-      //const true_str = "true";
-      //console.log(`dst_filename_is_object = ${dst_filename_is_object}`);
-      //console.log(`(dst_filename_is_object===true) = ${dst_filename_is_object === true}`);
-      //console.log(`(dst_filename_is_object===\"true\") = ${dst_filename_is_object === true_str}`);
-      //console.log(`(dst_filename_is_object==true) = ${dst_filename_is_object == true}`);
-      //console.log(`(dst_filename_is_object==\"true\") = ${dst_filename_is_object == true_str}`);
-      if (dst_filename_is_object === true/* || dst_filename_is_object === "true" || dst_filename_is_object == "true"*/) {
-        return dst_filename + "";
-      } else {
-        return dst_filename + ".o";
-      }
-    }
+    //get_object_filename_for_dst_filename(dst_filename, dst_filename_is_object) {
+    //  //const true_str = "true";
+    //  //console.log(`dst_filename_is_object = ${dst_filename_is_object}`);
+    //  //console.log(`(dst_filename_is_object===true) = ${dst_filename_is_object === true}`);
+    //  //console.log(`(dst_filename_is_object===\"true\") = ${dst_filename_is_object === true_str}`);
+    //  //console.log(`(dst_filename_is_object==true) = ${dst_filename_is_object == true}`);
+    //  //console.log(`(dst_filename_is_object==\"true\") = ${dst_filename_is_object == true_str}`);
+    //  if (dst_filename_is_object === true/* || dst_filename_is_object === "true" || dst_filename_is_object == "true"*/) {
+    //    return dst_filename + "";
+    //  } else {
+    //    return dst_filename + ".o";
+    //  }
+    //}
 
-    get_compile_log_filename_for_dst_filename(dst_filename, dst_filename_is_object) {
-      const obj_filename = this.get_object_filename_for_dst_filename(dst_filename, dst_filename_is_object);
-      return obj_filename + ".compile_log";
-    }
+    //get_compile_log_filename_for_dst_filename(dst_filename, dst_filename_is_object) {
+    //  const obj_filename = this.get_object_filename_for_dst_filename(dst_filename, dst_filename_is_object);
+    //  return obj_filename + ".compile_log";
+    //}
 
 
-    get_harvest_filename_for_object_filename(obj_filename) {
-      return obj_filename + ".harvest";
-    }
+    //get_harvest_filename_for_object_filename(obj_filename) {
+    //  return obj_filename + ".harvest";
+    //}
 
     get_outfilename(dirPath) {
       //console.log('dirPath ', dirPath);
@@ -711,11 +711,17 @@ class EqcheckHandler {
       //const dst = await this.readBuffer(dstFilename);
       const dst = dstFilename;
       const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
-      const objFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
+      const objFilenameJSON = runStatus.running_status.dst_object_filename;
+      const objFilename = (objFilenameJSON === undefined) ? undefined : objFilenameJSON.join();
+      //const objFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
 
-      let harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
+      //let harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
+      const harvestFilenameJSON = runStatus.running_status.dst_harvest_filename;
+      const harvestFilename = (harvestFilenameJSON === undefined) ? undefined : harvestFilenameJSON.join();
+      const tfgFilenameJSON = runStatus.running_status.dst_tfg_filename;
+      const tfgFilename = (tfgFilenameJSON === undefined) ? undefined : tfgFilenameJSON.join();
       if (fs.existsSync(harvestFilename)) {
-        var tfgFilename = objFilename + ".tfg";
+        //var tfgFilename = objFilename + ".tfg";
 
         //const harvest = await this.readBuffer(harvestFilename);
         const harvest = harvestFilename;
@@ -1156,6 +1162,9 @@ class EqcheckHandler {
         const src_ir = runStatus.running_status.src_ir_filename;
         const dst_bc = runStatus.running_status.dst_bc_filename;
         const dst_ir = runStatus.running_status.dst_ir_filename;
+        const objectFilename = runStatus.running_status.dst_object_filename;
+        const harvestFilename = runStatus.running_status.dst_harvest_filename;
+        const compile_logFilename = runStatus.running_status.compile_log_filename;
         //console.log(`src_bc = ${src_bc}\n`);
         //console.log(`src_ir = ${src_ir}\n`);
         if (dstFilename === "") {
@@ -1163,9 +1172,9 @@ class EqcheckHandler {
           return;
         }
         const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
-        const objectFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
-        const compile_logFilename = this.get_compile_log_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
-        const harvestFilename = this.get_harvest_filename_for_object_filename(objectFilename);
+        //const objectFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
+        //const compile_logFilename = this.get_compile_log_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
+        //const harvestFilename = this.get_harvest_filename_for_object_filename(objectFilename);
         //console.log(`runStatus = ${JSON.stringify(runStatus)}\n`);
         //console.log(`dstFilename = ${dstFilename}\n`);
         //console.log(`dstFilenameIsObject = ${dstFilenameIsObject}\n`);

@@ -30,13 +30,13 @@ const defArgs = {
   tmpDir: opts.tmpDir || '/tmp',
 };
 
-const codeAnalysisURL = "/codeAnalysis";
+//const codeAnalysisURL = "/codeAnalysis";
 
 async function main() {
     const CompilationEnvironment = require('./lib/compilation-env');
     const compilationEnvironment = new CompilationEnvironment(/*compilerProps, compilationQueue, defArgs.doCache*/);
     const EqcheckHandler = require('./lib/handlers/eqcheck').Handler;
-    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall, codeAnalysisURL);
+    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall/*, codeAnalysisURL*/);
 
     const StorageHandler = require('./lib/storage/storage');
     const storageHandler = StorageHandler.storageFactory('local'/*, compilerProps, awsProps*/, '/');
@@ -59,11 +59,12 @@ async function main() {
         .on('error', err => logger.error('Caught error in web handler; continuing:', err))
         .use(express.json())
         .use('/', router)
-        .use(codeAnalysisURL, (req, res) => {
-          console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);
-          const path = req.originalUrl.substring(codeAnalysisURL.length);
-          res.send(`codeAnalysis page with path ${path}`);
-        })
+        //.use(codeAnalysisURL, (req, res) => {
+        //  console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);
+        //  const path = req.originalUrl.substring(codeAnalysisURL.length);
+        //  const html = fs.readFileSync('path');
+        //  res.send(html);
+        //})
         //.post('/test', (req, res) => {
         //    console.log('method:\n' + req.method);
         //    console.log('headers:\n' + JSON.stringify(req.headers));

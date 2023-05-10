@@ -45,6 +45,7 @@ const runStateStatusTerminated = 'terminated';
 const prepareSuffix = "/prepare";
 const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
+const rewritten_prefix = "rewritten.";
 
 function def(a) {
   return (a === undefined) ? "undef" : "def";
@@ -917,6 +918,94 @@ class EqcheckHandler {
       return ret;
     }
 
+    add_linkClicked_function_definition(contents, top_level_dir)
+    {
+      const header =
+      `<script language='javascript' type="text/javascript">
+      const vscode = acquireVsCodeApi();
+      function linkClicked(filename)
+      {
+        vscode.postMessage({ command: 'linkClicked', dirPath: '`;
+      const remaining = `', filename: filename});
+      }</script>`;
+      return contents.replace("<head>", "<head>\n" + header + top_level_dir + remaining);
+    }
+
+    inline_css(contents, scanbuild_dir)
+    {
+      const re = /<link type=\"text\/css\" rel=\"stylesheet\" href=\"([^"]+)\"\/>/;
+      var match = re.exec(contents);
+      while (match != null) {
+        const css_filename = match[1];
+        var css_contents = fs.readFileSync(scanbuild_dir + "/" + css_filename).toString();
+        const header = "<style type=\"text/css\">\n";
+        const footer = "\n</style>";
+        contents = contents.replace(match[0], header + css_contents + footer);
+        match = re.exec(contents);
+      }
+      return contents;
+    }
+
+    remove_pattern(contents, re)
+    {
+      var match = re.exec(contents);
+      while (match != null) {
+        contents = contents.replace(match[0], "");
+        match = re.exec(contents);
+      }
+      return contents;
+    }
+
+    remove_scripts(contents)
+    {
+      return this.remove_pattern(contents, /<script src="([^"]+)"><\/script>/);
+    }
+
+    remove_footnote(contents)
+    {
+      return this.remove_pattern(contents, /Please consider submitting preprocessed files as <a href="http:\/\/clang-analyzer.llvm.org\/filing_bugs.html">bug reports<\/a>/);
+    }
+
+    rewrite_links(contents)
+    {
+      const re = /href=["\']([^"\']+)["\']>/;
+      var match = re.exec(contents);
+      while (match != null) {
+        const url = match[1];
+        contents = contents.replace(match[0], "href=\"" + url + "\" onclick=\"linkClicked(\'" + url + "\');\">");
+        match = re.exec(contents);
+      }
+      return contents;
+    }
+
+    rewrite_scanbuild_file(top_level_dir, scanbuild_dir, filename)
+    {
+      var contents = fs.readFileSync(scanbuild_dir + "/" + filename).toString();
+
+      contents = this.add_linkClicked_function_definition(contents, top_level_dir);
+      contents = this.inline_css(contents, scanbuild_dir);
+      contents = this.remove_scripts(contents);
+      contents = this.remove_footnote(contents);
+      contents = this.rewrite_links(contents);
+
+      //console.log(`After rewriting, contents:\n${contents}`);
+      fs.writeFileSync(scanbuild_dir + "/" + filename, contents);
+      return contents;
+    }
+
+    rewrite_scanbuild_files(top_level_dir, scanview_report_dir)
+    {
+      const rewritten_dir = scanview_report_dir + "/../" + rewritten_prefix + "scanview.report";
+      //copy the scanview_report_dir to a rewritten dir
+      fs.copySync(scanview_report_dir, rewritten_dir, { overwrite: true });
+
+      //within the rewritten dir, run the python script on each file in that dir
+      const files = fs.readdirSync(rewritten_dir, { withFileTypes: true }).filter(dirent => dirent.isFile() && dirent.name.endsWith(".html"));
+      for (let i = 0; i < files.length; i++) {
+        this.rewrite_scanbuild_file(top_level_dir, rewritten_dir, files[i].name);
+      }
+    }
+
     get_scanview_report_dir(top_level_dir)
     {
       const scan_prefix = "scan.";
@@ -924,7 +1013,15 @@ class EqcheckHandler {
       //console.log(`top_level_dir = ${top_level_dir}`);
       //console.log(`scan_dirs = ${JSON.stringify(scan_dirs)}`);
       const scan_dir = scan_dirs[0].name;
-      const report_dirs = fs.readdirSync(top_level_dir + "/" + scan_dir, { withFileTypes: true });
+      const report_dirs = fs.readdirSync(top_level_dir + "/" + scan_dir, { withFileTypes: true }).filter(dirent => dirent.isDirectory());
+      if (report_dirs.length == 0) {
+        return undefined;
+      }
+      for (let i = 0; i < report_dirs.length; i++) {
+        if (report_dirs[i].name.substr(0, rewritten_prefix.length) == rewritten_prefix) {
+          return top_level_dir + "/" + scan_dir + "/" + report_dirs[i].name;
+        }
+      }
       return top_level_dir + "/" + scan_dir + "/" + report_dirs[0].name;
     }
 
@@ -1118,11 +1215,20 @@ class EqcheckHandler {
       } else if (commandIn === commandObtainScanviewReport) {
         console.log(`ObtainScanviewReport received with dirPathIn ${dirPathIn} source ${source}`);
 
-        const top_level_dir = dirPathIn + "/..";
-        const scanview_report_dir = this.get_scanview_report_dir(top_level_dir);
+        const top_level_dir = dirPathIn;// + "/..";
+        var scanview_report_dir = this.get_scanview_report_dir(top_level_dir);
+        if (scanview_report_dir === undefined) {
+          res.end("File not found");
+          return;
+        }
+        if (source === undefined) {
+          if (!scanview_report_dir.includes(rewritten_prefix)) {
+            this.rewrite_scanbuild_files(top_level_dir, scanview_report_dir);
+          }
+        }
         const scanview_report_file = (source === undefined) ? scanview_report_dir + "/index.html" : scanview_report_dir + "/" + source;
         //const scanview_report_url = "https://" + this.hostname + ":" + this.port + this.codeAnalysisURL + "/" + scanview_report_dir + "/index.html";
-        //console.log(`returning ${scanview_report_url}`);
+        //console.log(`reading ${scanview_report_file}`);
         const html = fs.readFileSync(scanview_report_file).toString();
         //console.log(`returning:\n${html}\n`);
         const scanviewReportStr = JSON.stringify({dirPath: dirPathIn, scanview_report: html});

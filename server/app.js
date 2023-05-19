@@ -142,18 +142,18 @@ function startListening(server) {
     } else */{
         _port = defArgs.port;
     }
-    //logger.info(`  Listening on http://${defArgs.hostname}:${_port}/`);
-    //logger.info("=======================================");
-    //server.listen(_port, defArgs.hostname);
+    logger.info(`  Listening on http://${defArgs.hostname}:${_port}/`);
+    logger.info("=======================================");
+    server.listen(_port, defArgs.hostname);
 
-    const httpsServer = https.createServer({
-      key: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.key'),
-      cert: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.crt'),
-    }, server);
-    httpsServer.listen(_port,  () => {
-      logger.info(`HTTPS server started on port ${_port}`);
-      logger.info("=======================================");
-    });
+    //const httpsServer = https.createServer({
+    //  key: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.key'),
+    //  cert: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.crt'),
+    //}, server);
+    //httpsServer.listen(_port,  () => {
+    //  logger.info(`HTTPS server started on port ${_port}`);
+    //  logger.info("=======================================");
+    //});
 }
 
 main()

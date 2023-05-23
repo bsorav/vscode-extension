@@ -5,6 +5,8 @@
 
 import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
 import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc} from "./tfg.js";
+// import { graphviz } from 'd3-graphviz';
+// import * as d3 from 'd3';
 
 const vscode = acquireVsCodeApi();
 
@@ -15,14 +17,6 @@ var g_edgeMap = null;
 var g_src_tfg = null;
 var g_dst_tfg = null;
 var g_eqcheck_info = null;
-//var g_src_subprogram_info = null;
-//var g_src_ir_subprogram_info = null;
-//var g_dst_subprogram_info = null;
-//var g_dst_ir_subprogram_info = null;
-//var g_src_nodeMap = null;
-//var g_src_ir_nodeMap = null;
-//var g_dst_nodeMap = null;
-//var g_dst_ir_nodeMap = null;
 
 window.addEventListener('message', async event => {
     const message = event.data;
@@ -162,21 +156,6 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const from_pc = element.from_pc;
     const to_pc = element.to_pc;
 
-    //const dst_from_pc = element.dst_edge.from_pc;
-    //const dst_to_pc = element.dst_edge.to_pc;
-    //const dst_unroll_factor_mu = element.dst_edge.unroll_factor_mu;
-    //const dst_unroll_factor_delta = element.dst_edge.unroll_factor_delta.unroll;
-    //const dst_ec = element.dst_edge.graph_ec;
-
-    //const src_from_pc = element.src_edge.from_pc;
-    //const src_to_pc = element.src_edge.to_pc;
-    //const src_unroll_factor_mu = element.src_edge.unroll_factor_mu;
-    //const src_unroll_factor_delta = element.src_edge.unroll_factor_delta.unroll;
-    //const src_ec = element.src_edge.graph_ec;
-
-    //const src_entry = { from_pc: src_from_pc, to_pc: src_to_pc, unroll_factor_mu: src_unroll_factor_mu, unroll_factor_delta: src_unroll_factor_delta, ec: src_ec };
-    //const dst_entry = { from_pc: dst_from_pc, to_pc: dst_to_pc, unroll_factor_mu: dst_unroll_factor_mu, unroll_factor_delta: dst_unroll_factor_delta, ec: dst_ec };
-
     const edgeId = getEdgeId(from_pc, to_pc);
     //const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
     const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: element.dst_edge, src_edge: element.src_edge, allocs: element.allocs, deallocs: element.deallocs };
@@ -226,11 +205,7 @@ function get_lsprels(lsprels, locals_map)
   //console.log(`lsprel_pairs = ${lsprel_pairs}\n`);
   for (var i = 0; i < lsprel_pairs.length; i++) {
     const lsprel_pair = lsprel_pairs[i];
-    //const allocsite = lsprel_pair["local_id"];
-    //const sprel_expr = lsprel_pair["sprel_expr"];
-    //const local_name = locals_map_get_name(locals_map, allocsite);
-    //console.log(`adding ${local_name} -> ${sprel_expr}\n`);
-    //console.log(`lsprel_pair = ${JSON.stringify(lsprel_pair)}\n`);
+
     const label = lsprel_pair["local_sprel_expr_label_for_gui"];
     //ret[local_name] = sprel_expr;
     ret.push(label);
@@ -239,58 +214,16 @@ function get_lsprels(lsprels, locals_map)
   return ret;
 }
 
-//function get_alloc_dealloc_map(ad_assumes, locals_map)
-//{
-//  var ret = {};
-//  const pc_lsprels = mk_array(ad_assumes["pc_lsprel"]);
-//  //console.log(`pc_lsprels = ${JSON.stringify(pc_lsprels)}\n`);
-//  for (var i = 0; i < pc_lsprels.length; i++) {
-//    const dst_pc = pc_lsprels[i].pc;
-//    const lsprels = get_lsprels(pc_lsprels[i].local_sprel_expr_guesses, locals_map);
-//    ret[dst_pc] = lsprels;
-//  }
-//  return ret;
-//}
-
-//function get_alloc_dealloc_map_for_edge(ad_map, dst_from_pc, dst_to_pc, allocdealloc)
-//{
-//  const dst_from_pc_components = dst_from_pc.split('%');
-//  const dst_to_pc_components = dst_to_pc.split('%');
-//  if (dst_from_pc_components[0] != dst_to_pc_components[0]) {
-//    return [];
-//  }
-//  if (dst_from_pc_components[1] != dst_to_pc_components[1]) {
-//    return [];
-//  }
-//  if (!dst_from_pc_components[2].startsWith(allocdealloc) && !dst_to_pc_components[2].startsWith(allocdealloc)) {
-//    return [];
-//  }
-//  for (var pc in ad_map) {
-//    const pc_components = pc.split('%');
-//    const pc_to_compare = (allocdealloc == "alloc") ? dst_to_pc_components : dst_from_pc_components;
-//    if (pc_components[0] == pc_to_compare[0] && pc_components[1] == pc_to_compare[1]) {
-//      return ad_map[pc];
-//    }
-//  }
-//  return [];
-//}
-
 function drawNetwork(correl_entry) {
-
-    //var nodeMap = {};
-    //var idx = 0;
-    //console.log(`drawNetwork: prod_cfg =\n${JSON.stringify(cfg)}\n`);
-    //const graph_hierarchy = cfg["graph-hierarchy"];
+    // d3.select("#graph").graphviz()
+    // .renderDot('digraph  {a -> b}');
 
     const cg_ec = correl_entry["cg_ec"];
 
     const graph_hierarchy = correl_entry["cg"];
     const graph = graph_hierarchy["graph"];
     const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
-    //const nodes_in_ = graph["nodes"];
-    //const edges_in_ = graph["edges"];
-    //const nodes_in = mk_array(nodes_in_);
-    //const edges_in = mk_array(edges_in_);
+
     const corr_graph = graph_hierarchy["corr_graph"];
     const cg_collapsed_nodes_and_edges = corr_graph["collapsed_nodes_and_edges_for_gui"];
     const src_tfg = corr_graph["src_tfg"];
@@ -324,41 +257,10 @@ function drawNetwork(correl_entry) {
     const [dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, "dst");
 
     const cg_ec_edges = getEdgesFromEC_recursive(cg_ec);
-    //console.log(`cg_ec_edges length = ${cg_ec_edges.length}`);
-
-    //console.log(`dst_insn_pcs =\n`);
-    //for (var key in dst_insn_pcs) {
-    //  const val = dst_insn_pcs[key];
-    //  console.log(`${key} -> ${val}`);
-    //}
-    //console.log(`dst_pc_to_assembly_index_map =\n`);
-    //for (var key in dst_pc_to_assembly_index_map) {
-    //  const val = dst_pc_to_assembly_index_map[key];
-    //  console.log(`${key} -> ${val}`);
-    //}
-    //console.log(`dst_assembly_index_to_assembly_line_map =\n`);
-    //for (var key in dst_assembly_index_to_assembly_line_map) {
-    //  const val = dst_assembly_index_to_assembly_line_map[key];
-    //  console.log(`${key} -> ${val}`);
-    //}
-
-    //const dst_insn_index_to_assembly_line_map = (dst_assembly==="") ? undefined : dst_asm_compute_index_to_line_map(dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map);
-
-    //console.log(`dst_insn_index_to_assembly_line_map =\n`);
-    //for (var key in dst_insn_index_to_assembly_line_map) {
-    //  const val = dst_insn_index_to_assembly_line_map[key];
-    //  console.log(`${key} -> ${val}`);
-    //}
 
     var nodeMap;
     [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
-    //const alloc_map = get_alloc_dealloc_map(alloc_assumes, locals_map);
-    //const dealloc_map = get_alloc_dealloc_map(dealloc_assumes, locals_map);
-
-    //console.log(`cg_edges = ${JSON.stringify(cg_edges)}`);
-
-    //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
     var nodes = new vis.DataSet(cg_nodes.map(function(node) {
       const label_orig = nodeMap[node].label;
       //console.log(`label_orig = ${label_orig}`);
@@ -379,26 +281,6 @@ function drawNetwork(correl_entry) {
       const from_idx = nodeMap[edge.from_pc].idx;
       const to_idx = nodeMap[edge.to_pc].idx;
 
-      //const src_linename_from = nodeMap[edge.from_pc].src_node.linename;
-      //const dst_linename_from = nodeMap[edge.from_pc].dst_node.linename;
-      //const src_columnname_from = nodeMap[edge.from_pc].src_node.columnname;
-      //const dst_columnname_from = nodeMap[edge.from_pc].dst_node.columnname;
-
-      //const src_linename_to = nodeMap[edge.to_pc].src_node.linename;
-      //const dst_linename_to = nodeMap[edge.to_pc].dst_node.linename;
-      //const src_columnname_to = nodeMap[edge.to_pc].src_node.columnname;
-      //const dst_columnname_to = nodeMap[edge.to_pc].dst_node.columnname;
-
-      //var from_label = `(${src_linename_from}c${src_columnname_from}, ${dst_linename_from}c${dst_columnname_from})`;
-      //var to_label = `(${src_linename_to}c${src_columnname_to},${dst_linename_to}c${dst_columnname_to})`;
-
-      //if (edge.from_pc === 'L0%0%d_L0%0%d') {
-      //  from_label = "entry";
-      //}
-      //if (edge.to_pc.charAt(0) !== 'L') {
-      //  to_label = "exit";
-      //}
-
       const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
       const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
 
@@ -411,12 +293,6 @@ function drawNetwork(correl_entry) {
 
       const allocs = get_lsprels(allocs_at_to_pc, locals_map);
       const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
-
-      //const allocs_at_to_pc = get_alloc_dealloc_map_for_edge(alloc_map, dst_from_pc, dst_to_pc, "alloc");
-      //const deallocs_at_to_pc = get_alloc_dealloc_map_for_edge(dealloc_map, dst_from_pc, dst_to_pc, "dealloc");
-
-      //console.log(`alloc_map = ${JSON.stringify(alloc_map)}`);
-      //console.log(`dst_to_pc = ${dst_to_pc}, allocs_at_to_pc = ${allocs_at_to_pc}`);
 
       var label = "";
 
@@ -448,7 +324,7 @@ function drawNetwork(correl_entry) {
       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
       return {from: from_idx, to: to_idx, color: color, label: label};
     }));
-
+    // [VIRAJ] This is where the plotting is happenning 
     var network = new vis.Network(document.getElementById('cfg'), {
         nodes: nodes,
         edges: edges
@@ -534,11 +410,6 @@ function refreshPanel()
       const edgeId = getEdgeId(from.pc, to.pc);
       const edge = g_edgeMap[edgeId];
 
-      //console.log(`from = ${JSON.stringify(from)}`);
-      //console.log(`to = ${JSON.stringify(to)}`);
-      //console.log(`edgeId = ${JSON.stringify(edgeId)}`);
-      //console.log(`highlighting edge = ${JSON.stringify(edge)}`);
-
       vscode.postMessage({
           command:"highlight",
           from: from,
@@ -547,14 +418,6 @@ function refreshPanel()
           eqcheck_info: g_eqcheck_info,
           src_tfg: g_src_tfg,
           dst_tfg: g_dst_tfg
-          //src_subprogram_info: g_src_subprogram_info,
-          //src_ir_subprogram_info: g_src_ir_subprogram_info,
-          //dst_subprogram_info: g_dst_subprogram_info,
-          //dst_ir_subprogram_info: g_dst_ir_subprogram_info,
-          //src_nodeMap: g_src_nodeMap,
-          //src_ir_nodeMap: g_src_ir_nodeMap,
-          //dst_nodeMap: g_dst_nodeMap,
-          //dst_ir_nodeMap: g_dst_ir_nodeMap
       });
   });
 

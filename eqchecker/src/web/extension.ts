@@ -1028,25 +1028,30 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   }
 
 
-  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri)
+  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri, d3_graphviz_js: vscode.Uri,
+    d3_v5_min_js: vscode.Uri, index_min_js: vscode.Uri)
   {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/product.html'));
     //return eval('`' + html + '`');
 
     const html =
     `<!DOCTYPE html>
+    <html>
     <meta charset="utf-8">
     <body>
-    <script src="//d3js.org/d3.v5.min.js"></script>
+    <p> Hello world! </p>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
     <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
     <div id="graph" style="text-align: center;"></div>
     <script>
-    
+
     d3.select("#graph").graphviz()
         .renderDot('digraph  {a -> b}');
-    
-    </script>`;
+
+    </script>
+    </body>
+    </html>`;
 
     return eval('`' + html + '`');
   }
@@ -1325,10 +1330,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-
+    const d3_graphviz_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/d3-graphviz.js'));
+    const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/d3.v5.min.js'));
+    const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/index.min.js'));
     // Set the webview content
 
-    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network));
+    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network, d3_graphviz_js, d3_v5_min_js, index_min_js));
     this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
     this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
 

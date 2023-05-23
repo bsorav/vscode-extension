@@ -1034,31 +1034,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //return eval('`' + html + '`');
 
     const html =
-    `<!doctype html>
-    <html>
-    <head>
-      <script type="module" src=${product_script}></script>
-      <link rel="stylesheet" href=${index_css}>
-      <script type="text/javascript" src=${vis_network}></script>
-    </head>
-
-    <body class="full-view"">
-        <div class=" full-view" id="prod-div-outermost">
-      <div class="header">Product Graph</div>
-      <div id="cfg">
-      </div>
-      <div class="zoom-buttons">
-        <div>
-          <input type="button" value="+" id="zoomin">
-        </div>
-        <div>
-          <input type="button" value="-" id="zoomout">
-        </div>
-      </div>
-      </div>
-    </body>
-
-    </html>`;
+    `<!DOCTYPE html>
+    <meta charset="utf-8">
+    <body>
+    <script src="//d3js.org/d3.v5.min.js"></script>
+    <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
+    <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
+    <div id="graph" style="text-align: center;"></div>
+    <script>
+    
+    d3.select("#graph").graphviz()
+        .renderDot('digraph  {a -> b}');
+    
+    </script>`;
 
     return eval('`' + html + '`');
   }

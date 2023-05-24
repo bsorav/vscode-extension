@@ -551,7 +551,8 @@ function drawNetwork(correl_entry) {
 
   d3.select("#graph").graphviz()
     // .renderDot('digraph  {a -> b}');
-    .renderDot(dotSrc);
+    .renderDot(dotSrc)
+    .zoom(false);
 
 }
 

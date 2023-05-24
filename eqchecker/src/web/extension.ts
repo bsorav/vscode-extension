@@ -1036,6 +1036,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <html>
     <meta charset="utf-8">
     <head>
+    
     <script type="module" src=${graph_src}></script>
     </head>
     <body style="background-color:#FFFFFF;">

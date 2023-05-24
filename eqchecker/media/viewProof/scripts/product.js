@@ -48,7 +48,7 @@ vscode.postMessage({command:"loaded"});
 //console.log(`Proof received, prod_cfg =\n${JSON.stringify(prod_cfg)}\n`);
 
 function initializeContainer(){
-    let container = document.getElementById('cfg');
+    let container = document.getElementById('graph');
     container.style.width = '100%';
     container.style.height = '100%';
 }
@@ -214,7 +214,7 @@ function get_lsprels(lsprels, locals_map)
   return ret;
 }
 
-function drawNetwork(correl_entry) {
+function drawNetwork_old(correl_entry) {
     // d3.select("#graph").graphviz()
     // .renderDot('digraph  {a -> b}');
 
@@ -387,43 +387,166 @@ function drawNetwork(correl_entry) {
     return network; //nodeMap:nodeMap
 }
 
+function drawNetwork(g_prodCfg) { 
+  // To Do List 
+  // --------------
+  // 1. Get a list of nodes 
+  // 2. Get a list of edges
+  // 3. Parse these to parametrically create the graph 
+  // Plot the graph 
+
+  // Initial Processing 
+
+  // const cg_ec = correl_entry["cg_ec"];
+
+  // const graph_hierarchy = correl_entry["cg"];
+  // const graph = graph_hierarchy["graph"];
+  // const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
+
+  // const corr_graph = graph_hierarchy["corr_graph"];
+  // const cg_collapsed_nodes_and_edges = corr_graph["collapsed_nodes_and_edges_for_gui"];
+  // const src_tfg = corr_graph["src_tfg"];
+  // const dst_tfg = corr_graph["dst_tfg"];
+  // //const cg_edges_ = graph_with_predicates["edge"];
+  // const cg_edges_ = cg_collapsed_nodes_and_edges["collapsed_edge"];
+  // const cg_edges = mk_array(cg_edges_);
+  // const cg_nodes_ = cg_collapsed_nodes_and_edges["node_pc_after_collapse"];
+  // const cg_nodes = mk_array(cg_nodes_);
+
+  // const alloc_assumes = corr_graph["alloca_pc_local_sprel_assumes"];
+  // const dealloc_assumes = corr_graph["dealloca_pc_local_sprel_assumes"];
+
+  // const src_graph_with_predicates = src_tfg["graph_with_predicates"];
+  // const locals_map = src_graph_with_predicates["graph_locals_map"];
+
+  // const src_nodes = src_tfg["graph"]["nodes"];
+  // const dst_nodes = dst_tfg["graph"]["nodes"];
+
+  // const src_tfg_llvm = src_tfg["tfg_llvm"];
+
+  // const dst_tfg_llvm = dst_tfg["tfg_llvm"];
+  // const dst_tfg_asm = dst_tfg["tfg_asm"];
+
+  // const eqcheck_info = corr_graph["eqcheck_info"];
+
+  // g_eqcheck_info = eqcheck_info;
+  // g_src_tfg = src_tfg;
+  // g_dst_tfg = dst_tfg;
+
+  // const [dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, "dst");
+
+  // var nodeMap;
+  // [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+
+  // // Array of the nodes of the graph
+  // var nodes = cg_nodes.map(function(node) {
+  //   const label_orig = nodeMap[node].label;
+  //   //console.log(`label_orig = ${label_orig}`);
+  //   var label = label_orig;
+  //   const level = nodeMap[node].level;
+  //   //var x = ((level % 2) * 2 - 1) * 500;
+  //   //console.log(`node = ${node}, level = ${level}, x = ${x}`);
+  //   if (node === 'L0%0%d_L0%0%d') {
+  //     label = "entry";
+  //   } else if (node.charAt(0) !== 'L') {
+  //     label = "exit";
+  //   }
+  //   return {id:nodeMap[node].idx, label: label, level: level};
+  // });
+
+  // // Array of the edges of the graph 
+  // var edges = cg_edges.map(function(edge) {
+  //   //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
+  //   //console.log(`edge from_pc ${edge.from_pc} to_pc ${edge.to_pc}`);
+  //   const from_idx = nodeMap[edge.from_pc].idx;
+  //   const to_idx = nodeMap[edge.to_pc].idx;
+
+  //   const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
+  //   const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
+
+  //   const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
+
+  //   //console.log(`g_edgeMap[edgeId] = ${JSON.stringify(g_edgeMap[edgeId])}`);
+
+  //   const allocs_at_to_pc = g_edgeMap[edgeId].allocs;
+  //   const deallocs_at_to_pc = g_edgeMap[edgeId].deallocs;
+
+  //   const allocs = get_lsprels(allocs_at_to_pc, locals_map);
+  //   const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
+
+  //   var label = "";
+
+  //   //console.log(`allocs = ${JSON.stringify(allocs)}`);
+  //   for (const l of allocs) {
+  //     //const sprel = allocs_at_to_pc[local_name];
+  //     //label = `${label}alloc ${local_name}->${sprel}; `;
+  //     label = `${label}a ${l}; `;
+  //   }
+
+  //   for (const l of deallocs) {
+  //     //const sprel = allocs_at_to_pc[local_name];
+  //     //label = `${label}dealloc ${local_name}->${sprel}; `;
+  //     label = `${label}d ${l}; `;
+  //   }
+
+  //   var color;
+
+  //   if (cg_edge_belongs(cg_ec_edges, edge)) {
+  //     //console.log(`choosing green`);
+  //     color = { color: "green" }; //can use "red"
+  //   } else {
+  //     //console.log(`choosing blue`);
+  //     color = { color: "blue" };
+  //   }
+
+  //   //const label = `${from_label} -> ${to_label}`;
+
+  //   //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
+  //   return {from: from_idx, to: to_idx, color: color, label: label};
+  // });
+
+  d3.select("#graph").graphviz()
+    .renderDot('digraph  {a -> b}');
+
+}
+
 function refreshPanel()
 {
   initializeContainer();
-  var network = drawNetwork(g_prodCfg);
-  //var res = drawNetwork(g_prodCfg);
+  // drawNetwork();
+  var res = drawNetwork(g_prodCfg);
 
-  network.on("stabilizationIterationsDone", function(){
-    network.setOptions( { physics: false } );
-  });
+  // network.on("stabilizationIterationsDone", function(){
+  //   network.setOptions( { physics: false } );
+  // });
 
   //var network = res.network;
   //var nodeMap = res.nodeMap;
 
-  network.on('selectEdge', function(properties) {
-      let propEdgeId = properties.edges[0];
-      let propEdge = network.body.data.edges.get(propEdgeId);
-      //console.log(`propEdge.from = ${propEdge.from}`);
-      //console.log(`propEdge.to = ${propEdge.to}`);
-      const from = g_nodeIdMap[propEdge.from];
-      const to = g_nodeIdMap[propEdge.to];
-      const edgeId = getEdgeId(from.pc, to.pc);
-      const edge = g_edgeMap[edgeId];
+  // network.on('selectEdge', function(properties) {
+  //     let propEdgeId = properties.edges[0];
+  //     let propEdge = network.body.data.edges.get(propEdgeId);
+  //     //console.log(`propEdge.from = ${propEdge.from}`);
+  //     //console.log(`propEdge.to = ${propEdge.to}`);
+  //     const from = g_nodeIdMap[propEdge.from];
+  //     const to = g_nodeIdMap[propEdge.to];
+  //     const edgeId = getEdgeId(from.pc, to.pc);
+  //     const edge = g_edgeMap[edgeId];
 
-      vscode.postMessage({
-          command:"highlight",
-          from: from,
-          to: to,
-          edge: edge,
-          eqcheck_info: g_eqcheck_info,
-          src_tfg: g_src_tfg,
-          dst_tfg: g_dst_tfg
-      });
-  });
+  //     vscode.postMessage({
+  //         command:"highlight",
+  //         from: from,
+  //         to: to,
+  //         edge: edge,
+  //         eqcheck_info: g_eqcheck_info,
+  //         src_tfg: g_src_tfg,
+  //         dst_tfg: g_dst_tfg
+  //     });
+  // });
 
-  network.on('deselectEdge', function(properties) {
-      vscode.postMessage({
-          command:"clear"
-      });
-  });
+  // network.on('deselectEdge', function(properties) {
+  //     vscode.postMessage({
+  //         command:"clear"
+  //     });
+  // });
 }

@@ -1021,7 +1021,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       <link rel="stylesheet" href=${scanview_css}>
     </head>
 
-    <body class="full-view"">
+    <body class="full-view" >
         <div id="report"></div>
     </body>
     </html>`;
@@ -1038,11 +1038,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <head>
     <script type="module" src=${graph_src}></script>
     </head>
-    <body>
-    <p> Hello world! </p>
+    <body style="background-color:#FFFFFF;">
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
     <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
+    <p id="debug"></p>
     <div id="graph" style="text-align: center;"></div>
     </body>
     </html>`;

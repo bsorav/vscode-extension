@@ -19,7 +19,6 @@ var g_dst_tfg = null;
 var selected_edge = null; 
 var g_eqcheck_info = null;
 
-var counter = 0;
 
 window.addEventListener('message', async event => {
     const message = event.data;
@@ -29,13 +28,8 @@ window.addEventListener('message', async event => {
         g_prodCfg = message.code;
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();
-        var debug_str = String(counter++);
-        document.getElementById('debug').innerText = debug_str;
-        if (counter == 1) {
-          refreshPanel();
-          document.getElementById('debug').innerText = "Refreshed again!";
-        }
-        
+        // var debug_str = String(counter++);
+        // document.getElementById('debug').innerText = debug_str;
         //prod_cfg = message;
         //console.log(`prod_cfg = ${prod_cfg}`);
         break;
@@ -404,6 +398,7 @@ function drawNetwork_old(correl_entry) {
 function generateDot(graph_nodes, graph_edges) {
   // let orange = vscode.window.createOutputChannel("Orange");
   var dot_src = 'digraph {\n';
+  dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2 color="#cfe2f3" ]\n`;
 
   // Add declarations for the nodes 
   for (const node of graph_nodes) {
@@ -429,10 +424,6 @@ function generateDot(graph_nodes, graph_edges) {
   // document.getElementById('debug').innerText = debg;
 
   return dot_src;
-}
-
-function get_endpoints() {
-  
 }
 
 function drawNetwork(correl_entry) { 
@@ -540,13 +531,15 @@ function drawNetwork(correl_entry) {
     }
 
     var color;
-    console.log("CG EC EDGES" + JSON.stringify(cg_ec_edges));
-    if (cg_edge_belongs(cg_ec_edges, edge)) {
+    // console.log("CG EC EDGES" + JSON.stringify(cg_ec_edges));
+    if (selected_edge == edgeId) {
+        color = "#ff0000";
+    } else if (cg_edge_belongs(cg_ec_edges, edge)) {
       //console.log(`choosing green`);
       color = "green"; //can use "red"
     } else {
       //console.log(`choosing blue`);
-      color = "blue";
+      color = "#0033cc";
     }
 
     //const label = `${from_label} -> ${to_label}`;
@@ -588,7 +581,7 @@ function refreshPanel()
   d3.select("#graph")
   .selectAll('.edge')
   .on("click", function () {
-    debug_str = d3.select(this).attr('id');
+    // debug_str = d3.select(this).attr('id');
     var e_ids = d3.select(this).attr('id').split("#");
     const from = g_nodeIdMap[e_ids[0]];
     const to = g_nodeIdMap[e_ids[1]];
@@ -597,7 +590,7 @@ function refreshPanel()
     const edgeId = getEdgeId(from.pc, to.pc);
     // console.log("The selected edge id is:" + edgeId);
     // console.log("The previous selected edge was:" + selected_edge);
-    document.getElementById('debug').innerText = edgeId;
+    // document.getElementById('debug').innerText = edgeId;
 
     if (selected_edge == edgeId) {
       // Edge is already selected, deselect   
@@ -605,6 +598,7 @@ function refreshPanel()
       vscode.postMessage({
           command:"clear"
       });
+      var dot_src = drawNetwork(g_prodCfg);
     } else {
       selected_edge = edgeId;
       const edge = g_edgeMap[edgeId];    
@@ -617,6 +611,7 @@ function refreshPanel()
         src_tfg: g_src_tfg,
         dst_tfg: g_dst_tfg
       });
+      var dot_src = drawNetwork(g_prodCfg);
     }
 
   })

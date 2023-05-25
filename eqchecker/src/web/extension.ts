@@ -1043,8 +1043,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
     <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
-    <p id="debug" style="color:#000000;">Hello World</p>
+    <h1 id="debug">0</h1>
     <div class="graph" id="graph" style="text-align: center;"></div>
+
     </body>
     </html>`;
 

@@ -18,6 +18,8 @@ var g_src_tfg = null;
 var g_dst_tfg = null;
 var g_eqcheck_info = null;
 
+var counter = 0;
+
 window.addEventListener('message', async event => {
     const message = event.data;
     //console.log(`RECEIVED EVENT: ${JSON.stringify(message)}\n`);
@@ -26,6 +28,12 @@ window.addEventListener('message', async event => {
         g_prodCfg = message.code;
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();
+        var debug_str = String(counter++);
+        document.getElementById('debug').innerText = debug_str;
+        if (counter == 1) {
+          refreshPanel();
+        }
+        
         //prod_cfg = message;
         //console.log(`prod_cfg = ${prod_cfg}`);
         break;
@@ -542,32 +550,14 @@ function drawNetwork(correl_entry) {
 
   var dotSrc = generateDot(nodes, edges);
 
-  // var dotSrc = `
-  // digraph {
-  //   Node1 [id="Node1" label="Node1"]
-  //   Node2 [id="Node2" label="Node2"]
-  //   Node1 -> Node2 [id="E1" label="E1" color="#000000"]
-  //   }
-  // `
-
   d3.select("#graph").graphviz()
-    // .renderDot('digraph  {a -> b}');
     .renderDot(dotSrc)
     .zoom(false);
 
   return dotSrc;
 }
 
-function render_product(dotSrc) {
-  graphviz
-      .transition(function() {
-          return d3.transition()
-              .delay(100)
-              .duration(1000);
-      })
-      .renderDot(dotSrc)
-      .on("end", interactive);
-}
+var b = 0;
 
 function refreshPanel()
 {
@@ -575,19 +565,52 @@ function refreshPanel()
   // drawNetwork();
   var dot_src = drawNetwork(g_prodCfg);
 
-  var g_nodes = d3.selectAll('.node');
-  // g_nodes.attr("class", "graph-node");
-  var g_edges = d3.selectAll('.edge');
-  // g_edges.attr("class","graph-edge");
-
+  var debug_str;
+  
   d3.select("#graph")
   .selectAll('.node, .edge')
   .on("mouseover", function () {
+    // debug_str = d3.select(this).attr('id');
+    // document.getElementById('debug').innerText = debug_str;
     d3.select(this).attr("cursor", "pointer");
   })
   .on("mouseout", function () {
     d3.select(this).attr("cursor", "default");
   });
+
+  d3.select("#graph")
+  .selectAll('.node, .edge')
+  .on("click", function () {
+    debug_str = d3.select(this).attr('id');
+    document.getElementById('debug').innerText = debug_str;
+  })
+
+
+  // d3.select("#graph")
+  // .selectAll('.edge')
+  // .on("mouseover", function () {
+  //   d3.select(this).attr("cursor", "pointer");
+  //   const from = g_nodeIdMap[d3.select(this).attr('from')];
+  //   const to = g_nodeIdMap[d3.select(this).attr('to')];
+  //   const edgeId = getEdgeId(from.pc, to.pc);
+  //   const edge = g_edgeMap[edgeId];
+
+  //   var debg = JSON.stringify(from) + JSON.stringify(to) + JSON.stringify(edgeId) + JSON.stringify(edge); 
+  //   document.getElementById('debug').innerText = debg;
+
+  //   vscode.postMessage({
+  //     command:"highlight",
+  //     from: from,
+  //     to: to,
+  //     edge: edge,
+  //     eqcheck_info: g_eqcheck_info,
+  //     src_tfg: g_src_tfg,
+  //     dst_tfg: g_dst_tfg
+  //   });
+  // })
+  // .on("mouseout", function () {
+  //   d3.select(this).attr("cursor", "default");
+  // });
 
   // network.on("stabilizationIterationsDone", function(){
   //   network.setOptions( { physics: false } );
@@ -596,27 +619,24 @@ function refreshPanel()
   //var network = res.network;
   //var nodeMap = res.nodeMap;
 
-  g_edges.on("click", function() {
-      const from = g_nodeIdMap[d3.select(this).attr('from')];
-      const to = g_nodeIdMap[d3.select(this).attr('to')];
-      const edgeId = getEdgeId(from.pc, to.pc);
-      const edge = g_edgeMap[edgeId];
+  // g_edges.on("click", function() {
+  //     const from = g_nodeIdMap[d3.select(this).attr('from')];
+  //     const to = g_nodeIdMap[d3.select(this).attr('to')];
+  //     const edgeId = getEdgeId(from.pc, to.pc);
+  //     const edge = g_edgeMap[edgeId];
 
-      var debg = JSON.stringify(from) + JSON.stringify(to) + JSON.stringify(edgeId) + JSON.stringify(edge); 
-      document.getElementById('debug').innerText = debg;
+  //     vscode.postMessage({
+  //       command:"highlight",
+  //       from: from,
+  //       to: to,x
+  //       edge: edge,
+  //       eqcheck_info: g_eqcheck_info,
+  //       src_tfg: g_src_tfg,
+  //       dst_tfg: g_dst_tfg
+  //     });
+  // });
 
-      vscode.postMessage({
-        command:"highlight",
-        from: from,
-        to: to,
-        edge: edge,
-        eqcheck_info: g_eqcheck_info,
-        src_tfg: g_src_tfg,
-        dst_tfg: g_dst_tfg
-      });
-  });
-
-  render_product(dot_src);
+  // render_product(dot_src);
   // Add logic for deselct also 
 
   // network.on('selectEdge', function(properties) {

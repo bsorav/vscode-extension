@@ -32,6 +32,7 @@ window.addEventListener('message', async event => {
         document.getElementById('debug').innerText = debug_str;
         if (counter == 1) {
           refreshPanel();
+          document.getElementById('debug').innerText = "Refreshed again!";
         }
         
         //prod_cfg = message;
@@ -50,6 +51,7 @@ window.addEventListener('message', async event => {
 //    }
 //}
 vscode.postMessage({command:"loaded"});
+
 
 //console.log("Waiting for proof\n");
 //await waitForMessage();
@@ -149,7 +151,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const src_entry = {pc: src_pc, linename: src_linename/*, ir_linename: src_ir_linename*/, columnname: src_columnname/*, ir_columnname: src_ir_columnname*/, line_and_column_names: src_line_and_column_names};
     const dst_entry = {pc: dst_pc, linename: dst_linename/*, ir_linename: dst_ir_linename*/, columnname: dst_columnname/*, ir_columnname: dst_ir_columnname*/, line_and_column_names: dst_line_and_column_names};
 
-    const entry = {idx: idx, pc: element, src_node: src_entry, dst_node: dst_entry, label: label, level: idx};
+    const entry = {idx: idx, pc: element, src_node: src_entry,  dst_node: dst_entry, label: label, level: idx};
 
     nodeMap[entry.pc] = entry;
     nodeIdMap[entry.idx] = entry;

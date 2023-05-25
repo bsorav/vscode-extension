@@ -51,6 +51,7 @@ function initializeContainer(){
     let container = document.getElementById('graph');
     container.style.width = '100%';
     container.style.height = '100%';
+    
 }
 
 function getEdgeId(from_pc, to_pc)
@@ -554,13 +555,39 @@ function drawNetwork(correl_entry) {
     .renderDot(dotSrc)
     .zoom(false);
 
+  return dotSrc;
+}
+
+function render_product(dotSrc) {
+  graphviz
+      .transition(function() {
+          return d3.transition()
+              .delay(100)
+              .duration(1000);
+      })
+      .renderDot(dotSrc)
+      .on("end", interactive);
 }
 
 function refreshPanel()
 {
   initializeContainer();
   // drawNetwork();
-  var res = drawNetwork(g_prodCfg);
+  var dot_src = drawNetwork(g_prodCfg);
+
+  var g_nodes = d3.selectAll('.node');
+  // g_nodes.attr("class", "graph-node");
+  var g_edges = d3.selectAll('.edge');
+  // g_edges.attr("class","graph-edge");
+
+  d3.select("#graph")
+  .selectAll('.node, .edge')
+  .on("mouseover", function () {
+    d3.select(this).attr("cursor", "pointer");
+  })
+  .on("mouseout", function () {
+    d3.select(this).attr("cursor", "default");
+  });
 
   // network.on("stabilizationIterationsDone", function(){
   //   network.setOptions( { physics: false } );
@@ -568,6 +595,29 @@ function refreshPanel()
 
   //var network = res.network;
   //var nodeMap = res.nodeMap;
+
+  g_edges.on("click", function() {
+      const from = g_nodeIdMap[d3.select(this).attr('from')];
+      const to = g_nodeIdMap[d3.select(this).attr('to')];
+      const edgeId = getEdgeId(from.pc, to.pc);
+      const edge = g_edgeMap[edgeId];
+
+      var debg = JSON.stringify(from) + JSON.stringify(to) + JSON.stringify(edgeId) + JSON.stringify(edge); 
+      document.getElementById('debug').innerText = debg;
+
+      vscode.postMessage({
+        command:"highlight",
+        from: from,
+        to: to,
+        edge: edge,
+        eqcheck_info: g_eqcheck_info,
+        src_tfg: g_src_tfg,
+        dst_tfg: g_dst_tfg
+      });
+  });
+
+  render_product(dot_src);
+  // Add logic for deselct also 
 
   // network.on('selectEdge', function(properties) {
   //     let propEdgeId = properties.edges[0];

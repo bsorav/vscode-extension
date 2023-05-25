@@ -76,6 +76,10 @@ body{
     height:50vh;
 }
 
+.graph-node:hover { cursor: pointer; }
+
+.graph-edge:hover {cursor: pointer;}
+
 /* The switch - the box around the slider */
 .switch {
     position: relative;

@@ -16,6 +16,7 @@ var g_nodeIdMap = null;
 var g_edgeMap = null;
 var g_src_tfg = null;
 var g_dst_tfg = null;
+var selected_edge = null; 
 var g_eqcheck_info = null;
 
 var counter = 0;
@@ -415,7 +416,7 @@ function generateDot(graph_nodes, graph_edges) {
 
   // Add declarations for the edges
   for (const edge of graph_edges) {
-    dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.label}\" label=\"${edge.label}\" color=\"${edge.color}\"]\n`;
+    dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=2]\n`;
     // dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.label}\" label=\"${edge.label}\" color=\"\"]\n`;
   }
 
@@ -428,6 +429,10 @@ function generateDot(graph_nodes, graph_edges) {
   // document.getElementById('debug').innerText = debg;
 
   return dot_src;
+}
+
+function get_endpoints() {
+  
 }
 
 function drawNetwork(correl_entry) { 
@@ -535,7 +540,7 @@ function drawNetwork(correl_entry) {
     }
 
     var color;
-
+    console.log("CG EC EDGES" + JSON.stringify(cg_ec_edges));
     if (cg_edge_belongs(cg_ec_edges, edge)) {
       //console.log(`choosing green`);
       color = "green"; //can use "red"
@@ -559,7 +564,7 @@ function drawNetwork(correl_entry) {
   return dotSrc;
 }
 
-var b = 0;
+
 
 function refreshPanel()
 {
@@ -581,10 +586,39 @@ function refreshPanel()
   });
 
   d3.select("#graph")
-  .selectAll('.node, .edge')
+  .selectAll('.edge')
   .on("click", function () {
     debug_str = d3.select(this).attr('id');
-    document.getElementById('debug').innerText = debug_str;
+    var e_ids = d3.select(this).attr('id').split("#");
+    const from = g_nodeIdMap[e_ids[0]];
+    const to = g_nodeIdMap[e_ids[1]];
+    
+    // console.log(from, to
+    const edgeId = getEdgeId(from.pc, to.pc);
+    // console.log("The selected edge id is:" + edgeId);
+    // console.log("The previous selected edge was:" + selected_edge);
+    document.getElementById('debug').innerText = edgeId;
+
+    if (selected_edge == edgeId) {
+      // Edge is already selected, deselect   
+      selected_edge = null;
+      vscode.postMessage({
+          command:"clear"
+      });
+    } else {
+      selected_edge = edgeId;
+      const edge = g_edgeMap[edgeId];    
+      vscode.postMessage({
+        command:"highlight",
+        from: from,
+        to: to,
+        edge: edge,
+        eqcheck_info: g_eqcheck_info,
+        src_tfg: g_src_tfg,
+        dst_tfg: g_dst_tfg
+      });
+    }
+
   })
 
 

@@ -1506,6 +1506,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     // Message passing to src and dst webview
     //console.log(`Panels loaded. Posting proof to panel_prd.\n`);
     this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
+    
     //console.log("Posted proof to panel_prd\n");
 
     const src_ec = correl_entry["src_ec"];

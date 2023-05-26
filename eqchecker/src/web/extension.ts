@@ -595,10 +595,10 @@ class Eqchecker {
       placeHolder: "(none)"
     };
     var extra_args = "";
-    await vscode.window.showInputBox(options).then(async ea => {
-      if (!ea) return;
-      extra_args = ea;
-    });
+    //await vscode.window.showInputBox(options).then(async ea => {
+    //  if (!ea) return;
+    //  extra_args = ea;
+    //});
 
     const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
     var source2Text;

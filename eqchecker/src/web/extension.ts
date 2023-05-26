@@ -1028,16 +1028,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-
-  // <script src="https://d3js.org/d3.v5.min.js"></script>
-  // <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
-  // <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
-
-  // <script src="https://d3js.org/d3.v5.min.js"></script>
-  // <script src="../node_modules/@hpcc-js/wasm/dist/index.min.js"></script>
-  // <script src="../node_modules/d3-graphviz/build/d3-graphviz.js"></script>
-
-
   public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, graph_src: vscode.Uri, d3_v5_min_js: vscode.Uri, index_min_js: vscode.Uri, d3_graphviz_js: vscode.Uri)
   {
     const html =
@@ -1334,7 +1324,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
-    // const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/test.js'));
     const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3/dist/d3.js'));
     const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/@hpcc-js/wasm/dist/index.min.js'));
     const d3_graphviz_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3-graphviz/build/d3-graphviz.js'));

@@ -544,8 +544,6 @@ function drawNetwork(correl_entry) {
   return dotSrc;
 }
 
-
-
 function refreshPanel()
 {
   initializeContainer();

@@ -125,7 +125,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       } else if (runState == runStateStatusRunning || runState == runStateStatusPreparing) {
         //console.log(`returning yellow colour\n`);
         return "rgb(0, 0, 0)"; //black
-      } else if (runState == runStateStatusFoundProof) {
+      } else if (runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckFailed) {
         //console.log(`returning green colour\n`);
         return "rgb(0, 150, 0)"; //green
       } else {
@@ -530,7 +530,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
         eqcheckRightClickMenu.style.display = "inline";
 
-        if (eqcheck.runState == runStateStatusFoundProof) {
+        if (eqcheck.runState == runStateStatusFoundProof || eqcheck.runState == runStateStatusSafetyCheckFailed) {
           if (eqcheck.viewState != viewStateViewProof) {
             items[0].innerHTML = 'View Proof';
             items[0].addEventListener('click', viewProofListener);

@@ -478,6 +478,8 @@ class EqcheckHandler {
         const harvestFilename = harvest;
 
         const outFilename = this.get_outfilename(dirPath);
+        //const stdoutFilename = outFilename + ".stdout";
+        //const stderrFilename = outFilename + ".stderr";
         const runstatusFilename = this.get_runstatus_filename(dirPath);
         const searchTreeFilename = this.get_search_tree_filename(dirPath);
         const proofFilename = this.get_proof_filename(dirPath, undefined);
@@ -1104,10 +1106,20 @@ class EqcheckHandler {
           //const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
           //const submit_eqcheck = (commandIn === commandSubmitEqchek);
 
-          console.log(`extra_args = ${extra_args}.`);
+
+          //console.log(`extra_args = ${extra_args}.`);
           this.run_eqcheck(source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn, extra_args)
               .then(
                   result => {
+                      //console.log(result.stdout);
+                      //console.log(result.stderr);
+
+                      let stdout_filename = this.get_outfilename(dirPath) + ".stdout";
+                      fs.writeFileSync(stdout_filename, result.stdout);
+
+                      let stderr_filename = this.get_outfilename(dirPath) + ".stderr";
+                      fs.writeFileSync(stderr_filename, result.stderr);
+
                       res.end(JSON.stringify({retcode: 0}));
                   },
                   error => {

@@ -1032,7 +1032,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       <link rel="stylesheet" href=${scanview_css}>
     </head>
 
-    <body class="full-view"">
+    <body class="full-view" >
         <div id="report"></div>
     </body>
     </html>`;
@@ -1040,36 +1040,23 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   }
 
 
-  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri)
+  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri, graph_src: vscode.Uri)
   {
-    //const html = readFileSync(path.join(context_path, 'src/web_view/views/product.html'));
-    //return eval('`' + html + '`');
-
     const html =
-    `<!doctype html>
+    `<!DOCTYPE html>
     <html>
+    <meta charset="utf-8">
     <head>
-      <script type="module" src=${product_script}></script>
-      <link rel="stylesheet" href=${index_css}>
-      <script type="text/javascript" src=${vis_network}></script>
+    <link rel="stylesheet" href=${index_css}>
+    <script type="module" src=${graph_src}></script>
     </head>
+    <body style="background-color:#FFFFFF;">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
+    <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
+    <div class="graph" id="graph" style="text-align: center;"></div>
 
-    <body class="full-view"">
-        <div class=" full-view" id="prod-div-outermost">
-      <div class="header">Product Graph</div>
-      <div id="cfg">
-      </div>
-      <div class="zoom-buttons">
-        <div>
-          <input type="button" value="+" id="zoomin">
-        </div>
-        <div>
-          <input type="button" value="-" id="zoomout">
-        </div>
-      </div>
-      </div>
     </body>
-
     </html>`;
 
     return eval('`' + html + '`');
@@ -1349,10 +1336,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
+    // const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/test.js'));
+    const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/d3.v5.min.js'));
+    const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/index.min.js'));
 
     // Set the webview content
 
-    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network));
+    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network, prod_source_js));
     this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
     this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
 
@@ -1525,6 +1516,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     // Message passing to src and dst webview
     //console.log(`Panels loaded. Posting proof to panel_prd.\n`);
     this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
+
     //console.log("Posted proof to panel_prd\n");
 
     const src_ec = correl_entry["src_ec"];
@@ -1649,6 +1641,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
+          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
+          // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 

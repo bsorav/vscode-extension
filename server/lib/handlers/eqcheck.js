@@ -11,8 +11,8 @@ const temp = require('temp'),
     Sentry = require('@sentry/node'),
     xml2js = require('xml2js'),
     assert = require('assert'),
-    tree_kill = require('tree-kill')//,
-    //textEncoding = require('text-encoding')
+    tree_kill = require('tree-kill'),
+    textEncoding = require('text-encoding')
 ;
 
 //temp.track();
@@ -419,7 +419,8 @@ class EqcheckHandler {
 
         var sourceTxt;
         if (source_filename === undefined) {
-          const decoder = new TextDecoder();
+          console.log(`source = ${JSON.stringify(source)}`);
+          const decoder = new textEncoding.TextDecoder();
           sourceTxt = decoder.decode(source);
           //console.log(`sourceTxt = ${sourceTxt}\n`);
           const sourceError = this.checkSource(sourceTxt);

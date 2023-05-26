@@ -1040,7 +1040,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   }
 
 
-  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri, graph_src: vscode.Uri)
+  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, graph_src: vscode.Uri, d3_v5_min_js: vscode.Uri, index_min_js: vscode.Uri, d3_graphviz_js: vscode.Uri)
   {
     const html =
     `<!DOCTYPE html>
@@ -1051,9 +1051,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <script type="module" src=${graph_src}></script>
     </head>
     <body style="background-color:#FFFFFF;">
-    <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
-    <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
+    <script src="${d3_v5_min_js}"></script>
+    <script src="${index_min_js}"></script>
+    <script src="${d3_graphviz_js}"></script>
     <div class="graph" id="graph" style="text-align: center;"></div>
 
     </body>
@@ -1330,20 +1330,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
     const prism_nasm_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/components/prism-nasm.min.js'));
     //const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
-    const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
-    // const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/test.js'));
-    const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/d3.v5.min.js'));
-    const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/index.min.js'));
+    const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3/dist/d3.js'));
+    const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/@hpcc-js/wasm/dist/index.min.js'));
+    const d3_graphviz_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3-graphviz/build/d3-graphviz.js'));
 
     // Set the webview content
 
-    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network, prod_source_js));
+    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, prod_source_js, d3_v5_min_js, index_min_js, d3_graphviz_js));
     this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
     this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
 

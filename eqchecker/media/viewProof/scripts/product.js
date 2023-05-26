@@ -475,7 +475,6 @@ function drawNetwork_old(correl_entry) {
 // This function takes in the nodes and edges of the graph
 // And returns the dotsource for generating it
 function generateDot(graph_nodes, graph_edges) {
-  // let orange = vscode.window.createOutputChannel("Orange");
   var dot_src = 'digraph {\n';
   dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2 color="#cfe2f3" ]\n`;
 
@@ -486,29 +485,19 @@ function generateDot(graph_nodes, graph_edges) {
     dot_src += `${id} [id=\"${id}\" label=\"${lab}\"]\n`;
   }
 
-  var debg = JSON.stringify(graph_nodes) + "\n" + JSON.stringify(graph_edges);
-
   // Add declarations for the edges
+  // Note: Change penwidth if you want to change thickness of the edges  
   for (const edge of graph_edges) {
-    dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=2]\n`;
+    dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=3]\n`;
     // dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.label}\" label=\"${edge.label}\" color=\"\"]\n`;
   }
 
   dot_src += '}';
 
-  // document.getElementById('debug').innerText = debg;
-
   return dot_src;
 }
 
 function drawNetwork(correl_entry) {
-  // To Do List
-  // --------------
-  // 1. Get a list of nodes
-  // 2. Get a list of edges
-  // 3. Parse these to parametrically create the graph
-  // Plot the graph
-
   // Initial Processing
 
   const cg_ec = correl_entry["cg_ec"];
@@ -623,8 +612,10 @@ function drawNetwork(correl_entry) {
     return {from: from_idx, to: to_idx, color: color, label: label};
   });
 
+  // Get the dot file from nodes and edges
   var dotSrc = generateDot(nodes, edges);
 
+  // This renders the graph
   d3.select("#graph").graphviz()
     .renderDot(dotSrc)
     .zoom(false);
@@ -637,22 +628,19 @@ function drawNetwork(correl_entry) {
 function refreshPanel()
 {
   initializeContainer();
-  // drawNetwork();
-  var dot_src = drawNetwork(g_prodCfg);
 
-  var debug_str;
+  drawNetwork(g_prodCfg);
 
   d3.select("#graph")
   .selectAll('.node, .edge')
   .on("mouseover", function () {
-    // debug_str = d3.select(this).attr('id');
-    // document.getElementById('debug').innerText = debug_str;
     d3.select(this).attr("cursor", "pointer");
   })
   .on("mouseout", function () {
     d3.select(this).attr("cursor", "default");
   });
 
+  // Selecting an edge on the TFG
   d3.select("#graph")
   .selectAll('.edge')
   .on("click", function () {
@@ -661,11 +649,7 @@ function refreshPanel()
     const from = g_nodeIdMap[e_ids[0]];
     const to = g_nodeIdMap[e_ids[1]];
 
-    // console.log(from, to
     const edgeId = getEdgeId(from.pc, to.pc);
-    // console.log("The selected edge id is:" + edgeId);
-    // console.log("The previous selected edge was:" + selected_edge);
-    // document.getElementById('debug').innerText = edgeId;
 
     if (selected_edge == edgeId) {
       // Edge is already selected, deselect
@@ -675,6 +659,7 @@ function refreshPanel()
       });
       var dot_src = drawNetwork(g_prodCfg);
     } else {
+      // Select the new edge
       selected_edge = edgeId;
       const edge = g_edgeMap[edgeId];
       vscode.postMessage({
@@ -691,84 +676,4 @@ function refreshPanel()
 
   })
 
-
-  // d3.select("#graph")
-  // .selectAll('.edge')
-  // .on("mouseover", function () {
-  //   d3.select(this).attr("cursor", "pointer");
-  //   const from = g_nodeIdMap[d3.select(this).attr('from')];
-  //   const to = g_nodeIdMap[d3.select(this).attr('to')];
-  //   const edgeId = getEdgeId(from.pc, to.pc);
-  //   const edge = g_edgeMap[edgeId];
-
-  //   var debg = JSON.stringify(from) + JSON.stringify(to) + JSON.stringify(edgeId) + JSON.stringify(edge);
-  //   document.getElementById('debug').innerText = debg;
-
-  //   vscode.postMessage({
-  //     command:"highlight",
-  //     from: from,
-  //     to: to,
-  //     edge: edge,
-  //     eqcheck_info: g_eqcheck_info,
-  //     src_tfg: g_src_tfg,
-  //     dst_tfg: g_dst_tfg
-  //   });
-  // })
-  // .on("mouseout", function () {
-  //   d3.select(this).attr("cursor", "default");
-  // });
-
-  // network.on("stabilizationIterationsDone", function(){
-  //   network.setOptions( { physics: false } );
-  // });
-
-  //var network = res.network;
-  //var nodeMap = res.nodeMap;
-
-  // g_edges.on("click", function() {
-  //     const from = g_nodeIdMap[d3.select(this).attr('from')];
-  //     const to = g_nodeIdMap[d3.select(this).attr('to')];
-  //     const edgeId = getEdgeId(from.pc, to.pc);
-  //     const edge = g_edgeMap[edgeId];
-
-  //     vscode.postMessage({
-  //       command:"highlight",
-  //       from: from,
-  //       to: to,x
-  //       edge: edge,
-  //       eqcheck_info: g_eqcheck_info,
-  //       src_tfg: g_src_tfg,
-  //       dst_tfg: g_dst_tfg
-  //     });
-  // });
-
-  // render_product(dot_src);
-  // Add logic for deselct also
-
-  // network.on('selectEdge', function(properties) {
-  //     let propEdgeId = properties.edges[0];
-  //     let propEdge = network.body.data.edges.get(propEdgeId);
-  //     //console.log(`propEdge.from = ${propEdge.from}`);
-  //     //console.log(`propEdge.to = ${propEdge.to}`);
-  //     const from = g_nodeIdMap[propEdge.from];
-  //     const to = g_nodeIdMap[propEdge.to];
-  //     const edgeId = getEdgeId(from.pc, to.pc);
-  //     const edge = g_edgeMap[edgeId];
-
-  //     vscode.postMessage({
-  //         command:"highlight",
-  //         from: from,
-  //         to: to,
-  //         edge: edge,
-  //         eqcheck_info: g_eqcheck_info,
-  //         src_tfg: g_src_tfg,
-  //         dst_tfg: g_dst_tfg
-  //     });
-  // });
-
-  // network.on('deselectEdge', function(properties) {
-  //     vscode.postMessage({
-  //         command:"clear"
-  //     });
-  // });
 }

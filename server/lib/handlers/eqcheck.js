@@ -134,7 +134,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name;
+        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -181,6 +181,7 @@ class EqcheckHandler {
             sessionName = req.body.sessionName;
             eqchecks = req.body.eqchecks;
             cg_name = req.body.cg_name;
+            extra_args = req.body.extra_args;
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -220,6 +221,7 @@ class EqcheckHandler {
             sessionName = req.sessionName;
             eqchecks = req.eqchecks;
             cg_name = req.cg_name;
+            extra_args = req.extra_args;
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();
@@ -249,7 +251,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name};
+        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args};
     }
 
     //splitArguments(options) {
@@ -374,7 +376,7 @@ class EqcheckHandler {
       return (json === undefined) ? undefined : Buffer.from(json.data);
     }
 
-    run_eqcheck(source_filename, source_contents, src_bc, src_irJSON, src_etfgJSON, optimized_filename, optimized_contents, dst_bc, dst_irJSON, dst_etfgJSON, objectJSON, compile_logJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn/*dryRun, llvm2tfg_only*/) {
+    run_eqcheck(source_filename, source_contents, src_bc, src_irJSON, src_etfgJSON, optimized_filename, optimized_contents, dst_bc, dst_irJSON, dst_etfgJSON, objectJSON, compile_logJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn, extra_args) {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
         const source = (source_filename === undefined) ? this.readFileObjectToUint8Array(source_contents) : undefined;
@@ -577,6 +579,11 @@ class EqcheckHandler {
             if (optimizedFilename !== undefined) {
               eq32_args = eq32_args.concat(['--dst', optimizedFilename]);
             }
+            const extra_args_without_quotes = extra_args.replace(/['"]+/g, '');
+            const extra_args_array = extra_args_without_quotes.split(" ");
+            //console.log(`extra_args_without_quotes = ${extra_args_without_quotes}.`);
+            //eq32_args = eq32_args.concat([" ", extra_args_without_quotes, " "]);
+            eq32_args = eq32_args.concat(extra_args_array);
             console.log('calling eq32 ' + eq32_args);
             resolve(exec.execute(this.superoptInstall + "/bin/eq32", eq32_args));
         });
@@ -710,6 +717,7 @@ class EqcheckHandler {
       const dstFilename = runStatus.running_status.dst_filename.join();
       //const dst = await this.readBuffer(dstFilename);
       const dst = dstFilename;
+      //console.log(`dirPath = ${dirPath}, dst = ${dst}`);
       const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
       const objFilenameJSON = runStatus.running_status.dst_object_filename;
       const objFilename = (objFilenameJSON === undefined) ? undefined : objFilenameJSON.join();
@@ -1040,7 +1048,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       var {
-          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name
+          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -1095,7 +1103,8 @@ class EqcheckHandler {
           //const llvm2tfg_only = (commandIn === commandPointsToAnalysis);
           //const submit_eqcheck = (commandIn === commandSubmitEqchek);
 
-          this.run_eqcheck(source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn/*dryRun, llvm2tfg_only*/)
+          console.log(`extra_args = ${extra_args}.`);
+          this.run_eqcheck(source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn, extra_args)
               .then(
                   result => {
                       res.end(JSON.stringify({retcode: 0}));
@@ -1217,6 +1226,7 @@ class EqcheckHandler {
         const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
 
         //console.log(`src_code = ${src_files.src}\n`);
+        //console.log(`dst_code = ${dst_code}\n`);
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);

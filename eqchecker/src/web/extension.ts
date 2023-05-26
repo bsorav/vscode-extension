@@ -589,6 +589,17 @@ class Eqchecker {
     if (entry === undefined || entry.source1Uri === undefined) {
       return false;
     }
+
+    let options: vscode.InputBoxOptions = {
+      prompt: "Extra arguments: ",
+      placeHolder: "(none)"
+    };
+    var extra_args = "";
+    await vscode.window.showInputBox(options).then(async ea => {
+      if (!ea) return;
+      extra_args = ea;
+    });
+
     const source1Text = await vscode.workspace.fs.readFile(vscode.Uri.file(entry.source1Uri));
     var source2Text;
     if (entry.source2Uri !== undefined) {
@@ -615,7 +626,8 @@ class Eqchecker {
           dst_etfg: undefined,
           harvest: undefined,
           object: undefined,
-          compile_log: undefined
+          compile_log: undefined,
+          extra_args: extra_args
         };
     //console.log(`jsonRequest = ${jsonRequest}\n`);
     return await Eqchecker.submitPrepareCommand(request);

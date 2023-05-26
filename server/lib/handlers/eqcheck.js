@@ -586,7 +586,7 @@ class EqcheckHandler {
             const extra_args_array = extra_args_without_quotes.split(" ");
             //console.log(`extra_args_without_quotes = ${extra_args_without_quotes}.`);
             //eq32_args = eq32_args.concat([" ", extra_args_without_quotes, " "]);
-            eq32_args = eq32_args.concat(extra_args_array);
+            //eq32_args = eq32_args.concat(extra_args_array);
             console.log('calling eq32 ' + eq32_args);
             resolve(exec.execute(this.superoptInstall + "/bin/eq32", eq32_args));
         });

@@ -590,7 +590,7 @@ window.addEventListener('message', async event => {
         case "data": {
             scroll(0, 0);
             clearCanvas(canvas, ctx);
-            code = message.code;
+            code = message.code + "\n.";
             //console.log(`code = ${JSON.stringify(code)}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
 

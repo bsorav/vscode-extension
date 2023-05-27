@@ -18,6 +18,11 @@ const entryNodeX = 1;
 const defaultNodeX = 2;
 const entryLabelGap = 0.5;
 const exitLabelGap = 1.0;
+const canvasMarginY = 20;
+const canvasMaxWidth = 1024;
+const minCanvasTop = 20;
+
+var curCanvasTop;
 
 function setupCanvas(){
     codeEl = document.getElementById("code");;
@@ -28,9 +33,10 @@ function setupCanvas(){
     let ctx = canvas.getContext("2d");
 
     canvas.height =  rect.height;
-    canvas.width = rect.width;
+    canvas.width = Math.min(rect.width, canvasMaxWidth);
     canvas.style.left = rect.left + "px";
-    canvas.style.top = rect.top + "px";
+    curCanvasTop = rect.top;
+    canvas.style.top = curCanvasTop + "px";
 
     let startX, startY;
 
@@ -251,7 +257,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   let rect = codeEl.getBoundingClientRect();
 
   let topNode = rect.height*1;
-  let bottomNode = 0;
+  let bottomNode = 0*1;
 
   //console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
   var node_with_mu_annotation;
@@ -261,12 +267,26 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   }
 
   NODES.forEach(element => {
-      topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
-      bottomNode = Math.max(bottomNode, Math.max(0, (element.y * 1 - 5) * deltaY));
+    if (!isNaN(element.y)) {
+      const ypx = Math.max(0, (element.y * 1 - 5) * deltaY);
+      //console.log(`ypx = ${ypx}`);
+      topNode = Math.max(0, Math.min(topNode, ypx));
+      bottomNode = Math.max(bottomNode, ypx);
+    }
   });
 
+  const newCanvasHeight = (bottomNode - topNode) + 2*canvasMarginY*deltaY;
+  const newCanvasTop = Math.max(minCanvasTop, topNode - canvasMarginY*deltaY);
+  //console.log(`deltaY = ${deltaY}, canvasMarginY = ${canvasMarginY}, bottomNode = ${bottomNode}, topNode = ${topNode}, newCanvasHeight = ${newCanvasHeight}, newCanvasTop = ${newCanvasTop}`);
+
+  if (!isNaN(newCanvasHeight) && !isNaN(newCanvasTop)) {
+    canvas.height = newCanvasHeight;
+    curCanvasTop = newCanvasTop;
+    canvas.style.top = curCanvasTop + "px";
+  }
+
   if (is_epsilon) {
-    drawPointOnNode(ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
+    drawPointOnNode(canvas, ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
     return;
   }
 
@@ -282,12 +302,12 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
         //unroll_mu = path.unroll_factor_mu;
         unroll = path.unroll_factor_delta.unroll;
       }
-      drawPointOnNode(ctx, element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
+      drawPointOnNode(canvas, ctx, element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
       //console.log(`${element.pc}: element.y = ${element.y}, deltaY = ${deltaY} topNode = ${topNode}`);
   });
 
   EDGES.forEach(element => {
-      drawEdgeBetweenPoints(ctx, element.from_node, element.to_node, element.is_fallthrough, is_source_code);
+      drawEdgeBetweenPoints(canvas, ctx, element.from_node, element.to_node, element.is_fallthrough, is_source_code);
   });
 
   //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);
@@ -296,13 +316,70 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   scroll(0, topNode);
 }
 
-function drawText(ctx, x, y, text, size, color){
+function canvasRelativeY(canvas, abs_y)
+{
+  const ret = Math.max(0, abs_y - curCanvasTop);
+  //console.log(`canvasRelativeY: abs_y = ${abs_y}, ret = ${ret}`);
+  return ret;
+}
+
+function drawArc(canvas, ctx, cx, abs_cy, radius, theta1, theta2, anticlockwise, color, pattern)
+{
+    const cy = canvasRelativeY(canvas, abs_cy)
+    ctx.beginPath();
+    ctx.setLineDash(pattern);
+    ctx.arc(cx, cy, radius, theta1, theta2, anticlockwise);
+    ctx.strokeStyle = color;
+    ctx.stroke();
+}
+
+
+function drawArrowHead(canvas, ctx, x, abs_y, theta, color) {
+
+    const y = canvasRelativeY(canvas, abs_y)
+
+    let h = 10;
+    let w = 8;
+
+    let dir = Math.tan(theta);
+    let normal = -1 / dir;
+
+    if(theta <= Math.PI/2 || theta > Math.PI * 3/2){
+        var back = -1;
+    }
+    else{
+        var back = 1;
+    }
+
+
+    let baseCen = coordAtDist(x, y, dir, back * h/2);
+    let baseStart = coordAtDist(x, y, dir, -1 * back * h/2);
+
+    let coord1 = coordAtDist(baseCen.x, baseCen.y, normal, w/2);
+    let coord2 = coordAtDist(baseCen.x, baseCen.y, normal, -1 * w/2);
+
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(coord1.x, coord1.y);
+    ctx.lineTo(coord2.x, coord2.y);
+    ctx.lineTo(baseStart.x, baseStart.y);
+    ctx.fill();
+    ctx.closePath();
+}
+
+
+
+
+function drawText(canvas, ctx, x, abs_y, text, size, color){
+    const y = canvasRelativeY(canvas, abs_y);
     ctx.fillStyle = color;
     ctx.font = size + "px Arial";
     ctx.fillText(text, x, y);
 }
 
-function drawNode(ctx, x, y, radius, color, is_start_pc, is_stop_pc) {
+function drawNode(canvas, ctx, x, abs_y, radius, color, is_start_pc, is_stop_pc) {
+    const y = canvasRelativeY(canvas, abs_y);
     ctx.beginPath();
     if (is_start_pc) {
       ctx.ellipse(x, y, radius, 3*radius, 0, 0, 2 * Math.PI);
@@ -317,7 +394,9 @@ function drawNode(ctx, x, y, radius, color, is_start_pc, is_stop_pc) {
     ctx.fill();
 }
 
-function drawLine(ctx, x1, y1, x2, y2, color, pattern) {
+function drawLine(canvas, ctx, x1, abs_y1, x2, abs_y2, color, pattern) {
+    const y1 = canvasRelativeY(canvas, abs_y1);
+    const y2 = canvasRelativeY(canvas, abs_y2);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.setLineDash(pattern);
@@ -331,7 +410,7 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(ctx, node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
+function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
 {
     //node = node.split("_");
     //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
@@ -350,10 +429,10 @@ function drawPointOnNode(ctx, node, text, unroll, unroll_is_only_mu, is_start_pc
     if(unroll > 1){
         let r = 10;
         color = "rgb(252, 3, 219)";
-        drawNode(ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
+        drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
         ctx.lineWidth = 1;
-        drawArc(ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
-        drawArrowHead(ctx, x1, y1-r, 0, color);
+        drawArc(canvas, ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
+        drawArrowHead(canvas, ctx, x1, y1-r, 0, color);
         let x = x1 + 2*r*Math.cos(Math.PI/4);
         let y = y1 - 2*r*Math.sin(Math.PI/4);
         const textcolor = "rgb(3, 3, 255)";
@@ -361,23 +440,23 @@ function drawPointOnNode(ctx, node, text, unroll, unroll_is_only_mu, is_start_pc
         if (unroll_is_only_mu) {
           prefix_to_unroll = "<=";
         }
-        drawText(ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
+        drawText(canvas, ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
     } else {
         color = "rgb(255, 0, 0)";
-        drawNode(ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
+        drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
     }
     if (text !== undefined) {
       let r = 5;
       let x = x1 + r*Math.cos(7*Math.PI/4);
       let y = y1 - r*Math.sin(7*Math.PI/4);
       const textcolor = "rgb(255, 0, 0)";
-      drawText(ctx, x, y, text, 10, textcolor);
+      drawText(canvas, ctx, x, y, text, 10, textcolor);
     }
 }
 
 
 
-function drawEdgeBetweenPoints(ctx, node1, node2, is_fallthrough, is_source_code)
+function drawEdgeBetweenPoints(canvas, ctx, node1, node2, is_fallthrough, is_source_code)
 {
     // node1 is predecessor
     // node2 is successor
@@ -410,12 +489,12 @@ function drawEdgeBetweenPoints(ctx, node1, node2, is_fallthrough, is_source_code
     if (node1.type === "entry") {
       var label_node = node1;
       label_node.y = (node1.y*1) - entryLabelGap;
-      drawPointOnNode(ctx, label_node, "ENTRY", undefined, undefined, true, false);
+      drawPointOnNode(canvas, ctx, label_node, "ENTRY", undefined, undefined, true, false);
     }
     if (node2.type === "exit") {
       node2.x = node1.x;
       node2.y = (node1.y*1) + exitLabelGap;
-      drawPointOnNode(ctx, node2, "EXIT", undefined, undefined, false, true);
+      drawPointOnNode(canvas, ctx, node2, "EXIT", undefined, undefined, false, true);
     }
 
     //console.log(`Drawing an edge: (${node1.type},${node1.x},${node1.y}) -> (${node2.type},${node2.x},${node2.y})`);
@@ -519,63 +598,19 @@ function drawEdgeBetweenPoints(ctx, node1, node2, is_fallthrough, is_source_code
         }
 
         // drawCircle(ctx, x1, y1, 2, color1);
-        drawArc(ctx, arc_center.x, arc_center.y, radius, theta1, theta2, anticlockwise, color2, pattern);
-        drawArrowHead(ctx, point_in_middle_of_arc.x, point_in_middle_of_arc.y, ntheta, color1);
+        drawArc(canvas, ctx, arc_center.x, arc_center.y, radius, theta1, theta2, anticlockwise, color2, pattern);
+        drawArrowHead(canvas, ctx, point_in_middle_of_arc.x, point_in_middle_of_arc.y, ntheta, color1);
         // drawCircle(ctx, x2, y2, 2, color1);
 
     } else if (y1 <= y2) {
         // drawCircle(ctx, x1, y1, 2, color1);
-        drawLine(ctx, x1, y1, x2, y2, color2, pattern);
-        drawArrowHead(ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
+        drawLine(canvas, ctx, x1, y1, x2, y2, color2, pattern);
+        drawArrowHead(canvas, ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
         // drawArrowHead(ctx, x1, y1, theta, color1);
         // drawArrowHead(ctx, x2, y2, theta, color1);
         // drawCircle(ctx, x2, y2, 2, color1);
     }
 }
-
-function drawArc(ctx, cx, cy, radius, theta1, theta2, anticlockwise, color, pattern)
-{
-    ctx.beginPath();
-    ctx.setLineDash(pattern);
-    ctx.arc(cx, cy, radius, theta1, theta2, anticlockwise);
-    ctx.strokeStyle = color;
-    ctx.stroke();
-}
-
-
-function drawArrowHead(ctx, x, y, theta, color) {
-
-    let h = 10;
-    let w = 8;
-
-    let dir = Math.tan(theta);
-    let normal = -1 / dir;
-
-    if(theta <= Math.PI/2 || theta > Math.PI * 3/2){
-        var back = -1;
-    }
-    else{
-        var back = 1;
-    }
-
-
-    let baseCen = coordAtDist(x, y, dir, back * h/2);
-    let baseStart = coordAtDist(x, y, dir, -1 * back * h/2);
-
-    let coord1 = coordAtDist(baseCen.x, baseCen.y, normal, w/2);
-    let coord2 = coordAtDist(baseCen.x, baseCen.y, normal, -1 * w/2);
-
-
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(coord1.x, coord1.y);
-    ctx.lineTo(coord2.x, coord2.y);
-    ctx.lineTo(baseStart.x, baseStart.y);
-    ctx.fill();
-    ctx.closePath();
-}
-
-
 
 // Event listener for message from product graph webview
 window.addEventListener('message', async event => {

@@ -1290,7 +1290,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
-    console.log(`src_code = ${src_code}\n`);
+    //console.log(`src_code = ${src_code}\n`);
     const dst_code = proof_response.dst_code;
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;

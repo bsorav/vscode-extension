@@ -593,12 +593,18 @@ window.addEventListener('message', async event => {
             code = message.code;
             //console.log(`code = ${JSON.stringify(code)}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+
+            var codeDisplay;
             if (message.syntax_type === "asm") {
-              codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');
+              codeDisplay = Prism.highlight(code, Prism.languages.nasm, 'nasm');
               //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             } else {
-              codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+              codeDisplay = Prism.highlight(code, Prism.languages.clike, 'clike');
             }
+
+            // Clear old contents
+            codeEl.innerHTML = codeDisplay;
+
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
             //console.log(`message.path = ${JSON.stringify(message.path)}`);

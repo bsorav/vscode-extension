@@ -250,7 +250,7 @@ class Eqchecker {
     }
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
-    console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
+    //console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
     var request =
         { type: 'updateEqcheckInView',
           //dirPath: dirPath,
@@ -313,7 +313,7 @@ class Eqchecker {
     return new Promise ((resolve, reject) => {
       const origRequest = origRequestIn;
       //const firstRequest = firstRequestIn;
-      console.log(`requesting response for server command ${origRequest.serverCommand}, dirPathIn ${origRequest.dirPathIn}, function ${origRequest.functionName}`);
+      //console.log(`requesting response for server command ${origRequest.serverCommand}, dirPathIn ${origRequest.dirPathIn}, function ${origRequest.functionName}`);
       this.RequestResponseForCommand(jsonRequest).then(async function(result) {
         //const result = res.result;
         //const origRequest = result.extra.origRequest;
@@ -321,7 +321,7 @@ class Eqchecker {
         //console.log("result =\n" + JSON.stringify(result));
         //console.log("extra =\n" + JSON.stringify(result.extra));
         let dirPath = result.dirPath;
-        console.log(`response received for function ${origRequest.functionName}, dirPath ${dirPath}`);
+        //console.log(`response received for function ${origRequest.functionName}, dirPath ${dirPath}`);
         if (origRequest.dirPathIn === undefined) {
           //console.log("first response received.\n");
           origRequest.type = 'addEqcheckInView';

@@ -243,15 +243,6 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
-  if (is_epsilon) {
-    drawPointOnNode(ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
-    return;
-  }
-
-  EDGES.forEach(element => {
-      drawEdgeBetweenPoints(ctx, element.from_node, element.to_node, element.is_fallthrough, is_source_code);
-  });
-
   //let scrollHeight = window.scrollHeight;
   const styles = window.getComputedStyle(code);
   const deltaY = parseInt(styles.getPropertyValue("line-height"));
@@ -270,6 +261,16 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   }
 
   NODES.forEach(element => {
+      topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
+      bottomNode = Math.max(bottomNode, Math.max(0, (element.y * 1 - 5) * deltaY));
+  });
+
+  if (is_epsilon) {
+    drawPointOnNode(ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
+    return;
+  }
+
+  NODES.forEach(element => {
       //var unroll_mu = 1;
       var unroll = 1;
       var unroll_is_only_mu = false;
@@ -282,9 +283,11 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
         unroll = path.unroll_factor_delta.unroll;
       }
       drawPointOnNode(ctx, element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
-      topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
-      bottomNode = Math.max(bottomNode, Math.max(0, (element.y * 1 - 5) * deltaY));
       //console.log(`${element.pc}: element.y = ${element.y}, deltaY = ${deltaY} topNode = ${topNode}`);
+  });
+
+  EDGES.forEach(element => {
+      drawEdgeBetweenPoints(ctx, element.from_node, element.to_node, element.is_fallthrough, is_source_code);
   });
 
   //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);

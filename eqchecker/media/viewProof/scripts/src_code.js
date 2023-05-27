@@ -58,7 +58,7 @@ function setupCanvas(){
 
 function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
 {
-  let canvas = document.getElementById("canvas");
+  //let canvas = document.getElementById("canvas");
   let styles = window.getComputedStyle(document.getElementById("code"));
   let deltaY = styles.lineHeight.replace("px", "") * 1;
   let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
@@ -244,12 +244,12 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
   if (is_epsilon) {
-    drawPointOnNode(from_pc_xy, "stays still", undefined, undefined, true, true);
+    drawPointOnNode(ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
     return;
   }
 
   EDGES.forEach(element => {
-      drawEdgeBetweenPoints(element.from_node, element.to_node, element.is_fallthrough, is_source_code);
+      drawEdgeBetweenPoints(ctx, element.from_node, element.to_node, element.is_fallthrough, is_source_code);
   });
 
   //let scrollHeight = window.scrollHeight;
@@ -259,7 +259,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   codeEl = document.getElementById("code");;
   let rect = codeEl.getBoundingClientRect();
 
-  let topNode = rect.top;
+  let topNode = rect.height*1;
   let bottomNode = 0;
 
   //console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
@@ -281,7 +281,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
         //unroll_mu = path.unroll_factor_mu;
         unroll = path.unroll_factor_delta.unroll;
       }
-      drawPointOnNode(element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
+      drawPointOnNode(ctx, element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
       bottomNode = Math.max(bottomNode, Math.max(0, (element.y * 1 - 5) * deltaY));
       //console.log(`${element.pc}: element.y = ${element.y}, deltaY = ${deltaY} topNode = ${topNode}`);
@@ -328,12 +328,12 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
+function drawPointOnNode(ctx, node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
 {
     //node = node.split("_");
     //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
+    //let canvas = document.getElementById("canvas");
+    //let ctx = canvas.getContext("2d");
 
     let styles = window.getComputedStyle(document.getElementById("code"));
 
@@ -374,7 +374,7 @@ function drawPointOnNode(node, text, unroll, unroll_is_only_mu, is_start_pc, is_
 
 
 
-function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
+function drawEdgeBetweenPoints(ctx, node1, node2, is_fallthrough, is_source_code)
 {
     // node1 is predecessor
     // node2 is successor
@@ -383,8 +383,8 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
 
     let pattern = [];
 
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
+    //let canvas = document.getElementById("canvas");
+    //let ctx = canvas.getContext("2d");
 
     let styles = window.getComputedStyle(document.getElementById("code"));
 
@@ -407,12 +407,12 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
     if (node1.type === "entry") {
       var label_node = node1;
       label_node.y = (node1.y*1) - entryLabelGap;
-      drawPointOnNode(label_node, "ENTRY", undefined, undefined, true, false);
+      drawPointOnNode(ctx, label_node, "ENTRY", undefined, undefined, true, false);
     }
     if (node2.type === "exit") {
       node2.x = node1.x;
       node2.y = (node1.y*1) + exitLabelGap;
-      drawPointOnNode(node2, "EXIT", undefined, undefined, false, true);
+      drawPointOnNode(ctx, node2, "EXIT", undefined, undefined, false, true);
     }
 
     //console.log(`Drawing an edge: (${node1.type},${node1.x},${node1.y}) -> (${node2.type},${node2.x},${node2.y})`);

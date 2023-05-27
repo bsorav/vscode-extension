@@ -101,7 +101,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
       } else if (runState == runStateStatusQueued) {
         return "Queued";
       } else if (runState == runStateStatusFoundProof) {
-        return "Found Proof";
+        return "Found proof and safety";
+      } else if (runState == runStateStatusSafetyCheckFailed) {
+        return "Found proof, safety unclear";
       } else if (runState == runStateStatusExhaustedSearchSpace) {
         return "Exhausted Search Space";
       } else if (runState == runStateStatusTimedOut) {

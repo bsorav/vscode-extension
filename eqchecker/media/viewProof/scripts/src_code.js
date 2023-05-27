@@ -256,7 +256,11 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   const styles = window.getComputedStyle(code);
   const deltaY = parseInt(styles.getPropertyValue("line-height"));
 
-  let topNode = canvas.height*1;
+  codeEl = document.getElementById("code");;
+  let rect = codeEl.getBoundingClientRect();
+
+  let topNode = rect.top;
+  let bottomNode = 0;
 
   //console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
   var node_with_mu_annotation;
@@ -279,6 +283,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
       }
       drawPointOnNode(element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
       topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
+      bottomNode = Math.max(bottomNode, Math.max(0, (element.y * 1 - 5) * deltaY));
       //console.log(`${element.pc}: element.y = ${element.y}, deltaY = ${deltaY} topNode = ${topNode}`);
   });
 

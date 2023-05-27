@@ -1565,7 +1565,30 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         switch (message.command) {
           case 'linkClicked':
             console.log(`linkClicked received on dirPath ${message.dirPath} filename ${message.filename}`);
-            await this.viewScanReport(webview, message.dirPath, message.filename);
+            var filename = message.filename;
+            var hash = "";
+            if (filename !== undefined) {
+              const hashChar = filename.lastIndexOf('#');
+              console.log(`hashChar = ${hashChar}`);
+              if (hashChar != -1) {
+                filename = filename.substr(0, hashChar);
+                hash = filename.substr(hashChar + 1);
+                console.log(`filename = ${filename}, hash = ${hash}`);
+              }
+            } else {
+             console.log("filename is undefined");
+            }
+            if (filename == "") {
+              if (hash != "") {
+                //var element_to_scroll_to = document.getElementById(hash);
+                //element_to_scroll_to.scrollIntoView();
+                console.log(`Warning: filename is empty and hash is ${hash}`);
+              } else {
+                console.log("Warning: both filename and hash are empty");
+              }
+            } else {
+              await this.viewScanReport(webview, message.dirPath, filename);
+            }
             break;
           default:
             break;

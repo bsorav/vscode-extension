@@ -3,7 +3,7 @@
   "displayName": "Eqchecker",
   "publisher": "CompilerAI",
   "description": "",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.54.0"
   },
@@ -73,5 +73,9 @@
     "prismjs": "^1.29.0",
     "highlight.js": "^11.7.0",
     "vscode-tas-client": "^0.1.63"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bsorav/vscode-extension"
   }
 }

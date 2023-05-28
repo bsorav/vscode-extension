@@ -27,6 +27,7 @@ const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPre
 const commandSaveSession = 'saveSession';
 const commandLoadSession = 'loadSession';
 const commandObtainSearchTree = 'obtainSearchTree';
+const commandCheckLogin = 'checkLogin';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -1650,6 +1651,52 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //this.panel_post_message(this.scanview_panel, {command: 'scanviewReport', url: scanview_url.scanview_report_url});
   }
 
+  async checkLoginAtServer(loginName)
+  {
+    const jsonRequest = JSON.stringify({serverCommand: commandCheckLogin, loginName: loginName});
+    var response = (await this.RequestResponseForCommand(jsonRequest));
+    if (response.expectedOTP !== undefined) {
+      var otp;
+      const options: vscode.InputBoxOptions = {
+        prompt: `Enter the OTP sent to ${loginName}: `,
+        placeHolder: "4-digit number"
+      };
+      await vscode.window.showInputBox(options).then(async ea => {
+        if (!ea) return;
+        otp = ea;
+      });
+      if (otp != response.expectedOTP) {
+        response.success = undefined;
+      }
+    }
+    return response;
+  }
+
+  async authenticateLogin()
+  {
+    var loginName;
+    var quotaExceeded = false;
+    const options: vscode.InputBoxOptions = {
+      prompt: "Enter your email address: ",
+      placeHolder: "abc@def.com"
+    };
+    await vscode.window.showInputBox(options).then(async ea => {
+      if (!ea) return;
+      loginName = ea;
+    });
+    const response = checkLoginAtServer(loginName);
+    if (response.success === undefined) {
+      const msg = `Login ${loginName} was unsuccessful`;
+      vscode.window.showInformationMessage(msg);
+      loginName = undefined;
+    } else if (response.quotaExceeded !== undefined) {
+      const msg = `${loginName} has exceeeded its quota of eqchecks`;
+      vscode.window.showInformationMessage(msg);
+      quotaExceeded = true;
+    }
+    return {currentUser: loginName, quotaExceedded: quotaExceeded};
+  }
+
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
@@ -1667,6 +1714,18 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
+        case 'authenticateLogin': {
+          const {currentUser: currentUser, quotaExceeded: quotaExceeded} = await this.authenticateLogin();
+          if (currentUser !== undefined) {
+            var viewRequest =
+              { type: 'loginAuthenticated',
+                currentUser: currentUser,
+                quotaExceeded: quotaExceeded,
+              };
+            EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
+          }
+          break;
+        }
         case 'eqcheckViewProof': {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);

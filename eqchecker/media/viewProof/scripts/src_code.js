@@ -6,6 +6,7 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var code = null;
+var curCodeType = null;
 
 var codeEl = document.getElementById("code");
 codeEl.innerHTML = "";
@@ -21,6 +22,8 @@ const exitLabelGap = 1.0;
 const canvasMarginY = 20;
 const canvasMaxWidth = 1024;
 const minCanvasTop = 20;
+const canvasTopOffset = 4;
+const canvasLeftOffset = 2;
 
 var curCanvasTop;
 
@@ -60,6 +63,9 @@ function setupCanvas(){
     document.addEventListener('mouseup', function(event) {
       document.removeEventListener('mousemove', onMouseMove);
     });
+
+    document.removeEventListener('contextmenu', onRightClick);
+    document.addEventListener('contextmenu', onRightClick);
 }
 
 function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
@@ -318,13 +324,22 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
 
 function canvasRelativeY(canvas, abs_y)
 {
-  const ret = Math.max(0, abs_y - curCanvasTop);
+  const ret = Math.max(0, abs_y - curCanvasTop) + canvasTopOffset;
   //console.log(`canvasRelativeY: abs_y = ${abs_y}, ret = ${ret}`);
   return ret;
 }
 
-function drawArc(canvas, ctx, cx, abs_cy, radius, theta1, theta2, anticlockwise, color, pattern)
+function canvasRelativeX(canvas, abs_x)
 {
+  const ret = abs_x + canvasLeftOffset;
+  return ret;
+}
+
+
+
+function drawArc(canvas, ctx, abs_cx, abs_cy, radius, theta1, theta2, anticlockwise, color, pattern)
+{
+    const cx = canvasRelativeX(canvas, abs_cx)
     const cy = canvasRelativeY(canvas, abs_cy)
     ctx.beginPath();
     ctx.setLineDash(pattern);
@@ -334,8 +349,9 @@ function drawArc(canvas, ctx, cx, abs_cy, radius, theta1, theta2, anticlockwise,
 }
 
 
-function drawArrowHead(canvas, ctx, x, abs_y, theta, color) {
+function drawArrowHead(canvas, ctx, abs_x, abs_y, theta, color) {
 
+    const x = canvasRelativeX(canvas, abs_x)
     const y = canvasRelativeY(canvas, abs_y)
 
     let h = 10;
@@ -371,14 +387,16 @@ function drawArrowHead(canvas, ctx, x, abs_y, theta, color) {
 
 
 
-function drawText(canvas, ctx, x, abs_y, text, size, color){
+function drawText(canvas, ctx, abs_x, abs_y, text, size, color){
+    const x = canvasRelativeX(canvas, abs_x);
     const y = canvasRelativeY(canvas, abs_y);
     ctx.fillStyle = color;
     ctx.font = size + "px Arial";
     ctx.fillText(text, x, y);
 }
 
-function drawNode(canvas, ctx, x, abs_y, radius, color, is_start_pc, is_stop_pc) {
+function drawNode(canvas, ctx, abs_x, abs_y, radius, color, is_start_pc, is_stop_pc) {
+    const x = canvasRelativeX(canvas, abs_x);
     const y = canvasRelativeY(canvas, abs_y);
     ctx.beginPath();
     if (is_start_pc) {
@@ -394,7 +412,9 @@ function drawNode(canvas, ctx, x, abs_y, radius, color, is_start_pc, is_stop_pc)
     ctx.fill();
 }
 
-function drawLine(canvas, ctx, x1, abs_y1, x2, abs_y2, color, pattern) {
+function drawLine(canvas, ctx, abs_x1, abs_y1, abs_x2, abs_y2, color, pattern) {
+    const x1 = canvasRelativeX(canvas, abs_x1);
+    const x2 = canvasRelativeX(canvas, abs_x2);
     const y1 = canvasRelativeY(canvas, abs_y1);
     const y2 = canvasRelativeY(canvas, abs_y2);
     ctx.lineWidth = 2;
@@ -636,6 +656,7 @@ window.addEventListener('message', async event => {
             code = message.code + "\n.";
             //console.log(`code = ${JSON.stringify(code)}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+            curCodeType = message.syntax_type;
 
             var codeDisplay;
             if (message.syntax_type === "asm") {
@@ -665,3 +686,86 @@ window.addEventListener('message', async event => {
 
 });
 vscode.postMessage({command:"loaded"});
+
+function downloadObjectListener(evt) {
+  console.log('downloadObjectListener called');
+};
+
+function downloadAssemblyListener(evt) {
+  console.log('downloadAssemblyListener called');
+};
+
+function downloadSourceListener(evt) {
+  console.log('downloadSourceListener called');
+};
+
+function downloadLLVMIRListener(evt) {
+  console.log('downloadLLVMIRListener called');
+};
+
+function showRightClickMenu(mouseX, mouseY) {
+  console.log(`showRightClickMenu called`);
+  const rightClickMenu = document.getElementById("right-click-menu");
+  rightClickMenu.style.top = `${mouseY}px`;
+  rightClickMenu.style.left = `${mouseX}px`;
+
+  var items = rightClickMenu.querySelectorAll(".item");
+
+  items[0].removeEventListener('click', downloadObjectListener);
+  items[0].removeEventListener('click', downloadAssemblyListener);
+  items[0].removeEventListener('click', downloadSourceListener);
+  items[0].removeEventListener('click', downloadLLVMIRListener);
+  //items[0].removeEventListener('click', downloadVIRListener);
+
+  items[1].removeEventListener('click', downloadObjectListener);
+  items[1].removeEventListener('click', downloadAssemblyListener);
+  items[1].removeEventListener('click', downloadSourceListener);
+  items[1].removeEventListener('click', downloadLLVMIRListener);
+
+  items[2].removeEventListener('click', downloadObjectListener);
+  items[2].removeEventListener('click', downloadAssemblyListener);
+  items[2].removeEventListener('click', downloadSourceListener);
+  items[2].removeEventListener('click', downloadLLVMIRListener);
+
+  items[0].innerHTML = '';
+  items[1].innerHTML = '';
+  items[2].innerHTML = '';
+
+  rightClickMenu.style.display = "inline";
+
+  if (curCodeType === "asm") {
+    items[0].innerHTML = 'Download Object Code';
+    items[0].addEventListener('click', downloadObjectListener);
+    items[1].innerHTML = 'Download Assembly Code';
+    items[1].addEventListener('click', downloadAssemblyListener);
+  } else {
+    items[0].innerHTML = 'Download Source Code';
+    items[0].addEventListener('click', downloadSourceListener);
+    items[1].innerHTML = 'Download LLVM IR';
+    items[1].addEventListener('click', downloadLLVMIRListener);
+  }
+
+  rightClickMenu.classList.add("visible");
+}
+
+function hideRightClickMenu() {
+  console.log(`hideRightClickMenu called`);
+  const rightClickMenu = document.getElementById("right-click-menu");
+  rightClickMenu.style.display = "none";
+  rightClickMenu.classList.remove("visible");
+}
+
+function onRightClick(event) {
+  console.log(`onRightClick called`);
+  event.preventDefault();
+  const { clientX: mouseX, clientY: mouseY } = event;
+
+  const rightClickMenu = document.getElementById('right-click-menu');
+  if (rightClickMenu.style.display !== "inline") {
+    showRightClickMenu(mouseX, mouseY);
+  } else {
+    hideRightClickMenu();
+  }
+}
+
+//window.addEventListener('contextmenu', event => { onRightClick(); });

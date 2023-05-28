@@ -1084,6 +1084,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
+            <div id="right-click-menu">
+            <div id="RightClickMenuItem1" class="item"></div>
+            <div id="RightClickMenuItem2" class="item"></div>
+            <div id="RightClickMenuItem3" class="item"></div>
+            </div>
         </div>
     </body>
     </html>`;
@@ -1114,6 +1119,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
         </div>
         <canvas id="canvas" style="position: absolute;"></canvas>
+        <div id="right-click-menu">
+        <div id="RightClickMenuItem1" class="item"></div>
+        <div id="RightClickMenuItem2" class="item"></div>
+        <div id="RightClickMenuItem3" class="item"></div>
+        </div>
     </div>
 </body>
 

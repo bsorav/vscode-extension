@@ -57,6 +57,7 @@ function setupCanvas(){
       startX = event.clientX;
       startY = event.clientY;
 
+      hideRightClickMenu();
       document.addEventListener('mousemove', onMouseMove);
     });
 
@@ -687,20 +688,40 @@ window.addEventListener('message', async event => {
 });
 vscode.postMessage({command:"loaded"});
 
+function download(filename, text) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  console.log(`clicking element`);
+  element.click();
+  console.log(`clicked element`);
+
+  document.body.removeChild(element);
+}
+
 function downloadObjectListener(evt) {
   console.log('downloadObjectListener called');
+  hideRightClickMenu();
+  download("object", "data");
 };
 
 function downloadAssemblyListener(evt) {
   console.log('downloadAssemblyListener called');
+  hideRightClickMenu();
 };
 
 function downloadSourceListener(evt) {
   console.log('downloadSourceListener called');
+  hideRightClickMenu();
 };
 
 function downloadLLVMIRListener(evt) {
   console.log('downloadLLVMIRListener called');
+  hideRightClickMenu();
 };
 
 function showRightClickMenu(mouseX, mouseY) {

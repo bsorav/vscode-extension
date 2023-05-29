@@ -38,6 +38,8 @@ const runStateStatusSafetyCheckFailed = 'safety_check_failed';
 const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';
 
+declare var acquireVsCodeApi: any;
+
 interface eqcheckMenuEntry {
   source1Uri: string;
   source1Name: string;
@@ -218,6 +220,7 @@ class Eqchecker {
   public static searchTreeNodes : any = {};
   public static searchTreeView : any = undefined;
   public static searchTreeDataProvider : any = undefined;
+  public static loginName : string = undefined;
 
   public static initializeEqchecker(context: vscode.ExtensionContext) {
     //console.log("extensionUri = " + context.extensionUri.fsPath);
@@ -308,6 +311,17 @@ class Eqchecker {
         reject();
       })
     );
+  }
+
+  public static setLoginName(name) {
+    this.loginName = name;
+  }
+
+  public static getLoginName() {
+    if (this.loginName === undefined) {
+      console.log(`Warning: loginName is undefined!`);
+    }
+    return this.loginName;
   }
 
   public static async RequestNextChunk(jsonRequest, origRequestIn, dirPathType) {
@@ -479,6 +493,7 @@ class Eqchecker {
       funRequest.dst_ir = dst_ir;
       funRequest.source1 = source1;
       funRequest.source2 = source2;
+      funRequest.loginName = Eqchecker.getLoginName();
 
       //if (src_etfg !== undefined) {
       //  funRequest.source1 = src_etfg;
@@ -534,6 +549,7 @@ class Eqchecker {
     request.dst_ir = preparePhaseResult.dst_ir;
     request.source1 = preparePhaseResult.src_filename;
     request.source2 = preparePhaseResult.dst_filename;
+    request.loginName = Eqchecker.getLoginName();
 
     //if (preparePhaseResult.src_bc === undefined) {
     //  request.source1 = preparePhaseResult.src_filename;
@@ -566,6 +582,7 @@ class Eqchecker {
   public static async submitPrepareCommand(request) {
     console.log(`submitting prepare command\n`);
     request.serverCommand = commandPrepareEqcheck;
+    request.loginName = Eqchecker.getLoginName();
     const jsonRequest = JSON.stringify(request);
     const result : any = await Eqchecker.RequestNextChunk(jsonRequest, request, "prepareDirpath");
 
@@ -1713,9 +1730,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
+        case 'registerLogin': {
+          Eqchecker.setLoginName(data.currentUser);
+          break;
+        }
         case 'authenticateLogin': {
           const {currentUser: currentUser, quotaRemaining: quotaRemaining} = await this.authenticateLogin();
           if (currentUser !== undefined) {
+            Eqchecker.setLoginName(currentUser);
             var viewRequest =
               { type: 'loginAuthenticated',
                 currentUser: currentUser,

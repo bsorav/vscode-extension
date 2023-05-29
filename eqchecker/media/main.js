@@ -54,6 +54,13 @@ const viewStateViewSearchTree = 'viewSearchTree';
                     addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);
                     break;
                 }
+            case 'userLogout':
+                {
+                  const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+                  vscode.setState({ eqchecks : oldState.eqchecks, currentUser: undefined, quotaRemaining: undefined });
+                  displayWelcomeButton();
+                  break;
+                }
             case 'updateEqcheckInView':
                 {
                     //console.log("received updateEqcheckInView message '" + message.type + "'");

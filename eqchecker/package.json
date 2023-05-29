@@ -36,6 +36,10 @@
       {
         "command": "eqchecker.setServer",
         "title": "Configure Equivalence Server"
+      },
+      {
+        "command": "eqchecker.logout",
+        "title": "Logout of the Equivalence Server"
       }
     ]
   },

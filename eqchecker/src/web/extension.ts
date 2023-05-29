@@ -792,6 +792,7 @@ class Eqchecker {
     servers.push(defaultServerURL);
     const result = await vscode.window.showQuickPick(servers, {
       placeHolder: servers?.[0],
+      ignoreFocusOut: true
     });
     Eqchecker.serverURL = result;
   }
@@ -910,6 +911,7 @@ class Eqchecker {
     //console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
     const result = await vscode.window.showQuickPick(items, {
       placeHolder: items?.[0],
+      ignoreFocusOut: true
       //onDidSelectItem: item => window.showInformationMessage(`Focus ${++i}: ${item}`)
     });
     //console.log("before findIndex call");
@@ -1708,8 +1710,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     var loginName;
     const options: vscode.InputBoxOptions = {
-      prompt: "Enter your email address: ",
-      placeHolder: "OTP will be sent here"
+      prompt: "Enter your email address",
+      placeHolder: "OTP will be sent to this email address",
+      ignoreFocusOut: true
     };
     await vscode.window.showInputBox(options).then(async ea => {
       if (!ea) return;

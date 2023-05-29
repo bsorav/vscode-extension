@@ -11,3 +11,7 @@
   - a new VSCode window will open up that will be running our extension
 - In the new window, open two different C files (or a C file and an assembly file)
 - Press Ctrl-Shift-P and select "Check Equivalence"
+
+# Extension URL in the Marketplace
+
+[https://marketplace.visualstudio.com/items?itemName=CompilerAI.eqchecker](https://marketplace.visualstudio.com/items?itemName=CompilerAI.eqchecker)

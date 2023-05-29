@@ -630,6 +630,31 @@ function refreshPanel()
   initializeContainer();
 
   drawNetwork(g_prodCfg);
+  
+  // document.getElementById("graph").onclick = function() {
+  //   selected_edge = null;
+  //   vscode.postMessage({
+  //       command:"clear"
+  //   });
+  // };
+  
+  d3.select("#graph").on("click", function() {
+    console.log(d3.select("#graph"));
+  });
+
+  document.getElementById("graph").addEventListener('click', function(event) {
+    if (event.target.closest('.edge')) {
+      // console.log("an edge was clicked!");
+      return;
+    } else {
+      selected_edge = null;
+      vscode.postMessage({
+          command:"clear"
+      });
+      drawNetwork(g_prodCfg);
+    }
+    
+  });
 
   d3.select("#graph")
   .selectAll('.node, .edge')
@@ -657,7 +682,7 @@ function refreshPanel()
       vscode.postMessage({
           command:"clear"
       });
-      var dot_src = drawNetwork(g_prodCfg);
+      drawNetwork(g_prodCfg);
     } else {
       // Select the new edge
       selected_edge = edgeId;
@@ -671,7 +696,7 @@ function refreshPanel()
         src_tfg: g_src_tfg,
         dst_tfg: g_dst_tfg
       });
-      var dot_src = drawNetwork(g_prodCfg);
+      drawNetwork(g_prodCfg);
     }
 
   })

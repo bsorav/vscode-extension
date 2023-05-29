@@ -188,7 +188,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
             var t = document.createElement("table");
             t.setAttribute("id", "eqcheck-preview-table");
-            eqcheckPreview.appendChild(t);
+            // eqcheckPreview.appendChild(t);
+            eqcheckPreview.prepend(t);
 
             var th = document.createElement("th");
             th.setAttribute("id", "Eqcheck header row");
@@ -215,9 +216,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
             eqcheckPreview.appendChild(t);
             //eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}<br>${eqcheck.statusMessage}`;
-            li.appendChild(eqcheckPreview);
+
+            li.prepend(eqcheckPreview);
             var hr = document.createElement("hr");
-            li.appendChild(hr);
+            li.append(hr);
 
             //const input = document.createElement('input');
             //input.className = 'eqcheck-input';
@@ -234,8 +236,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
             //    updateEqcheckList(eqchecks);
             //});
             //li.appendChild(input);
-
-            ul.appendChild(li);
+            
+            ul.prepend(li);
         }
               //document.getElementById('hoverEqcheckSource1Uri').style.display='none';
               //document.getElementById('hoverEqcheckSource2Uri').style.display='none';

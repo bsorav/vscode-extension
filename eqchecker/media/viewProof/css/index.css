@@ -76,6 +76,16 @@ body{
     height:50vh;
 }
 
+div.graph{
+  position: absolute;
+  top:0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  margin: auto;
+}
+
 .graph-node:hover { cursor: pointer; }
 
 .graph-edge:hover {cursor: pointer;}
@@ -87,14 +97,14 @@ body{
     width: 60px;
     height: 34px;
   }
-  
+
   /* Hide default HTML checkbox */
   .switch input {
     opacity: 0;
     width: 0;
     height: 0;
   }
-  
+
   /* The slider */
   .slider {
     position: absolute;
@@ -107,7 +117,7 @@ body{
     -webkit-transition: .4s;
     transition: .4s;
   }
-  
+
   .slider:before {
     position: absolute;
     content: "";
@@ -119,26 +129,51 @@ body{
     -webkit-transition: .4s;
     transition: .4s;
   }
-  
+
   input:checked + .slider {
     background-color: #2196F3;
   }
-  
+
   input:focus + .slider {
     box-shadow: 0 0 1px #2196F3;
   }
-  
+
   input:checked + .slider:before {
     -webkit-transform: translateX(26px);
     -ms-transform: translateX(26px);
     transform: translateX(26px);
   }
-  
+
   /* Rounded sliders */
   .slider.round {
     border-radius: 34px;
   }
-  
+
   .slider.round:before {
     border-radius: 50%;
   }
+
+#right-click-menu {
+	position: fixed;
+	z-index: 10000;
+	width: 150px;
+	background: #3b1a1a;
+    border-radius: 5px;
+	display: none;
+}
+
+#right-click-menu.visible {
+	display: block;
+}
+
+#right-click-menu .item {
+	padding: 8px 10px;
+	font-size: 10px;
+	color: #eee;
+	cursor: pointer;
+	border-radius: inherit;
+}
+
+#right-click-menu .item:hover {
+	background: #543434;
+}

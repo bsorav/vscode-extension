@@ -6,6 +6,7 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var code = null;
+var curCodeType = null;
 
 var codeEl = document.getElementById("code");
 codeEl.innerHTML = "";
@@ -18,6 +19,13 @@ const entryNodeX = 1;
 const defaultNodeX = 2;
 const entryLabelGap = 0.5;
 const exitLabelGap = 1.0;
+const canvasMarginY = 20;
+const canvasMaxWidth = 1024;
+const minCanvasTop = 20;
+const canvasTopOffset = 4;
+const canvasLeftOffset = 2;
+
+var curCanvasTop;
 
 function setupCanvas(){
     codeEl = document.getElementById("code");;
@@ -28,9 +36,10 @@ function setupCanvas(){
     let ctx = canvas.getContext("2d");
 
     canvas.height =  rect.height;
-    canvas.width = rect.width;
+    canvas.width = Math.min(rect.width, canvasMaxWidth);
     canvas.style.left = rect.left + "px";
-    canvas.style.top = rect.top + "px";
+    curCanvasTop = rect.top;
+    canvas.style.top = curCanvasTop + "px";
 
     let startX, startY;
 
@@ -48,17 +57,21 @@ function setupCanvas(){
       startX = event.clientX;
       startY = event.clientY;
 
+      hideRightClickMenu();
       document.addEventListener('mousemove', onMouseMove);
     });
 
     document.addEventListener('mouseup', function(event) {
       document.removeEventListener('mousemove', onMouseMove);
     });
+
+    document.removeEventListener('contextmenu', onRightClick);
+    document.addEventListener('contextmenu', onRightClick);
 }
 
 function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
 {
-  let canvas = document.getElementById("canvas");
+  //let canvas = document.getElementById("canvas");
   let styles = window.getComputedStyle(document.getElementById("code"));
   let deltaY = styles.lineHeight.replace("px", "") * 1;
   let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
@@ -243,26 +256,45 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
-  if (is_epsilon) {
-    drawPointOnNode(from_pc_xy, "stays still", undefined, undefined, true, true);
-    return;
-  }
-
-  EDGES.forEach(element => {
-      drawEdgeBetweenPoints(element.from_node, element.to_node, element.is_fallthrough, is_source_code);
-  });
-
   //let scrollHeight = window.scrollHeight;
   const styles = window.getComputedStyle(code);
   const deltaY = parseInt(styles.getPropertyValue("line-height"));
 
-  let topNode = canvas.height*1;
+  codeEl = document.getElementById("code");;
+  let rect = codeEl.getBoundingClientRect();
+
+  let topNode = rect.height*1;
+  let bottomNode = 0*1;
 
   //console.log(`path.unroll_factor_{mu,delta} = {${path.unroll_factor_mu}, ${path.unroll_factor_delta}}\n`);
   var node_with_mu_annotation;
   if (path.unroll_factor_mu != path.unroll_factor_delta.unroll) {
     node_with_mu_annotation = identifyFirstNodeWithCycle(path);
     //console.log(`node_with_mu_annotation = ${node_with_mu_annotation}\n`);
+  }
+
+  NODES.forEach(element => {
+    if (!isNaN(element.y)) {
+      const ypx = Math.max(0, (element.y * 1 - 5) * deltaY);
+      //console.log(`ypx = ${ypx}`);
+      topNode = Math.max(0, Math.min(topNode, ypx));
+      bottomNode = Math.max(bottomNode, ypx);
+    }
+  });
+
+  const newCanvasHeight = (bottomNode - topNode) + 2*canvasMarginY*deltaY;
+  const newCanvasTop = Math.max(minCanvasTop, topNode - canvasMarginY*deltaY);
+  //console.log(`deltaY = ${deltaY}, canvasMarginY = ${canvasMarginY}, bottomNode = ${bottomNode}, topNode = ${topNode}, newCanvasHeight = ${newCanvasHeight}, newCanvasTop = ${newCanvasTop}`);
+
+  if (!isNaN(newCanvasHeight) && !isNaN(newCanvasTop)) {
+    canvas.height = newCanvasHeight;
+    curCanvasTop = newCanvasTop;
+    canvas.style.top = curCanvasTop + "px";
+  }
+
+  if (is_epsilon) {
+    drawPointOnNode(canvas, ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
+    return;
   }
 
   NODES.forEach(element => {
@@ -277,9 +309,12 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
         //unroll_mu = path.unroll_factor_mu;
         unroll = path.unroll_factor_delta.unroll;
       }
-      drawPointOnNode(element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
-      topNode = Math.min(topNode, Math.max(0, (element.y * 1 - 5) * deltaY));
+      drawPointOnNode(canvas, ctx, element, undefined, unroll, unroll_is_only_mu, (element.pc == path.from_pc), (element.pc == path.to_pc));
       //console.log(`${element.pc}: element.y = ${element.y}, deltaY = ${deltaY} topNode = ${topNode}`);
+  });
+
+  EDGES.forEach(element => {
+      drawEdgeBetweenPoints(canvas, ctx, element.from_node, element.to_node, element.is_fallthrough, is_source_code);
   });
 
   //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);
@@ -288,13 +323,82 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   scroll(0, topNode);
 }
 
-function drawText(ctx, x, y, text, size, color){
+function canvasRelativeY(canvas, abs_y)
+{
+  const ret = Math.max(0, abs_y - curCanvasTop) + canvasTopOffset;
+  //console.log(`canvasRelativeY: abs_y = ${abs_y}, ret = ${ret}`);
+  return ret;
+}
+
+function canvasRelativeX(canvas, abs_x)
+{
+  const ret = abs_x + canvasLeftOffset;
+  return ret;
+}
+
+
+
+function drawArc(canvas, ctx, abs_cx, abs_cy, radius, theta1, theta2, anticlockwise, color, pattern)
+{
+    const cx = canvasRelativeX(canvas, abs_cx)
+    const cy = canvasRelativeY(canvas, abs_cy)
+    ctx.beginPath();
+    ctx.setLineDash(pattern);
+    ctx.arc(cx, cy, radius, theta1, theta2, anticlockwise);
+    ctx.strokeStyle = color;
+    ctx.stroke();
+}
+
+
+function drawArrowHead(canvas, ctx, abs_x, abs_y, theta, color) {
+
+    const x = canvasRelativeX(canvas, abs_x)
+    const y = canvasRelativeY(canvas, abs_y)
+
+    let h = 10;
+    let w = 8;
+
+    let dir = Math.tan(theta);
+    let normal = -1 / dir;
+
+    if(theta <= Math.PI/2 || theta > Math.PI * 3/2){
+        var back = -1;
+    }
+    else{
+        var back = 1;
+    }
+
+
+    let baseCen = coordAtDist(x, y, dir, back * h/2);
+    let baseStart = coordAtDist(x, y, dir, -1 * back * h/2);
+
+    let coord1 = coordAtDist(baseCen.x, baseCen.y, normal, w/2);
+    let coord2 = coordAtDist(baseCen.x, baseCen.y, normal, -1 * w/2);
+
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(coord1.x, coord1.y);
+    ctx.lineTo(coord2.x, coord2.y);
+    ctx.lineTo(baseStart.x, baseStart.y);
+    ctx.fill();
+    ctx.closePath();
+}
+
+
+
+
+function drawText(canvas, ctx, abs_x, abs_y, text, size, color){
+    const x = canvasRelativeX(canvas, abs_x);
+    const y = canvasRelativeY(canvas, abs_y);
     ctx.fillStyle = color;
     ctx.font = size + "px Arial";
     ctx.fillText(text, x, y);
 }
 
-function drawNode(ctx, x, y, radius, color, is_start_pc, is_stop_pc) {
+function drawNode(canvas, ctx, abs_x, abs_y, radius, color, is_start_pc, is_stop_pc) {
+    const x = canvasRelativeX(canvas, abs_x);
+    const y = canvasRelativeY(canvas, abs_y);
     ctx.beginPath();
     if (is_start_pc) {
       ctx.ellipse(x, y, radius, 3*radius, 0, 0, 2 * Math.PI);
@@ -309,7 +413,11 @@ function drawNode(ctx, x, y, radius, color, is_start_pc, is_stop_pc) {
     ctx.fill();
 }
 
-function drawLine(ctx, x1, y1, x2, y2, color, pattern) {
+function drawLine(canvas, ctx, abs_x1, abs_y1, abs_x2, abs_y2, color, pattern) {
+    const x1 = canvasRelativeX(canvas, abs_x1);
+    const x2 = canvasRelativeX(canvas, abs_x2);
+    const y1 = canvasRelativeY(canvas, abs_y1);
+    const y2 = canvasRelativeY(canvas, abs_y2);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.setLineDash(pattern);
@@ -323,12 +431,12 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
+function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
 {
     //node = node.split("_");
     //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
+    //let canvas = document.getElementById("canvas");
+    //let ctx = canvas.getContext("2d");
 
     let styles = window.getComputedStyle(document.getElementById("code"));
 
@@ -342,10 +450,10 @@ function drawPointOnNode(node, text, unroll, unroll_is_only_mu, is_start_pc, is_
     if(unroll > 1){
         let r = 10;
         color = "rgb(252, 3, 219)";
-        drawNode(ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
+        drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
         ctx.lineWidth = 1;
-        drawArc(ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
-        drawArrowHead(ctx, x1, y1-r, 0, color);
+        drawArc(canvas, ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
+        drawArrowHead(canvas, ctx, x1, y1-r, 0, color);
         let x = x1 + 2*r*Math.cos(Math.PI/4);
         let y = y1 - 2*r*Math.sin(Math.PI/4);
         const textcolor = "rgb(3, 3, 255)";
@@ -353,23 +461,23 @@ function drawPointOnNode(node, text, unroll, unroll_is_only_mu, is_start_pc, is_
         if (unroll_is_only_mu) {
           prefix_to_unroll = "<=";
         }
-        drawText(ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
+        drawText(canvas, ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
     } else {
         color = "rgb(255, 0, 0)";
-        drawNode(ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
+        drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
     }
     if (text !== undefined) {
       let r = 5;
       let x = x1 + r*Math.cos(7*Math.PI/4);
       let y = y1 - r*Math.sin(7*Math.PI/4);
       const textcolor = "rgb(255, 0, 0)";
-      drawText(ctx, x, y, text, 10, textcolor);
+      drawText(canvas, ctx, x, y, text, 10, textcolor);
     }
 }
 
 
 
-function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
+function drawEdgeBetweenPoints(canvas, ctx, node1, node2, is_fallthrough, is_source_code)
 {
     // node1 is predecessor
     // node2 is successor
@@ -378,8 +486,8 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
 
     let pattern = [];
 
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
+    //let canvas = document.getElementById("canvas");
+    //let ctx = canvas.getContext("2d");
 
     let styles = window.getComputedStyle(document.getElementById("code"));
 
@@ -402,12 +510,12 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
     if (node1.type === "entry") {
       var label_node = node1;
       label_node.y = (node1.y*1) - entryLabelGap;
-      drawPointOnNode(label_node, "ENTRY", undefined, undefined, true, false);
+      drawPointOnNode(canvas, ctx, label_node, "ENTRY", undefined, undefined, true, false);
     }
     if (node2.type === "exit") {
       node2.x = node1.x;
       node2.y = (node1.y*1) + exitLabelGap;
-      drawPointOnNode(node2, "EXIT", undefined, undefined, false, true);
+      drawPointOnNode(canvas, ctx, node2, "EXIT", undefined, undefined, false, true);
     }
 
     //console.log(`Drawing an edge: (${node1.type},${node1.x},${node1.y}) -> (${node2.type},${node2.x},${node2.y})`);
@@ -511,63 +619,19 @@ function drawEdgeBetweenPoints(node1, node2, is_fallthrough, is_source_code)
         }
 
         // drawCircle(ctx, x1, y1, 2, color1);
-        drawArc(ctx, arc_center.x, arc_center.y, radius, theta1, theta2, anticlockwise, color2, pattern);
-        drawArrowHead(ctx, point_in_middle_of_arc.x, point_in_middle_of_arc.y, ntheta, color1);
+        drawArc(canvas, ctx, arc_center.x, arc_center.y, radius, theta1, theta2, anticlockwise, color2, pattern);
+        drawArrowHead(canvas, ctx, point_in_middle_of_arc.x, point_in_middle_of_arc.y, ntheta, color1);
         // drawCircle(ctx, x2, y2, 2, color1);
 
     } else if (y1 <= y2) {
         // drawCircle(ctx, x1, y1, 2, color1);
-        drawLine(ctx, x1, y1, x2, y2, color2, pattern);
-        drawArrowHead(ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
+        drawLine(canvas, ctx, x1, y1, x2, y2, color2, pattern);
+        drawArrowHead(canvas, ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
         // drawArrowHead(ctx, x1, y1, theta, color1);
         // drawArrowHead(ctx, x2, y2, theta, color1);
         // drawCircle(ctx, x2, y2, 2, color1);
     }
 }
-
-function drawArc(ctx, cx, cy, radius, theta1, theta2, anticlockwise, color, pattern)
-{
-    ctx.beginPath();
-    ctx.setLineDash(pattern);
-    ctx.arc(cx, cy, radius, theta1, theta2, anticlockwise);
-    ctx.strokeStyle = color;
-    ctx.stroke();
-}
-
-
-function drawArrowHead(ctx, x, y, theta, color) {
-
-    let h = 10;
-    let w = 8;
-
-    let dir = Math.tan(theta);
-    let normal = -1 / dir;
-
-    if(theta <= Math.PI/2 || theta > Math.PI * 3/2){
-        var back = -1;
-    }
-    else{
-        var back = 1;
-    }
-
-
-    let baseCen = coordAtDist(x, y, dir, back * h/2);
-    let baseStart = coordAtDist(x, y, dir, -1 * back * h/2);
-
-    let coord1 = coordAtDist(baseCen.x, baseCen.y, normal, w/2);
-    let coord2 = coordAtDist(baseCen.x, baseCen.y, normal, -1 * w/2);
-
-
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(coord1.x, coord1.y);
-    ctx.lineTo(coord2.x, coord2.y);
-    ctx.lineTo(baseStart.x, baseStart.y);
-    ctx.fill();
-    ctx.closePath();
-}
-
-
 
 // Event listener for message from product graph webview
 window.addEventListener('message', async event => {
@@ -590,15 +654,22 @@ window.addEventListener('message', async event => {
         case "data": {
             scroll(0, 0);
             clearCanvas(canvas, ctx);
-            code = message.code;
+            code = message.code + "\n.";
             //console.log(`code = ${JSON.stringify(code)}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+            curCodeType = message.syntax_type;
+
+            var codeDisplay;
             if (message.syntax_type === "asm") {
-              codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');
+              codeDisplay = Prism.highlight(code, Prism.languages.nasm, 'nasm');
               //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             } else {
-              codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+              codeDisplay = Prism.highlight(code, Prism.languages.clike, 'clike');
             }
+
+            // Clear old contents
+            codeEl.innerHTML = codeDisplay;
+
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
             //console.log(`message.path = ${JSON.stringify(message.path)}`);
@@ -616,3 +687,106 @@ window.addEventListener('message', async event => {
 
 });
 vscode.postMessage({command:"loaded"});
+
+function download(filename, text) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  console.log(`clicking element`);
+  element.click();
+  console.log(`clicked element`);
+
+  document.body.removeChild(element);
+}
+
+function downloadObjectListener(evt) {
+  console.log('downloadObjectListener called');
+  hideRightClickMenu();
+  download("object", "data");
+};
+
+function downloadAssemblyListener(evt) {
+  console.log('downloadAssemblyListener called');
+  hideRightClickMenu();
+};
+
+function downloadSourceListener(evt) {
+  console.log('downloadSourceListener called');
+  hideRightClickMenu();
+};
+
+function downloadLLVMIRListener(evt) {
+  console.log('downloadLLVMIRListener called');
+  hideRightClickMenu();
+};
+
+function showRightClickMenu(mouseX, mouseY) {
+  console.log(`showRightClickMenu called`);
+  const rightClickMenu = document.getElementById("right-click-menu");
+  rightClickMenu.style.top = `${mouseY}px`;
+  rightClickMenu.style.left = `${mouseX}px`;
+
+  var items = rightClickMenu.querySelectorAll(".item");
+
+  items[0].removeEventListener('click', downloadObjectListener);
+  items[0].removeEventListener('click', downloadAssemblyListener);
+  items[0].removeEventListener('click', downloadSourceListener);
+  items[0].removeEventListener('click', downloadLLVMIRListener);
+  //items[0].removeEventListener('click', downloadVIRListener);
+
+  items[1].removeEventListener('click', downloadObjectListener);
+  items[1].removeEventListener('click', downloadAssemblyListener);
+  items[1].removeEventListener('click', downloadSourceListener);
+  items[1].removeEventListener('click', downloadLLVMIRListener);
+
+  items[2].removeEventListener('click', downloadObjectListener);
+  items[2].removeEventListener('click', downloadAssemblyListener);
+  items[2].removeEventListener('click', downloadSourceListener);
+  items[2].removeEventListener('click', downloadLLVMIRListener);
+
+  items[0].innerHTML = '';
+  items[1].innerHTML = '';
+  items[2].innerHTML = '';
+
+  rightClickMenu.style.display = "inline";
+
+  if (curCodeType === "asm") {
+    items[0].innerHTML = 'Download Object Code';
+    items[0].addEventListener('click', downloadObjectListener);
+    items[1].innerHTML = 'Download Assembly Code';
+    items[1].addEventListener('click', downloadAssemblyListener);
+  } else {
+    items[0].innerHTML = 'Download Source Code';
+    items[0].addEventListener('click', downloadSourceListener);
+    items[1].innerHTML = 'Download LLVM IR';
+    items[1].addEventListener('click', downloadLLVMIRListener);
+  }
+
+  rightClickMenu.classList.add("visible");
+}
+
+function hideRightClickMenu() {
+  console.log(`hideRightClickMenu called`);
+  const rightClickMenu = document.getElementById("right-click-menu");
+  rightClickMenu.style.display = "none";
+  rightClickMenu.classList.remove("visible");
+}
+
+function onRightClick(event) {
+  console.log(`onRightClick called`);
+  event.preventDefault();
+  const { clientX: mouseX, clientY: mouseY } = event;
+
+  const rightClickMenu = document.getElementById('right-click-menu');
+  if (rightClickMenu.style.display !== "inline") {
+    showRightClickMenu(mouseX, mouseY);
+  } else {
+    hideRightClickMenu();
+  }
+}
+
+//window.addEventListener('contextmenu', event => { onRightClick(); });

@@ -250,7 +250,7 @@ class Eqchecker {
     }
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
-    console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
+    //console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
     var request =
         { type: 'updateEqcheckInView',
           //dirPath: dirPath,
@@ -313,7 +313,7 @@ class Eqchecker {
     return new Promise ((resolve, reject) => {
       const origRequest = origRequestIn;
       //const firstRequest = firstRequestIn;
-      console.log(`requesting response for server command ${origRequest.serverCommand}, dirPathIn ${origRequest.dirPathIn}, function ${origRequest.functionName}`);
+      //console.log(`requesting response for server command ${origRequest.serverCommand}, dirPathIn ${origRequest.dirPathIn}, function ${origRequest.functionName}`);
       this.RequestResponseForCommand(jsonRequest).then(async function(result) {
         //const result = res.result;
         //const origRequest = result.extra.origRequest;
@@ -321,7 +321,7 @@ class Eqchecker {
         //console.log("result =\n" + JSON.stringify(result));
         //console.log("extra =\n" + JSON.stringify(result.extra));
         let dirPath = result.dirPath;
-        console.log(`response received for function ${origRequest.functionName}, dirPath ${dirPath}`);
+        //console.log(`response received for function ${origRequest.functionName}, dirPath ${dirPath}`);
         if (origRequest.dirPathIn === undefined) {
           //console.log("first response received.\n");
           origRequest.type = 'addEqcheckInView';
@@ -1040,7 +1040,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   }
 
 
-  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, vis_network: vscode.Uri, graph_src: vscode.Uri)
+  public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, graph_src: vscode.Uri, d3_v5_min_js: vscode.Uri, index_min_js: vscode.Uri, d3_graphviz_js: vscode.Uri)
   {
     const html =
     `<!DOCTYPE html>
@@ -1051,9 +1051,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <script type="module" src=${graph_src}></script>
     </head>
     <body style="background-color:#FFFFFF;">
-    <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
-    <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
+    <script src="${d3_v5_min_js}"></script>
+    <script src="${index_min_js}"></script>
+    <script src="${d3_graphviz_js}"></script>
     <div class="graph" id="graph" style="text-align: center;"></div>
 
     </body>
@@ -1084,6 +1084,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
+            <div id="right-click-menu">
+            <div id="RightClickMenuItem1" class="item"></div>
+            <div id="RightClickMenuItem2" class="item"></div>
+            <div id="RightClickMenuItem3" class="item"></div>
+            </div>
         </div>
     </body>
     </html>`;
@@ -1114,6 +1119,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
         </div>
         <canvas id="canvas" style="position: absolute;"></canvas>
+        <div id="right-click-menu">
+        <div id="RightClickMenuItem1" class="item"></div>
+        <div id="RightClickMenuItem2" class="item"></div>
+        <div id="RightClickMenuItem3" class="item"></div>
+        </div>
     </div>
 </body>
 
@@ -1290,7 +1300,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
-    console.log(`src_code = ${src_code}\n`);
+    //console.log(`src_code = ${src_code}\n`);
     const dst_code = proof_response.dst_code;
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
@@ -1330,20 +1340,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
     const prism_nasm_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/components/prism-nasm.min.js'));
     //const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
-    const vis_network = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/vis-network/standalone/umd/vis-network.min.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
-    // const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/test.js'));
-    const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/d3.v5.min.js'));
-    const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'd3-scripts/index.min.js'));
+    const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3/dist/d3.js'));
+    const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/@hpcc-js/wasm/dist/index.min.js'));
+    const d3_graphviz_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3-graphviz/build/d3-graphviz.js'));
 
     // Set the webview content
 
-    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, vis_network, prod_source_js));
+    this.panel_set_html(panel_prd, EqcheckViewProvider.getProductWebviewContent(Eqchecker.extensionUri.fsPath, product_script, index_css, prod_source_js, d3_v5_min_js, index_min_js, d3_graphviz_js));
     this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
     this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
 
@@ -1573,7 +1582,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               console.log(`hashChar = ${hashChar}`);
               if (hashChar != -1) {
                 filename = filename.substr(0, hashChar);
-                hash = filename.substr(hashChar);
+                hash = filename.substr(hashChar + 1);
                 console.log(`filename = ${filename}, hash = ${hash}`);
               }
             } else {
@@ -1581,12 +1590,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             }
             if (filename == "") {
               if (hash != "") {
-                location.hash = hash;
+                //var element_to_scroll_to = document.getElementById(hash);
+                //element_to_scroll_to.scrollIntoView();
+                console.log(`Warning: filename is empty and hash is ${hash}`);
               } else {
                 console.log("Warning: both filename and hash are empty");
               }
             } else {
-              await this.viewScanReport(webview, message.dirPath, filename, hash);
+              await this.viewScanReport(webview, message.dirPath, filename);
             }
             break;
           default:

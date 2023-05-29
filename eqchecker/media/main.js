@@ -81,7 +81,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
                 }
             case 'loadEqchecks':
                 {
-                  for (const eqcheck of message.eqchecks) {
+                  for (var i = message.eqchecks.length - 1; i >= 0; i--) {
+                    const eqcheck = message.eqchecks[i];
                     if (!eqcheckExistsAlready(eqcheck)) {
                       addEqcheckInView(eqcheck.dirPath, eqcheck.source1Uri, eqcheck.source1Name, eqcheck.source1Text, eqcheck.source2Uri, eqcheck.source2Name, eqcheck.source2Text, eqcheck.functionName, getStatusMessage(eqcheck.runState, eqcheck.statusMessage), eqcheck.runState, eqcheck.prepareDirpath, eqcheck.pointsToDirpath);
                     }
@@ -101,7 +102,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
       } else if (runState == runStateStatusQueued) {
         return "Queued";
       } else if (runState == runStateStatusFoundProof) {
-        return "Found Proof";
+        return "Found proof and safety";
+      } else if (runState == runStateStatusSafetyCheckFailed) {
+        return "Found proof, safety unclear";
       } else if (runState == runStateStatusExhaustedSearchSpace) {
         return "Exhausted Search Space";
       } else if (runState == runStateStatusTimedOut) {
@@ -746,7 +749,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         viewState: viewStateBase,
       }
       console.log(`adding eqcheck.functionName \n${JSON.stringify(eqcheck.functionName)}`);
-      eqchecks.push(eqcheck);
+      eqchecks.unshift(eqcheck);
       displayEqcheckList(eqchecks);
     }
 

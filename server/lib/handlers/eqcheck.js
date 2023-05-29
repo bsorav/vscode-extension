@@ -12,7 +12,8 @@ const temp = require('temp'),
     xml2js = require('xml2js'),
     assert = require('assert'),
     tree_kill = require('tree-kill'),
-    textEncoding = require('text-encoding')
+    textEncoding = require('text-encoding'),
+    sendMail = require('../../eqcheck-mailer/gmail')
 ;
 
 //temp.track();
@@ -884,9 +885,53 @@ class EqcheckHandler {
       await this.saveUsers(users);
     }
 
+    async sendOTPEmail(loginName) {
+      //const fileAttachments = [
+
+      //  {
+      //    filename: 'attachment1.txt',
+      //    content: 'This is a plain text file sent as an attachment',
+      //  },
+      //  {
+      //    path: path.join(__dirname, './attachment2.txt'),
+      //  },
+      //  {
+      //    filename: 'websites.pdf',
+      //    path: 'https://www.labnol.org/files/cool-websites.pdf',
+      //  },
+
+      //  {
+      //    filename: 'image.png',
+      //    content: fs.createReadStream(path.join(__dirname, './attach.png')),
+      //  },
+      //];
+      const otp = Math.floor(Math.random() * 10000);
+      const msg = `OTP ${otp} for Eqchecker`;
+      console.log(`sending OTP ${otp} to ${loginName}`);
+
+      const options = {
+        to: loginName,
+        //cc: 'cc1@example.com, cc2@example.com',
+        replyTo: 'eqcheck@compiler.ai',
+        subject: msg,
+        text: msg,
+        html: msg,
+        //attachments: fileAttachments,
+        textEncoding: 'base64',
+        headers: [
+          { key: 'X-Application-Developer', value: 'CompilerAI' },
+          //{ key: 'X-Application-Version', value: 'v1.0.0.2' },
+        ],
+      };
+
+      const messageId = sendMail(options);
+      return otp;
+    }
+
     async checkLogin(loginName) {
       const quotaRemaining = await this.obtainQuotaForUser(loginName);
-      return { success: true, quotaRemaining: quotaRemaining, expectedOTP: "0000" };
+      const expectedOTP = await this.sendOTPEmail(loginName);
+      return { success: true, quotaRemaining: quotaRemaining, expectedOTP: expectedOTP };
     }
 
     async getSearchTree(dirPath) {

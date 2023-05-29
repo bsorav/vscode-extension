@@ -19,12 +19,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
 (function () {
     const vscode = acquireVsCodeApi();
 
-    const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined };
+    const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
     //const oldState = { eqchecks: [] };
     //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     let eqchecks = oldState.eqchecks;
-    let currentUser = oldState.currentUser;
+    //let currentUser = oldState.currentUser;
     //let eqchecks = [];
 
     displayEqcheckList(eqchecks);
@@ -39,15 +39,18 @@ const viewStateViewSearchTree = 'viewSearchTree';
         const message = event.data; // The json data that the extension sent
         switch (message.type) {
             case 'loginAuthenticated': {
-              //console.log(`Authenticate login called`);
-              const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined };
-              vscode.setState({ eqchecks : oldState.eqchecks, currentUser: message.enteredUser });
+              console.log(`Login authenticated called`);
+              const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+              vscode.setState({ eqchecks : oldState.eqchecks, currentUser: message.currentUser, quotaRemaining: message.quotaRemaining });
               displayWelcomeButton();
               break;
             }
             case 'addEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
+                    const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+                    vscode.setState({ eqchecks : oldState.eqchecks, currentUser: oldState.currentUser, quotaRemaining: message.quotaRemaining });
+                    displayWelcomeButton();
                     addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);
                     break;
                 }
@@ -108,12 +111,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
       welcome.removeEventListener('contextmenu', welcomeButtonRightClick);
 
       const curState = vscode.getState();
-      if (curState.currentUser === undefined) {
+      if (curState.currentUser === undefined || curState.quotaRemaining === undefined || curState.quotaRemaining <= 0) {
         welcome.innerHTML = 'Login';
         welcome.addEventListener('click', welcomeButtonAuthenticateLogin);
       } else {
         const curState = vscode.getState();
-        welcome.innerHTML = `<small>${curState.currentUser}<small><br>Start an Eqcheck`;
+        welcome.innerHTML = `<small><small>${curState.currentUser} (${curState.quotaRemaining} remaining)</small></small><br>Start an Eqcheck`;
         welcome.addEventListener('click', welcomeButtonStartEqcheck);
         welcome.addEventListener('contextmenu', welcomeButtonRightClick);
       }
@@ -271,8 +274,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
               //document.getElementById('hoverEqcheckArrow').style.display='none';
 
         // Update the saved state
-        const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined };
-        vscode.setState({ eqchecks : eqchecks, currentUser: oldState.currentUser });
+        const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+        vscode.setState({ eqchecks : eqchecks, currentUser: oldState.currentUser, quotaRemaining: oldState.quotaRemaining });
     }
 
     /**

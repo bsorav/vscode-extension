@@ -32,6 +32,7 @@ const commandObtainFunctionListsAfterPreparePhase = 'obtainFunctionListsAfterPre
 const commandSaveSession = 'saveSession';
 const commandLoadSession = 'loadSession';
 const commandObtainSearchTree = 'obtainSearchTree';
+const commandCheckLogin = 'checkLogin';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -46,6 +47,7 @@ const prepareSuffix = "/prepare";
 const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
 const rewritten_prefix = "rewritten.";
+const defaultQuotaForNewUser = 10;
 
 function def(a) {
   return (a === undefined) ? "undef" : "def";
@@ -134,7 +136,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args;
+        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -182,6 +184,7 @@ class EqcheckHandler {
             eqchecks = req.body.eqchecks;
             cg_name = req.body.cg_name;
             extra_args = req.body.extra_args;
+            loginName = req.body.loginName;
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -222,6 +225,7 @@ class EqcheckHandler {
             eqchecks = req.eqchecks;
             cg_name = req.cg_name;
             extra_args = req.extra_args;
+            loginName = req.loginName;
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();
@@ -251,7 +255,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args};
+        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName};
     }
 
     //splitArguments(options) {
@@ -640,6 +644,34 @@ class EqcheckHandler {
       });
     }
 
+    async loadUsers() {
+      return new Promise((resolve, reject) => {
+        this.eqchecksDir().then( (eqDir) => {
+          const usersFile = path.join(eqDir, 'users');
+          var users;
+          if (!fs.existsSync(usersFile)) {
+            users = { };
+            fs.writeFileSync(usersFile, JSON.stringify(users));
+          } else {
+            const buffer = fs.readFileSync(usersFile);
+            const str = buffer.toString();
+            users = JSON.parse(str);
+          }
+          resolve(users);
+        });
+      });
+    }
+
+    async saveUsers(users) {
+      return new Promise((resolve, reject) => {
+        this.eqchecksDir().then( (eqDir) => {
+          const usersFile = path.join(eqDir, 'users');
+          fs.writeFileSync(usersFile, JSON.stringify(users));
+          resolve();
+        });
+      });
+    }
+
     async readBuffer(filename, start = 0, bufferSize = undefined, max_chunksize = 8192) {
       //console.log(`readBuffer: filename = ${filename}`);
       let fd;
@@ -825,6 +857,38 @@ class EqcheckHandler {
       return [offsetNew, truncatedChunk];
     }
 
+    async obtainQuotaForUser(loginName) {
+      if (loginName === undefined) {
+        console.log(`Warning: obtainQuotaForuser called with undefined loginName`);
+        return 0;
+      }
+      const users = await this.loadUsers();
+      if (users[loginName] === undefined) {
+        users[loginName] = defaultQuotaForNewUser;
+        await this.saveUsers(users);
+      }
+      return users[loginName];
+    }
+
+    async decrementQuotaForUser(loginName) {
+      if (loginName === undefined) {
+        console.log(`Warning: decrementQuotaForUser called with undefined loginName`);
+        return;
+      }
+      const users = await this.loadUsers();
+      if (users[loginName] === undefined) {
+        users[loginName] = defaultQuotaForNewUser - 1;
+      } else {
+        users[loginName] = users[loginName] - 1;
+      }
+      await this.saveUsers(users);
+    }
+
+    async checkLogin(loginName) {
+      const quotaRemaining = await this.obtainQuotaForUser(loginName);
+      return { success: true, quotaRemaining: quotaRemaining, expectedOTP: "0000" };
+    }
+
     async getSearchTree(dirPath) {
       const searchTreeFilename = this.get_search_tree_filename(dirPath);
       if (!fs.existsSync(searchTreeFilename)) {
@@ -833,7 +897,7 @@ class EqcheckHandler {
       const buffer = fs.readFileSync(searchTreeFilename);
       const searchTreeXML = buffer.toString();
       var searchTree;
-      xml2js.parseString(searchTreeXML, {explictArray: false}, function (err, result) {
+      xml2js.parseString(searchTreeXML, {explictArray: false}, function (err, result) { //XXX: explicitArray is mis-spelled. Fix this either by correcting the spelling (and ensure nothing else breaks) or by removing this option
         searchTree = result;
       });
       return searchTree;
@@ -1051,7 +1115,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       var {
-          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args
+          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -1125,7 +1189,11 @@ class EqcheckHandler {
                   error => {
                       this.eqcheck_error(error, res);
                   });
-          const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: ''});
+          if (commandIn === commandPrepareEqcheck) {
+            await this.decrementQuotaForUser(loginName);
+          }
+          const quotaRemaining = await this.obtainQuotaForUser(loginName);
+          const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: '', quotaRemaining: quotaRemaining});
           //console.log(`response = ${response}\n`);
           res.end(response);
         } else {
@@ -1259,6 +1327,13 @@ class EqcheckHandler {
             this.rewrite_scanbuild_files(top_level_dir, scanview_report_dir);
           }
         }
+        var source_without_hash = source;
+        if (source !== undefined) {
+          const hash = source.lastIndexOf('#');
+          if (hash != -1) {
+            source = source.substring(0, hash);
+          }
+        }
         const scanview_report_file = (source === undefined) ? scanview_report_dir + "/index.html" : scanview_report_dir + "/" + source;
         //const scanview_report_url = "https://" + this.hostname + ":" + this.port + this.codeAnalysisURL + "/" + scanview_report_dir + "/index.html";
         //console.log(`reading ${scanview_report_file}`);
@@ -1277,6 +1352,13 @@ class EqcheckHandler {
         const searchTreeStr = JSON.stringify(searchTree);
         //console.log('returning ', searchTreeStr);
         res.end(searchTreeStr);
+        return;
+      } else if (commandIn === commandCheckLogin) {
+        console.log(`CheckLogin received for ${loginName}`);
+        const checkLoginResponse = await this.checkLogin(loginName);
+        const checkLoginResponseStr = JSON.stringify(checkLoginResponse);
+        console.log(`returning ${checkLoginResponseStr}`);
+        res.end(checkLoginResponseStr);
         return;
       } else if (commandIn === commandObtainSrcFiles) {
         console.log('commandObtainSrcFiles received with dirPathIn ', dirPathIn);

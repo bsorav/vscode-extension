@@ -1690,7 +1690,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       var otp;
       const options: vscode.InputBoxOptions = {
         prompt: `Enter the OTP sent to ${loginName}: `,
-        placeHolder: "4-digit number"
+        placeHolder: "4-digit number",
+        ignoreFocusOut: true
       };
       await vscode.window.showInputBox(options).then(async ea => {
         if (!ea) return;

@@ -19,11 +19,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
 (function () {
     const vscode = acquireVsCodeApi();
 
-    const oldState = vscode.getState() || { eqchecks: [] };
+    const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
     //const oldState = { eqchecks: [] };
     //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     let eqchecks = oldState.eqchecks;
+    //let currentUser = oldState.currentUser;
     //let eqchecks = [];
 
     displayEqcheckList(eqchecks);
@@ -31,34 +32,25 @@ const viewStateViewSearchTree = 'viewSearchTree';
     //console.log(`posting eqchecksLoaded\n`);
     vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(eqchecks)});
 
-    const welcome = document.querySelector('.clear-eqchecks-button');
-    welcome.innerHTML = 'Start an Eqcheck';
-    welcome.addEventListener('click', () => {
-      hideStartButtonRightClickMenu();
-      hideEqcheckRightClickMenu();
-      startEqcheck();
-    });
-    welcome.addEventListener('contextmenu', (event) => {
-       hideEqcheckRightClickMenu();
-       onStartButtonRightClick(event);
-    });
-
-
-    //document.getElementById('eqcheck-view-proof').addEventListener('click', () => {
-    //    //console.log('ViewProof clicked');
-    //    const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
-    //    const eqcheck = eqcheckRightClickMenu.eqcheck;
-    //    hideRightClickMenu(eqcheck);
-    //    vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
-    //});
+    displayWelcomeButton();
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
         switch (message.type) {
+            case 'loginAuthenticated': {
+              console.log(`Login authenticated called`);
+              const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+              vscode.setState({ eqchecks : oldState.eqchecks, currentUser: message.currentUser, quotaRemaining: message.quotaRemaining });
+              displayWelcomeButton();
+              break;
+            }
             case 'addEqcheckInView':
                 {
                     //console.log("received message '" + message.type + "'");
+                    const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+                    vscode.setState({ eqchecks : oldState.eqchecks, currentUser: oldState.currentUser, quotaRemaining: message.quotaRemaining });
+                    displayWelcomeButton();
                     addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);
                     break;
                 }
@@ -92,6 +84,43 @@ const viewStateViewSearchTree = 'viewSearchTree';
                 }
         }
     });
+
+    function welcomeButtonAuthenticateLogin(event)
+    {
+      vscode.postMessage({ type: 'authenticateLogin'});
+    }
+
+    function welcomeButtonStartEqcheck(event)
+    {
+      hideStartButtonRightClickMenu();
+      hideEqcheckRightClickMenu();
+      startEqcheck();
+    }
+
+    function welcomeButtonRightClick(event)
+    {
+      hideEqcheckRightClickMenu();
+      onStartButtonRightClick(event);
+    }
+
+    function displayWelcomeButton()
+    {
+      const welcome = document.querySelector('.clear-eqchecks-button');
+      welcome.removeEventListener('click', welcomeButtonStartEqcheck);
+      welcome.removeEventListener('click', welcomeButtonAuthenticateLogin);
+      welcome.removeEventListener('contextmenu', welcomeButtonRightClick);
+
+      const curState = vscode.getState();
+      if (curState.currentUser === undefined || curState.quotaRemaining === undefined || curState.quotaRemaining <= 0) {
+        welcome.innerHTML = 'Login';
+        welcome.addEventListener('click', welcomeButtonAuthenticateLogin);
+      } else {
+        const curState = vscode.getState();
+        welcome.innerHTML = `<small><small>${curState.currentUser} (${curState.quotaRemaining} remaining)</small></small><br>Start an Eqcheck`;
+        welcome.addEventListener('click', welcomeButtonStartEqcheck);
+        welcome.addEventListener('contextmenu', welcomeButtonRightClick);
+      }
+    }
 
     function getStatusMessage(runState, statusMessage)
     {
@@ -245,7 +274,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
               //document.getElementById('hoverEqcheckArrow').style.display='none';
 
         // Update the saved state
-        vscode.setState({ eqchecks : eqchecks });
+        const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+        vscode.setState({ eqchecks : eqchecks, currentUser: oldState.currentUser, quotaRemaining: oldState.quotaRemaining });
     }
 
     /**

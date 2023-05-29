@@ -1189,7 +1189,7 @@ class EqcheckHandler {
                   error => {
                       this.eqcheck_error(error, res);
                   });
-          if (commandIn === commandPrepareEqcheck) {
+          if (commandIn === commandPointsToAnalysis) { //decrement as soon as we start doing compute-intensive stuff
             await this.decrementQuotaForUser(loginName);
           }
           const quotaRemaining = await this.obtainQuotaForUser(loginName);

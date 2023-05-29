@@ -47,6 +47,7 @@ const prepareSuffix = "/prepare";
 const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
 const rewritten_prefix = "rewritten.";
+const defaultQuotaForNewUser = 10;
 
 function def(a) {
   return (a === undefined) ? "undef" : "def";
@@ -643,6 +644,34 @@ class EqcheckHandler {
       });
     }
 
+    async loadUsers() {
+      return new Promise((resolve, reject) => {
+        this.eqchecksDir().then( (eqDir) => {
+          const usersFile = path.join(eqDir, 'users');
+          var users;
+          if (!fs.existsSync(usersFile)) {
+            users = { };
+            fs.writeFileSync(usersFile, JSON.stringify(users));
+          } else {
+            const buffer = fs.readFileSync(usersFile);
+            const str = buffer.toString();
+            users = JSON.parse(str);
+          }
+          resolve(users);
+        });
+      });
+    }
+
+    async saveUsers(users) {
+      return new Promise((resolve, reject) => {
+        this.eqchecksDir().then( (eqDir) => {
+          const usersFile = path.join(eqDir, 'users');
+          fs.writeFileSync(usersFile, JSON.stringify(users));
+          resolve();
+        });
+      });
+    }
+
     async readBuffer(filename, start = 0, bufferSize = undefined, max_chunksize = 8192) {
       //console.log(`readBuffer: filename = ${filename}`);
       let fd;
@@ -828,8 +857,36 @@ class EqcheckHandler {
       return [offsetNew, truncatedChunk];
     }
 
+    async obtainQuotaForUser(loginName) {
+      if (loginName === undefined) {
+        console.log(`Warning: obtainQuotaForuser called with undefined loginName`);
+        return 0;
+      }
+      const users = await this.loadUsers();
+      if (users[loginName] === undefined) {
+        users[loginName] = defaultQuotaForNewUser;
+        await this.saveUsers(users);
+      }
+      return users[loginName];
+    }
+
+    async decrementQuotaForUser(loginName) {
+      if (loginName === undefined) {
+        console.log(`Warning: decrementQuotaForUser called with undefined loginName`);
+        return;
+      }
+      const users = await this.loadUsers();
+      if (users[loginName] === undefined) {
+        users[loginName] = defaultQuotaForNewUser - 1;
+      } else {
+        users[loginName] = users[loginName] - 1;
+      }
+      await this.saveUsers(users);
+    }
+
     async checkLogin(loginName) {
-      return { success: true, quotaRemaining: 10, expectedOTP: "0000" };
+      const quotaRemaining = await this.obtainQuotaForUser(loginName);
+      return { success: true, quotaRemaining: quotaRemaining, expectedOTP: "0000" };
     }
 
     async getSearchTree(dirPath) {
@@ -840,7 +897,7 @@ class EqcheckHandler {
       const buffer = fs.readFileSync(searchTreeFilename);
       const searchTreeXML = buffer.toString();
       var searchTree;
-      xml2js.parseString(searchTreeXML, {explictArray: false}, function (err, result) {
+      xml2js.parseString(searchTreeXML, {explictArray: false}, function (err, result) { //XXX: explicitArray is mis-spelled. Fix this either by correcting the spelling (and ensure nothing else breaks) or by removing this option
         searchTree = result;
       });
       return searchTree;
@@ -1132,7 +1189,11 @@ class EqcheckHandler {
                   error => {
                       this.eqcheck_error(error, res);
                   });
-          const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: '', quotaRemaining: 9});
+          if (commandIn === commandPrepareEqcheck) {
+            await this.decrementQuotaForUser(loginName);
+          }
+          const quotaRemaining = await this.obtainQuotaForUser(loginName);
+          const response = JSON.stringify({dirPath: dirPath, offset: 0, chunk: '', quotaRemaining: quotaRemaining});
           //console.log(`response = ${response}\n`);
           res.end(response);
         } else {

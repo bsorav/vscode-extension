@@ -54,6 +54,13 @@ const viewStateViewSearchTree = 'viewSearchTree';
                     addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);
                     break;
                 }
+            case 'userLogout':
+                {
+                  const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+                  vscode.setState({ eqchecks : oldState.eqchecks, currentUser: undefined, quotaRemaining: undefined });
+                  displayWelcomeButton();
+                  break;
+                }
             case 'updateEqcheckInView':
                 {
                     //console.log("received updateEqcheckInView message '" + message.type + "'");
@@ -116,7 +123,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         welcome.addEventListener('click', welcomeButtonAuthenticateLogin);
       } else {
         const curState = vscode.getState();
-        welcome.innerHTML = `<small><small>${curState.currentUser} (${curState.quotaRemaining} remaining)</small></small><br>Start an Eqcheck`;
+        welcome.innerHTML = `<small><small>${curState.currentUser}</small></small><br>Start an Eqcheck<br><small><small>(${curState.quotaRemaining} remaining)</small></small>`;
         welcome.addEventListener('click', welcomeButtonStartEqcheck);
         welcome.addEventListener('contextmenu', welcomeButtonRightClick);
         vscode.postMessage({ type: 'registerLogin', currentUser: curState.currentUser});

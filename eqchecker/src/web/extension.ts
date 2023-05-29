@@ -80,6 +80,10 @@ export async function activate(context: vscode.ExtensionContext) {
   disposable = vscode.commands.registerCommand('eqchecker.viewProductCFG', (webview, dirPath, key) => {
     EqcheckViewProvider.provider.viewProductCFG(webview, dirPath, key);
   });
+  disposable = vscode.commands.registerCommand('eqchecker.logout', () => {
+    Eqchecker.logout();
+  });
+  context.subscriptions.push(disposable);
 }
 
 // This method is called when your extension is deactivated
@@ -311,6 +315,15 @@ class Eqchecker {
         reject();
       })
     );
+  }
+
+  public static async logout()
+  {
+    this.setLoginName(undefined);
+    var viewRequest =
+        { type: 'userLogout',
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequest);
   }
 
   public static setLoginName(name) {
@@ -1677,7 +1690,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       var otp;
       const options: vscode.InputBoxOptions = {
         prompt: `Enter the OTP sent to ${loginName}: `,
-        placeHolder: "4-digit number"
+        placeHolder: "4-digit number",
+        ignoreFocusOut: true
       };
       await vscode.window.showInputBox(options).then(async ea => {
         if (!ea) return;

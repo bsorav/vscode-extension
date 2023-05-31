@@ -885,6 +885,14 @@ class EqcheckHandler {
       await this.saveUsers(users);
     }
 
+    async sendMailIgnoreErrors(options) {
+      try {
+        const messageId = await sendMail(options);
+      } catch {
+        //do nothing
+      }
+    }
+
     async sendOTPEmail(loginName) {
       //const fileAttachments = [
 
@@ -924,7 +932,7 @@ class EqcheckHandler {
         ],
       };
 
-      const messageId = sendMail(options);
+      this.sendMailIgnoreErrors(options);
       return otp;
     }
 

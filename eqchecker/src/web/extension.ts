@@ -267,7 +267,20 @@ class Eqchecker {
           runState: runState,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
-    return lastMessages[0] === EqcheckDoneMessage;
+    if (lastMessages[0] === EqcheckDoneMessage) {
+      return true;
+    }
+    if (runState === undefined || runState.running_status === undefined) {
+      //console.log(`runState.running_status is null`);
+      return false;
+    }
+    //console.log(`runState.running_status.status_flag = ${runState.running_status.status_flag}`);
+    return    runState.running_status.status_flag == runStateStatusFoundProof
+           || runState.running_status.status_flag == runStateStatusExhaustedSearchSpace
+           || runState.running_status.status_flag == runStateStatusSafetyCheckFailed
+           || runState.running_status.status_flag == runStateStatusTimedOut
+           || runState.running_status.status_flag == runStateStatusTerminated
+    ;
   }
 
   public static determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus)
@@ -402,6 +415,7 @@ class Eqchecker {
   private static async populatePreparePhaseInfo(request) //this function is (and should remain) idempotent
   {
     const prepareDirpath = request.prepareDirpath;
+    //console.log(`prepareDirpath = ${prepareDirpath}`);
     const {src_filename: src_filename_arr, dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, src_bc: src_bc, src_ir: src_ir, dst_bc: dst_bc, dst_ir: dst_ir, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
 
     const src_filename = src_filename_arr.toString();
@@ -452,7 +466,7 @@ class Eqchecker {
     return { retval: true, src_filename: src_filename, src_bc: src_bc, src_ir: src_ir, dst_filename: dst_filename, dst_bc: dst_bc, dst_ir: dst_ir, common: common, harvest: harvest, object: object, compile_log: compile_log };
   }
 
-  public static async submitRunCommand(request/*, dirPath2, common, harvest, object*/) {
+  public static async submitRunCommand(request) {
     const pointsToDirpath = request.pointsToDirpath;
 
     const preparePhaseResult = await this.populatePreparePhaseInfo(request);
@@ -581,7 +595,7 @@ class Eqchecker {
 
     request.pointsToDirpath = result.dirPath;
     request.dirPathIn = undefined;
-    var runCommand = Eqchecker.submitRunCommand(request/*, dirPath2, common, harvest, object*/);
+    var runCommand = Eqchecker.submitRunCommand(request);
 
     const viewRequestRemove =
         { type: 'removeEqcheckInView',
@@ -606,7 +620,7 @@ class Eqchecker {
     EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
 
     const dirPath = result.dirPath;
-    request.prepareDirpath = dirPath;
+    request.prepareDirpath = result.dirPath;
     request.dirPathIn = undefined;
     request.source1Text = undefined;
     request.source2Text = undefined;
@@ -792,6 +806,7 @@ class Eqchecker {
     servers.push(defaultServerURL);
     const result = await vscode.window.showQuickPick(servers, {
       placeHolder: servers?.[0],
+      ignoreFocusOut: true
     });
     Eqchecker.serverURL = result;
   }
@@ -910,6 +925,7 @@ class Eqchecker {
     //console.log("before showQuickPick call: menuItems length = " + menuItems.length.toString() + ", items.length = " + items.length.toString());
     const result = await vscode.window.showQuickPick(items, {
       placeHolder: items?.[0],
+      ignoreFocusOut: true
       //onDidSelectItem: item => window.showInformationMessage(`Focus ${++i}: ${item}`)
     });
     //console.log("before findIndex call");
@@ -1707,24 +1723,29 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   async authenticateLogin()
   {
     var loginName;
+    var quotaRemaining;
     const options: vscode.InputBoxOptions = {
-      prompt: "Enter your email address: ",
-      placeHolder: "OTP will be sent here"
+      prompt: "Enter your email address",
+      placeHolder: "OTP will be sent to this email address",
+      ignoreFocusOut: true
     };
     await vscode.window.showInputBox(options).then(async ea => {
       if (!ea) return;
       loginName = ea;
     });
-    const response = await this.checkLoginAtServer(loginName);
-    if (response.success === undefined) {
-      const msg = `Login ${loginName} was unsuccessful`;
-      vscode.window.showInformationMessage(msg);
-      loginName = undefined;
-    } else if (response.quotaRemaining === undefined || response.quotaRemaining <= 0) {
-      const msg = `${loginName} has exceeeded its quota of eqchecks`;
-      vscode.window.showInformationMessage(msg);
+    if (loginName !== undefined) {
+      const response = await this.checkLoginAtServer(loginName);
+      if (response.success === undefined) {
+        const msg = `Login ${loginName} was unsuccessful`;
+        vscode.window.showInformationMessage(msg);
+        loginName = undefined;
+      } else if (response.quotaRemaining === undefined || response.quotaRemaining <= 0) {
+        const msg = `${loginName} has exceeeded its quota of eqchecks`;
+        vscode.window.showInformationMessage(msg);
+      }
+      quotaRemaining = response.quotaRemaining;
     }
-    return {currentUser: loginName, quotaRemaining: response.quotaRemaining};
+    return {currentUser: loginName, quotaRemaining: quotaRemaining};
   }
 
   public resolveWebviewView(
@@ -1828,7 +1849,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               //do the run
               console.log(`Submitting run command for ${eqcheck.dirPath}\n`);
               Eqchecker.submitRunCommand(request);
-            } else if (eqcheck.pointsToDirPath !== undefined) {
+            } else if (eqcheck.pointsToDirpath !== undefined) {
               //do the points-to followed by run
               console.log(`Submitting pointsTo command for ${eqcheck.dirPath}\n`);
               Eqchecker.submitPointsToCommand(request);
@@ -1837,31 +1858,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               console.log(`Submitting Prepare command for ${eqcheck.dirPath}\n`);
               Eqchecker.submitPrepareCommand(request);
             }
-              //const jsonRequest = JSON.stringify({serverCommand: commandPingEqcheck, dirPathIn: eqcheck.dirPath, offsetIn: 0});
-              ////console.log(`pushing to eqcheckRequestPromises`);
-              //Eqchecker.statusMap[eqcheck.dirPath] = statusEqcheckPinging;
-              //var promise = Eqchecker.RequestNextChunk(jsonRequest, origRequest, undefined).then(
-              //  async (result : any) => {
-              //    const dirPath = result.dirPath;
-              //    const runStatus = result.runStatus;
-              //    const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
-              //    const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
-              //    eqcheck.runState = runState;
-              //    if (runState == runStateStatusPreparing) {
-              //      return Eqchecker.afterPrepareCommand(origRequest, eqcheck.dirPath);
-              //    } else if (runState == runStateStatusPointsToAnalysis) {
-              //      const prepare_dirPath = eqcheck.prepare_dirPath;
-              //      const {dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, harvest: harvest, object: object, common: common, src_only: src_only, dst_only: dst_only} = await Eqchecker.obtainFunctionListsAfterPreparePhase(prepare_dirPath);
-              //      return Eqchecker.afterPointsToAnalysisCommand(origRequest, eqcheck.dirPath, common, harvest, object);
-              //    } else if (runState == runStateStatusRunning) {
-              //      //not-reached
-              //    } else {
-              //      //not-reached
-              //    }
-              //  }
-              //);
-              //eqcheckRequestPromises.push(promise);
-            //}
           }
           //console.log(`eqcheckRequestPromises.length = ${eqcheckRequestPromises.length}`);
           Promise.all(eqcheckRequestPromises);

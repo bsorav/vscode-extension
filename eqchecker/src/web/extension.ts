@@ -267,7 +267,19 @@ class Eqchecker {
           runState: runState,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
-    return lastMessages[0] === EqcheckDoneMessage;
+    if (lastMessages[0] === EqcheckDoneMessage) {
+      return true;
+    }
+    if (runState === undefined || runState.running_status === undefined) {
+      return false;
+    }
+    //console.log(`runState.running_status.status_flag = ${runState.running_status.status_flag}`);
+    return    runState.running_status.status_flag == runStateStatusFoundProof
+           || runState.running_status.status_flag == runStateStatusExhaustedSearchSpace
+           || runState.running_status.status_flag == runStateStatusSafetyCheckFailed
+           || runState.running_status.status_flag == runStateStatusTimedOut
+           || runState.running_status.status_flag == runStateStatusTerminated
+    ;
   }
 
   public static determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus)

@@ -150,7 +150,7 @@ function startListening(server) {
       //key: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.key'),
       //cert: fs.readFileSync('/home/sbansal/vscode-extension/server/certificates/ssl.crt'),
       key: fs.readFileSync('/etc/letsencrypt/live/vayu.cse.iitd.ac.in/privkey.pem'),
-      cert: fs.readFileSync('/etc/letsencrypt/live/vayu.cse.iitd.ac.in/cert.pem'),
+      cert: fs.readFileSync('/etc/letsencrypt/live/vayu.cse.iitd.ac.in/fullchain.pem'),
     }, server);
     httpsServer.listen(_port,  () => {
       logger.info(`HTTPS server started on port ${_port}`);

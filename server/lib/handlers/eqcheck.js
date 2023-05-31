@@ -587,8 +587,8 @@ class EqcheckHandler {
             if (optimizedFilename !== undefined) {
               eq32_args = eq32_args.concat(['--dst', optimizedFilename]);
             }
-            const extra_args_without_quotes = extra_args.replace(/['"]+/g, '');
-            const extra_args_array = extra_args_without_quotes.split(" ");
+            //const extra_args_without_quotes = extra_args.replace(/['"]+/g, '');
+            //const extra_args_array = extra_args_without_quotes.split(" ");
             //console.log(`extra_args_without_quotes = ${extra_args_without_quotes}.`);
             //eq32_args = eq32_args.concat([" ", extra_args_without_quotes, " "]);
             //eq32_args = eq32_args.concat(extra_args_array);
@@ -1259,9 +1259,10 @@ class EqcheckHandler {
 
           if (runStatus !== undefined && runStatus !== null && runStatus.running_status !== undefined) {
             const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
-            if (runStatus.running_status.status_flag === runStateStatusRunning) {
+
+            if (runStatus.running_status.status_flag === runStateStatusRunning || runStatus.running_status.status_flag === runStateStatusPreparing) {
               runStatus = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
-              if (runStatus.running_status.status_flag === runStateStatusRunning && !pidRunning) {
+              if ((runStatus.running_status.status_flag === runStateStatusRunning || runStatus.running_status.status_flag === runStateStatusPreparing) && !pidRunning) {
                 console.log(`Setting status_flag to terminated`);
                 runStatus.running_status.status_flag = runStateStatusTerminated;
               }

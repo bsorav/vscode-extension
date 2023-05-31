@@ -938,7 +938,10 @@ class EqcheckHandler {
 
     async checkLogin(loginName) {
       const quotaRemaining = await this.obtainQuotaForUser(loginName);
-      const expectedOTP = await this.sendOTPEmail(loginName);
+      var expectedOTP = "0000";
+      if (process.env.CHECK_LOGIN == "true") {
+        expectedOTP = await this.sendOTPEmail(loginName);
+      }
       return { success: true, quotaRemaining: quotaRemaining, expectedOTP: expectedOTP };
     }
 

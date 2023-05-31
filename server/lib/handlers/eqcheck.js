@@ -12,8 +12,7 @@ const temp = require('temp'),
     xml2js = require('xml2js'),
     assert = require('assert'),
     tree_kill = require('tree-kill'),
-    textEncoding = require('text-encoding'),
-    sendMail = require('../../eqcheck-mailer/gmail')
+    textEncoding = require('text-encoding')
 ;
 
 //temp.track();
@@ -886,6 +885,7 @@ class EqcheckHandler {
     }
 
     async sendMailIgnoreErrors(options) {
+      const sendMail = require('../../eqcheck-mailer/gmail');
       try {
         const messageId = await sendMail(options);
       } catch {

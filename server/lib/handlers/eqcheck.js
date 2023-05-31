@@ -602,7 +602,7 @@ class EqcheckHandler {
 
     newTempDir() {
         return new Promise((resolve, reject) => {
-            temp.mkdir({prefix: 'eqchecker', dir: '/nfs/sbansal'/*process.env.tmpDir*/}, (err, dirPath) => {
+            temp.mkdir({prefix: 'eqchecker', dir: process.env.SMT_SOLVER_TMP_FILES_DIR/*process.env.tmpDir*/}, (err, dirPath) => {
                 if (err)
                     reject(`Unable to open temp file: ${err}`);
                 else

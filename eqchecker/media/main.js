@@ -118,13 +118,15 @@ const viewStateViewSearchTree = 'viewSearchTree';
       welcome.removeEventListener('contextmenu', welcomeButtonRightClick);
 
       const curState = vscode.getState();
-      if (curState.currentUser === undefined || curState.quotaRemaining === undefined || curState.quotaRemaining <= 0) {
+      if (curState.currentUser === undefined/* || curState.quotaRemaining === undefined || curState.quotaRemaining <= 0*/) {
         welcome.innerHTML = 'Login';
         welcome.addEventListener('click', welcomeButtonAuthenticateLogin);
       } else {
         const curState = vscode.getState();
         welcome.innerHTML = `<small><small>${curState.currentUser}</small></small><br>Start an Eqcheck<br><small><small>(${curState.quotaRemaining} remaining)</small></small>`;
-        welcome.addEventListener('click', welcomeButtonStartEqcheck);
+        if (curState.quotaRemaining > 0) {
+          welcome.addEventListener('click', welcomeButtonStartEqcheck);
+        }
         welcome.addEventListener('contextmenu', welcomeButtonRightClick);
         vscode.postMessage({ type: 'registerLogin', currentUser: curState.currentUser});
       }

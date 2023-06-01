@@ -344,6 +344,12 @@ class Eqchecker {
     this.loginName = name;
   }
 
+  public static setLoginNameIfUndefined(name) {
+    if (this.loginName === undefined) {
+      this.loginName = name;
+    }
+  }
+
   public static getLoginName() {
     if (this.loginName === undefined) {
       console.log(`Warning: loginName is undefined!`);
@@ -1827,7 +1833,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           console.log(`eqchecksLoaded received\n`);
           var eqcheckRequestPromises = [];
           const eqchecks = JSON.parse(data.eqchecks);
-          //console.log(`eqchecks_str =\n${data.eqchecks}\n`);
+          const loginName = data.loginName;
+          Eqchecker.setLoginNameIfUndefined(loginName);
           console.log(`eqchecks =\n${JSON.stringify(eqchecks)}\n`);
           for (var i = 0; i < eqchecks.length; i++) {
             const eqcheck = eqchecks[i];

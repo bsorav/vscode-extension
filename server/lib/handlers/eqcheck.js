@@ -1199,7 +1199,7 @@ class EqcheckHandler {
           } else if (commandIn === commandPointsToAnalysis) {
             console.log(`PointsTo received on ${dirPathIn}\n`);
           }
-          console.log(`${dirPathIn}: source = ${def(source)}, sourceTxt = ${def(sourceTxt)}, src_bc = ${def(src_bc)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, optimizedTxt = ${def(optimizedTxt)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}, compile_log = ${def(compile_log)}\n`);
+          //console.log(`${dirPathIn}: source = ${def(source)}, sourceTxt = ${def(sourceTxt)}, src_bc = ${def(src_bc)}, src_ir = ${def(src_ir)}, src_etfg = ${def(src_etfg)}, optimized = ${def(optimized)}, optimizedTxt = ${def(optimizedTxt)}, dst_ir = ${def(dst_ir)}, dst_etfg = ${def(dst_etfg)}, object = ${def(object)}, harvest = ${def(harvest)}, compile_log = ${def(compile_log)}\n`);
 
           //if (source === undefined) {
           //    logger.warn("No body found in request: source code missing", req);

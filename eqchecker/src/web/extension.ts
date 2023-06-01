@@ -69,11 +69,11 @@ export async function activate(context: vscode.ExtensionContext) {
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
-    Eqchecker.checkEq();
-  });
-  context.subscriptions.push(disposable);
-  disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
+  //let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
+  //  Eqchecker.checkEq();
+  //});
+  //context.subscriptions.push(disposable);
+  let disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
     Eqchecker.setServer();
   });
   context.subscriptions.push(disposable);
@@ -234,7 +234,8 @@ class Eqchecker {
 
   public static fetchFailed(err, url)
   {
-    vscode.window.showInformationMessage(`Connection failed to eqcheck server URL ${url}: error ='${err}'`);
+    vscode.window.showInformationMessage(`Connection failed to eqchecker server: error ='${err}'`);
+    //vscode.window.showInformationMessage(`Connection failed to eqchecker server URL ${url}: error ='${err}'`);
   }
 
   public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus) : boolean

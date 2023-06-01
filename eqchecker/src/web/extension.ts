@@ -1732,7 +1732,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     };
     await vscode.window.showInputBox(options).then(async ea => {
       if (!ea) return;
-      loginName = ea;
+      loginName = ea.toLowerCase();
     });
     if (loginName !== undefined) {
       const response = await this.checkLoginAtServer(loginName);

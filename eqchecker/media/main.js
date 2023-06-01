@@ -24,13 +24,12 @@ const viewStateViewSearchTree = 'viewSearchTree';
     //oldState.eqchecks.push({ value: getNewCalicoColor() });
 
     let eqchecks = oldState.eqchecks;
-    //let currentUser = oldState.currentUser;
-    //let eqchecks = [];
+    const currentUser = oldState.currentUser;
 
     displayEqcheckList(eqchecks);
 
     //console.log(`posting eqchecksLoaded\n`);
-    vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(eqchecks)});
+    vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(eqchecks), loginName: currentUser});
 
     displayWelcomeButton();
 
@@ -87,7 +86,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
                     }
                   }
                   displayEqcheckList(eqchecks);
-                  vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(message.eqchecks)});
+                  const curState = vscode.getState();
+                  vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(message.eqchecks), loginName: curState.currentUser });
                 }
         }
     });

@@ -29,7 +29,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     displayEqcheckList(eqchecks);
 
     //console.log(`posting eqchecksLoaded\n`);
-    vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(eqchecks), loginName: currentUser});
+    vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: eqchecks, loginName: currentUser});
 
     displayWelcomeButton();
 
@@ -81,13 +81,15 @@ const viewStateViewSearchTree = 'viewSearchTree';
                 {
                   for (var i = message.eqchecks.length - 1; i >= 0; i--) {
                     const eqcheck = message.eqchecks[i];
-                    if (!eqcheckExistsAlready(eqcheck)) {
+                    const existsAlready = eqcheckExistsAlready(eqcheck);
+                    //console.log(`i = ${i}, existsAlready = ${existsAlready}`);
+                    if (!existsAlready) {
                       addEqcheckInView(eqcheck.dirPath, eqcheck.source1Uri, eqcheck.source1Name, eqcheck.source1Text, eqcheck.source2Uri, eqcheck.source2Name, eqcheck.source2Text, eqcheck.functionName, getStatusMessage(eqcheck.runState, eqcheck.statusMessage), eqcheck.runState, eqcheck.prepareDirpath, eqcheck.pointsToDirpath);
                     }
                   }
                   displayEqcheckList(eqchecks);
                   const curState = vscode.getState();
-                  vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(message.eqchecks), loginName: curState.currentUser });
+                  vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: message.eqchecks, loginName: curState.currentUser });
                 }
         }
     });
@@ -446,7 +448,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
       startButtonRightClickMenu.style.display = "none";
       eqcheckRightClickMenu.style.display = "none";
-      vscode.postMessage({ type: 'saveSession', eqchecks: JSON.stringify(eqchecks) });
+      vscode.postMessage({ type: 'saveSession', eqchecks: eqchecks });
     }
 
     function loadSessionListener() {

@@ -12,7 +12,8 @@ const temp = require('temp'),
     xml2js = require('xml2js'),
     assert = require('assert'),
     tree_kill = require('tree-kill'),
-    textEncoding = require('text-encoding')
+    textEncoding = require('text-encoding'),
+    tar = require('tar')
 ;
 
 //temp.track();
@@ -33,6 +34,7 @@ const commandSaveSession = 'saveSession';
 const commandLoadSession = 'loadSession';
 const commandObtainSearchTree = 'obtainSearchTree';
 const commandCheckLogin = 'checkLogin';
+const commandUploadEqcheckDir = 'uploadEqcheckDir';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -136,7 +138,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName;
+        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, eqcheckDirBundleContents, eqcheckDirBundleName;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -185,6 +187,8 @@ class EqcheckHandler {
             cg_name = req.body.cg_name;
             extra_args = req.body.extra_args;
             loginName = req.body.loginName;
+            eqcheckDirBundleContents = req.body.eqcheckDirBundleContents;
+            eqcheckDirBundleName = req.body.eqcheckDirBundleName;
             //if (req.body.bypassCache)
             //    bypassCache = true;
             //options = requestOptions.userArguments;
@@ -226,6 +230,8 @@ class EqcheckHandler {
             cg_name = req.cg_name;
             extra_args = req.extra_args;
             loginName = req.loginName;
+            eqcheckDirBundleContents = req.eqcheckDirBundleContents;
+            eqcheckDirBundleName = req.eqcheckDirBundleName;
             //options = req.query.options;
             //// By default we get the default filters.
             //filters = compiler.getDefaultFilters();
@@ -255,7 +261,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName};
+        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, eqcheckDirBundleContents, eqcheckDirBundleName};
     }
 
     //splitArguments(options) {
@@ -1162,6 +1168,25 @@ class EqcheckHandler {
       return top_level_dir + "/" + scan_dir + "/" + report_dirs[0].name;
     }
 
+    async unbundleToDirectory(contents, filename)
+    {
+      const tarSuffix = ".tar";
+      const basename = path.basename(filename);
+      const dirname = process.env.SMT_SOLVER_TMP_FILES_DIR;
+      const pathname = dirname + "/" + basename;
+      console.log(`filename = ${filename}`);
+      console.log(`pathname = ${pathname}`);
+      if (pathname.endsWith(tarSuffix)) {
+        const dirName = pathname.substr(0, pathname.length - tarSuffix.length);
+        //console.log(`contents = ${JSON.stringify(contents)}`);
+        //console.log(`dirname = ${JSON.stringify(dirName)}`);
+        fs.writeFileSync(pathname, contents);
+        await tar.x({ file: pathname, sync: true, cwd: dirname  });
+        return dirName;
+      }
+      return undefined;
+    }
+
     async handle(req, res, next) {
       //console.log('eqchecker handler called');
       //const eqchecker = this.get_eqchecker();
@@ -1171,7 +1196,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       var {
-          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName
+          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, eqcheckDirBundleContents, eqcheckDirBundleName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -1417,6 +1442,21 @@ class EqcheckHandler {
         console.log(`returning ${checkLoginResponseStr}`);
         res.end(checkLoginResponseStr);
         return;
+      } else if (commandIn === commandUploadEqcheckDir) {
+        console.log(`UploadEqcheckDir received for ${eqcheckDirBundleName}`);
+        const bundleContents = this.buffer_from_json(eqcheckDirBundleContents);
+        const bundleName = eqcheckDirBundleName;
+
+        const dirPath = await this.unbundleToDirectory(bundleContents, bundleName);
+        var prepareDirpath, pointsToDirpath;
+        if (dirPath !== undefined) {
+          prepareDirpath = dirPath + prepareSuffix;
+          pointsToDirpath = dirPath + pointsToSuffix;
+        }
+        const ret = { dirPath: dirPath, prepareDirpath: prepareDirpath, pointsToDirpath: pointsToDirpath };
+        const retStr = JSON.stringify(ret);
+        res.end(retStr);
+        return;
       } else if (commandIn === commandObtainSrcFiles) {
         console.log('commandObtainSrcFiles received with dirPathIn ', dirPathIn);
         const src_files_json = await this.getSrcFiles(dirPathIn);
@@ -1444,10 +1484,11 @@ class EqcheckHandler {
         res.end(chunkStr);
         return;
       } else if (commandIn === commandSaveSession) {
+        console.log(`commandSaveSession received for ${eqchecks.length} eqchecks with sessionName ${sessionName}`);
         const ssdir = await this.savedSessionsDir();
         const sessionFile = path.join(ssdir, sessionName);
         var ret = true;
-        await fs.writeFile(sessionFile, eqchecks, function (err) {
+        await fs.writeFile(sessionFile, JSON.stringify(eqchecks), function (err) {
           if (err) ret = false;
           //console.log(`Saved ${sessionFile}`);
         });
@@ -1455,14 +1496,17 @@ class EqcheckHandler {
         res.end(chunkStr);
         return;
       } else if (commandIn === commandLoadSession) {
+        console.log('commandLoadSession received with sessionName ', sessionName);
         const ssdir = await this.savedSessionsDir();
         const sessionFile = path.join(ssdir, sessionName);
         var response = fs.readFile(sessionFile, 'utf8', function(err, data) {
           if (err) {
             console.log(`Could not load from ${sessionFile}: ${err}`);
           }
-          //console.log(`data = ${data}`);
-          const chunkStr = JSON.stringify({eqchecks: data});
+          console.log(`data = ${data}`);
+          const eqchecks = JSON.parse(data);
+          console.log(`Number of eqchecks = ${eqchecks.length}`);
+          const chunkStr = JSON.stringify({eqchecks: eqchecks});
           res.end(chunkStr);
           return;
         });

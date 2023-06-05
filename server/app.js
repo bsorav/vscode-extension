@@ -55,7 +55,7 @@ async function main() {
     webServer
         .set('trust proxy', true)
         .set('view engine', 'pug')
-        .use(bodyParser.json({limit: '10mb'}))
+        .use(bodyParser.json({limit: '1000mb'}))
         .on('error', err => logger.error('Caught error in web handler; continuing:', err))
         .use(express.json())
         .use('/', router)

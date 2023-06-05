@@ -28,6 +28,7 @@ const commandSaveSession = 'saveSession';
 const commandLoadSession = 'loadSession';
 const commandObtainSearchTree = 'obtainSearchTree';
 const commandCheckLogin = 'checkLogin';
+const commandUploadEqcheckDir = 'uploadEqcheckDir';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusQueued = 'queued';
@@ -1832,7 +1833,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         case 'eqchecksLoaded': {
           console.log(`eqchecksLoaded received\n`);
           var eqcheckRequestPromises = [];
-          const eqchecks = JSON.parse(data.eqchecks);
+          const eqchecks = data.eqchecks;
           const loginName = data.loginName;
           Eqchecker.setLoginNameIfUndefined(loginName);
           console.log(`eqchecks =\n${JSON.stringify(eqchecks)}\n`);
@@ -1941,7 +1942,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             const jsonRequest = JSON.stringify({serverCommand: commandLoadSession, sessionName: sessionName});
             const response = (await Eqchecker.RequestResponseForCommand(jsonRequest));
             if (response.eqchecks !== undefined) {
-              const eqchecks = JSON.parse(response.eqchecks);
+              const eqchecks = response.eqchecks;
+              console.log(`eqchecks.length = ${eqchecks.length}`);
               var viewRequest =
                 { type: 'loadEqchecks',
                   eqchecks: eqchecks,

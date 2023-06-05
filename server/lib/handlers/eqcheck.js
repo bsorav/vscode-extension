@@ -1501,7 +1501,7 @@ class EqcheckHandler {
           if (err) {
             console.log(`Could not load from ${sessionFile}: ${err}`);
           }
-          console.log(`data = ${data}`);
+          //console.log(`data = ${data}`);
           const eqchecks = JSON.parse(data);
           console.log(`Number of eqchecks = ${eqchecks.length}`);
           const chunkStr = JSON.stringify({eqchecks: eqchecks});

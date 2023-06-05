@@ -129,9 +129,9 @@ const viewStateViewSearchTree = 'viewSearchTree';
         if (curState.quotaRemaining > 0) {
           welcome.addEventListener('click', welcomeButtonStartEqcheck);
         }
-        welcome.addEventListener('contextmenu', welcomeButtonRightClick);
         vscode.postMessage({ type: 'registerLogin', currentUser: curState.currentUser});
       }
+      welcome.addEventListener('contextmenu', welcomeButtonRightClick);
     }
 
     function getStatusMessage(runState, statusMessage)

@@ -138,7 +138,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, eqcheckDirBundleContents, eqcheckDirBundleName;
+        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -187,7 +187,7 @@ class EqcheckHandler {
             cg_name = req.body.cg_name;
             extra_args = req.body.extra_args;
             loginName = req.body.loginName;
-            eqcheckDirBundleContents = req.body.eqcheckDirBundleContents;
+            filenameOnServer = req.body.filenameOnServer;
             eqcheckDirBundleName = req.body.eqcheckDirBundleName;
             //if (req.body.bypassCache)
             //    bypassCache = true;
@@ -230,7 +230,7 @@ class EqcheckHandler {
             cg_name = req.cg_name;
             extra_args = req.extra_args;
             loginName = req.loginName;
-            eqcheckDirBundleContents = req.eqcheckDirBundleContents;
+            filenameOnServer = req.filenameOnServer;
             eqcheckDirBundleName = req.eqcheckDirBundleName;
             //options = req.query.options;
             //// By default we get the default filters.
@@ -261,7 +261,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, eqcheckDirBundleContents, eqcheckDirBundleName};
+        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName};
     }
 
     //splitArguments(options) {
@@ -1168,21 +1168,19 @@ class EqcheckHandler {
       return top_level_dir + "/" + scan_dir + "/" + report_dirs[0].name;
     }
 
-    async unbundleToDirectory(contents, filename)
+    async unbundleToDirectory(tarFilename, filename)
     {
       const tarSuffix = ".tar";
-      const basename = path.basename(filename);
-      const dirname = process.env.SMT_SOLVER_TMP_FILES_DIR;
-      const pathname = dirname + "/" + basename;
-      console.log(`filename = ${filename}`);
-      console.log(`pathname = ${pathname}`);
-      if (pathname.endsWith(tarSuffix)) {
-        const dirName = pathname.substr(0, pathname.length - tarSuffix.length);
-        //console.log(`contents = ${JSON.stringify(contents)}`);
-        //console.log(`dirname = ${JSON.stringify(dirName)}`);
-        fs.writeFileSync(pathname, contents);
-        await tar.x({ file: pathname, sync: true, cwd: dirname  });
-        return dirName;
+      //const dirname = process.env.SMT_SOLVER_TMP_FILES_DIR;
+      //const pathname = dirname + "/" + basename;
+      if (tarFilename.endsWith(tarSuffix)) {
+        const dirName = process.env.SMT_SOLVER_TMP_FILES_DIR;
+        const basename = path.basename(filename);
+        const untar_dirname = basename.substr(0, basename.length - tarSuffix.length);
+        //fs.writeFileSync(pathname, contents);
+        await tar.x({ file: tarFilename, sync: true, cwd: dirName  });
+
+        return dirName + "/" + untar_dirname;
       }
       return undefined;
     }
@@ -1196,7 +1194,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       var {
-          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, eqcheckDirBundleContents, eqcheckDirBundleName
+          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -1443,11 +1441,11 @@ class EqcheckHandler {
         res.end(checkLoginResponseStr);
         return;
       } else if (commandIn === commandUploadEqcheckDir) {
-        console.log(`UploadEqcheckDir received for ${eqcheckDirBundleName}`);
-        const bundleContents = this.buffer_from_json(eqcheckDirBundleContents);
+        console.log(`UploadEqcheckDir received for ${eqcheckDirBundleName}, filename on server ${filenameOnServer}`);
+        //const bundleContents = this.buffer_from_json(eqcheckDirBundleContents);
         const bundleName = eqcheckDirBundleName;
 
-        const dirPath = await this.unbundleToDirectory(bundleContents, bundleName);
+        const dirPath = await this.unbundleToDirectory(filenameOnServer, bundleName);
         var prepareDirpath, pointsToDirpath;
         if (dirPath !== undefined) {
           prepareDirpath = dirPath + prepareSuffix;

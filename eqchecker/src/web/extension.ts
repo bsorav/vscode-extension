@@ -1235,7 +1235,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           vscode.window.createWebviewPanel(
               'productCFG',
               'Product Control Flow Graph',
-              vscode.ViewColumn.Three,
+              vscode.ViewColumn.Two,
               {
                 enableScripts: true,
                 retainContextWhenHidden: true
@@ -1280,7 +1280,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         vscode.window.createWebviewPanel(
           'dst_code',
           'Destination Code',
-          (dst_ir === undefined) ? vscode.ViewColumn.Four: vscode.ViewColumn.Five,
+          (dst_ir === undefined) ? vscode.ViewColumn.Three: vscode.ViewColumn.Four,
           {
             enableScripts: true,
             retainContextWhenHidden: true
@@ -1300,48 +1300,50 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     }
     if (src_ir !== undefined) {
       if (proof_panels === undefined) {
-        panel_src_ir =
-          vscode.window.createWebviewPanel(
-            'src_ir',
-            'Source IR',
-            vscode.ViewColumn.Two,
-            {
-              enableScripts: true,
-              retainContextWhenHidden: true
-            }
-          );
-        panel_src_ir.onDidDispose(
-          () => {
-            this.proof_panels.panel_src_ir = undefined;
-            this.set_proof_panels_to_undef_if_all_disposed();
-          },
-          null,
-          Eqchecker.context.subscriptions
-        );
+        panel_src_ir = undefined;
+        //panel_src_ir =
+        //  vscode.window.createWebviewPanel(
+        //    'src_ir',
+        //    'Source IR',
+        //    vscode.ViewColumn.Two,
+        //    {
+        //      enableScripts: true,
+        //      retainContextWhenHidden: true
+        //    }
+        //  );
+        //panel_src_ir.onDidDispose(
+        //  () => {
+        //    this.proof_panels.panel_src_ir = undefined;
+        //    this.set_proof_panels_to_undef_if_all_disposed();
+        //  },
+        //  null,
+        //  Eqchecker.context.subscriptions
+        //);
       } else {
         panel_src_ir = proof_panels.src_ir;
       }
     }
     if (dst_ir !== undefined) {
       if (proof_panels === undefined) {
-        panel_dst_ir =
-          vscode.window.createWebviewPanel(
-            'dst_ir',
-            'Destination IR',
-            vscode.ViewColumn.Four,
-            {
-              enableScripts: true,
-              retainContextWhenHidden: true
-            }
-          );
-        panel_dst_ir.onDidDispose(
-          () => {
-            this.proof_panels.panel_dst_ir = undefined;
-            this.set_proof_panels_to_undef_if_all_disposed();
-          },
-          null,
-          Eqchecker.context.subscriptions
-        );
+        panel_dst_ir = undefined;
+        //panel_dst_ir =
+        //  vscode.window.createWebviewPanel(
+        //    'dst_ir',
+        //    'Destination IR',
+        //    vscode.ViewColumn.Four,
+        //    {
+        //      enableScripts: true,
+        //      retainContextWhenHidden: true
+        //    }
+        //  );
+        //panel_dst_ir.onDidDispose(
+        //  () => {
+        //    this.proof_panels.panel_dst_ir = undefined;
+        //    this.set_proof_panels_to_undef_if_all_disposed();
+        //  },
+        //  null,
+        //  Eqchecker.context.subscriptions
+        //);
       } else {
         panel_dst_ir = proof_panels.dst_ir;
       }

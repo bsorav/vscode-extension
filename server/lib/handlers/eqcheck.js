@@ -723,14 +723,14 @@ class EqcheckHandler {
       const runStatus = await this.getRunningStatus(dirPath);
       const srcFilenameJSON = runStatus.running_status.src_filename;
       //console.log(`srcFilenameJSON = ${srcFilenameJSON}\n`);
-      const srcFilename = (srcFilenameJSON === undefined) ? undefined : srcFilenameJSON.join();
+      const srcFilename = (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
       //console.log(`srcFilename = ${srcFilename}\n`);
       const bcFilenameJSON = runStatus.running_status.src_bc_filename;
-      const bcFilename = (bcFilenameJSON === undefined) ? undefined : bcFilenameJSON.join();
+      const bcFilename = (bcFilenameJSON === undefined) ? undefined : dirPath + "/../" + bcFilenameJSON.join();
       const irFilenameJSON = runStatus.running_status.src_ir_filename;
-      const irFilename = (irFilenameJSON === undefined) ? undefined : irFilenameJSON.join();
+      const irFilename = (irFilenameJSON === undefined) ? undefined : dirPath + "/../" + irFilenameJSON.join();
       const etfgFilenameJSON = runStatus.running_status.src_tfg_filename;
-      const etfgFilename = (etfgFilenameJSON === undefined) ? undefined : etfgFilenameJSON.join();
+      const etfgFilename = (etfgFilenameJSON === undefined) ? undefined : dirPath + "/../" + etfgFilenameJSON.join();
 
       //const irFilename = srcFilename + ".ll";
       //const etfgFilename = srcFilename + ".etfg";
@@ -755,20 +755,20 @@ class EqcheckHandler {
 
     async getDstFiles(dirPath) {
       const runStatus = await this.getRunningStatus(dirPath);
-      const dstFilename = runStatus.running_status.dst_filename.join();
+      const dstFilename = dirPath + "/../" + runStatus.running_status.dst_filename.join();
       //const dst = await this.readBuffer(dstFilename);
       const dst = dstFilename;
       //console.log(`dirPath = ${dirPath}, dst = ${dst}`);
       const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
       const objFilenameJSON = runStatus.running_status.dst_object_filename;
-      const objFilename = (objFilenameJSON === undefined) ? undefined : objFilenameJSON.join();
+      const objFilename = (objFilenameJSON === undefined) ? undefined : dirPath + "/../" + objFilenameJSON.join();
       //const objFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
 
       //let harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
       const harvestFilenameJSON = runStatus.running_status.dst_harvest_filename;
-      const harvestFilename = (harvestFilenameJSON === undefined) ? undefined : harvestFilenameJSON.join();
+      const harvestFilename = (harvestFilenameJSON === undefined) ? undefined : dirPath + "/../" + harvestFilenameJSON.join();
       const tfgFilenameJSON = runStatus.running_status.dst_tfg_filename;
-      const tfgFilename = (tfgFilenameJSON === undefined) ? undefined : tfgFilenameJSON.join();
+      const tfgFilename = (tfgFilenameJSON === undefined) ? undefined : dirPath + "/../" + tfgFilenameJSON.join();
       if (fs.existsSync(harvestFilename)) {
         //var tfgFilename = objFilename + ".tfg";
 
@@ -784,11 +784,11 @@ class EqcheckHandler {
         //let etfgFilename = dstFilename + ".etfg";
 
         const bcFilenameJSON = runStatus.running_status.dst_bc_filename;
-        const bcFilename = (bcFilenameJSON === undefined) ? undefined : bcFilenameJSON.join();
+        const bcFilename = (bcFilenameJSON === undefined) ? undefined : dirPath + "/../" + bcFilenameJSON.join();
         const irFilenameJSON = runStatus.running_status.dst_ir_filename;
-        const irFilename = (irFilenameJSON === undefined) ? undefined : irFilenameJSON.join();
+        const irFilename = (irFilenameJSON === undefined) ? undefined : dirPath + "/../" + irFilenameJSON.join();
         const etfgFilenameJSON = runStatus.running_status.dst_tfg_filename;
-        const etfgFilename = (etfgFilenameJSON === undefined) ? undefined : etfgFilenameJSON.join();
+        const etfgFilename = (etfgFilenameJSON === undefined) ? undefined : dirPath + "/../" + etfgFilenameJSON.join();
 
         //console.log(`getDstFiles: etfgFilename = ${etfgFilename}`);
         var bc, ir, etfg;

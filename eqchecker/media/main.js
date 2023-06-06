@@ -2,7 +2,7 @@
 // It cannot access the main VS Code APIs directly.
 
 const runStateStatusPreparing = 'preparing';
-const runStateStatusPointsTo = 'preparing';
+const runStateStatusPointsTo = 'pointsto';
 const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';

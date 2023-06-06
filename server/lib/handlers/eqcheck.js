@@ -393,9 +393,11 @@ class EqcheckHandler {
         const source = (source_filename === undefined) ? this.readFileObjectToUint8Array(source_contents) : undefined;
         const optimized = (optimized_filename === undefined) ? this.readFileObjectToUint8Array(optimized_contents) : undefined;
         if (source !== undefined) {
+          srcName = path.basename(srcName);
           srcName = "src.".concat(srcName);
         }
         if (optimized !== undefined) {
+          optName = path.basename(optName);
           optName = "opt.".concat(optName);
         }
         //const src_ir = this.buffer_from_json(src_irJSON);

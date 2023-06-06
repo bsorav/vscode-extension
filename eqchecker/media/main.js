@@ -48,6 +48,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
                 {
                     //console.log("received message '" + message.type + "'");
                     const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+                    const quotaRemaining = (message.quotaRemaining === undefined) ? oldState.quotaRemaining : message.quotaRemaining;
                     vscode.setState({ eqchecks : oldState.eqchecks, currentUser: oldState.currentUser, quotaRemaining: message.quotaRemaining });
                     displayWelcomeButton();
                     addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);

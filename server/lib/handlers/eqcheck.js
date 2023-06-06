@@ -719,18 +719,22 @@ class EqcheckHandler {
       return buffer;
     }
 
+    absPath(dirPath, srcFilenameJSON) {
+      return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
+    }
+
     async getSrcFiles(dirPath) {
       const runStatus = await this.getRunningStatus(dirPath);
       const srcFilenameJSON = runStatus.running_status.src_filename;
       //console.log(`srcFilenameJSON = ${srcFilenameJSON}\n`);
-      const srcFilename = (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
+      const srcFilename = this.absPath(dirPath, srcFilenameJSON);
       //console.log(`srcFilename = ${srcFilename}\n`);
       const bcFilenameJSON = runStatus.running_status.src_bc_filename;
-      const bcFilename = (bcFilenameJSON === undefined) ? undefined : dirPath + "/../" + bcFilenameJSON.join();
+      const bcFilename = this.absPath(dirPath, bcFilenameJSON);
       const irFilenameJSON = runStatus.running_status.src_ir_filename;
-      const irFilename = (irFilenameJSON === undefined) ? undefined : dirPath + "/../" + irFilenameJSON.join();
+      const irFilename = this.absPath(dirPath, irFilenameJSON);
       const etfgFilenameJSON = runStatus.running_status.src_tfg_filename;
-      const etfgFilename = (etfgFilenameJSON === undefined) ? undefined : dirPath + "/../" + etfgFilenameJSON.join();
+      const etfgFilename = this.absPath(dirPath, etfgFilenameJSON);
 
       //const irFilename = srcFilename + ".ll";
       //const etfgFilename = srcFilename + ".etfg";
@@ -755,20 +759,21 @@ class EqcheckHandler {
 
     async getDstFiles(dirPath) {
       const runStatus = await this.getRunningStatus(dirPath);
-      const dstFilename = dirPath + "/../" + runStatus.running_status.dst_filename.join();
+      const dstFilenameJSON = runStatus.running_status.dst_filename;
+      const dstFilename = this.absPath(dirPath, dstFilenameJSON);
       //const dst = await this.readBuffer(dstFilename);
       const dst = dstFilename;
       //console.log(`dirPath = ${dirPath}, dst = ${dst}`);
       const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
       const objFilenameJSON = runStatus.running_status.dst_object_filename;
-      const objFilename = (objFilenameJSON === undefined) ? undefined : dirPath + "/../" + objFilenameJSON.join();
+      const objFilename = this.absPath(dirPath, objFilenameJSON);
       //const objFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
 
       //let harvestFilename = this.get_harvest_filename_for_object_filename(objFilename);
       const harvestFilenameJSON = runStatus.running_status.dst_harvest_filename;
-      const harvestFilename = (harvestFilenameJSON === undefined) ? undefined : dirPath + "/../" + harvestFilenameJSON.join();
+      const harvestFilename = this.absPath(dirPath, harvestFilenameJSON);
       const tfgFilenameJSON = runStatus.running_status.dst_tfg_filename;
-      const tfgFilename = (tfgFilenameJSON === undefined) ? undefined : dirPath + "/../" + tfgFilenameJSON.join();
+      const tfgFilename = this.absPath(dirPath, tfgFilenameJSON);
       if (fs.existsSync(harvestFilename)) {
         //var tfgFilename = objFilename + ".tfg";
 
@@ -784,11 +789,11 @@ class EqcheckHandler {
         //let etfgFilename = dstFilename + ".etfg";
 
         const bcFilenameJSON = runStatus.running_status.dst_bc_filename;
-        const bcFilename = (bcFilenameJSON === undefined) ? undefined : dirPath + "/../" + bcFilenameJSON.join();
+        const bcFilename = this.absPath(dirPath, bcFilenameJSON);
         const irFilenameJSON = runStatus.running_status.dst_ir_filename;
-        const irFilename = (irFilenameJSON === undefined) ? undefined : dirPath + "/../" + irFilenameJSON.join();
+        const irFilename = this.absPath(dirPath, irFilenameJSON);
         const etfgFilenameJSON = runStatus.running_status.dst_tfg_filename;
-        const etfgFilename = (etfgFilenameJSON === undefined) ? undefined : dirPath + "/../" + etfgFilenameJSON.join();
+        const etfgFilename = this.absPath(dirPath, etfgFilenameJSON);
 
         //console.log(`getDstFiles: etfgFilename = ${etfgFilename}`);
         var bc, ir, etfg;
@@ -1326,16 +1331,26 @@ class EqcheckHandler {
         }
       } else if (commandIn === commandObtainFunctionListsAfterPreparePhase) {
         console.log('obtainFunctionListsAfterPreparePhase received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
+        const dirPath = dirPathIn;
         const runStatus = await this.getRunningStatus(dirPathIn);
-        const srcFilename = runStatus.running_status.src_filename;
-        const dstFilename = runStatus.running_status.dst_filename;
-        const src_bc = runStatus.running_status.src_bc_filename;
-        const src_ir = runStatus.running_status.src_ir_filename;
-        const dst_bc = runStatus.running_status.dst_bc_filename;
-        const dst_ir = runStatus.running_status.dst_ir_filename;
-        const objectFilename = runStatus.running_status.dst_object_filename;
-        const harvestFilename = runStatus.running_status.dst_harvest_filename;
-        const compile_logFilename = runStatus.running_status.compile_log_filename;
+        const srcFilenameJSON = runStatus.running_status.src_filename;
+        const srcFilename = this.absPath(dirPath, srcFilenameJSON);
+        const dstFilenameJSON = runStatus.running_status.dst_filename;
+        const dstFilename = this.absPath(dirPath, dstFilenameJSON);
+        const src_bcJSON = runStatus.running_status.src_bc_filename;
+        const src_bc = this.absPath(dirPath, src_bcJSON);
+        const src_irJSON = runStatus.running_status.src_ir_filename;
+        const src_ir = this.absPath(dirPath, src_irJSON);
+        const dst_bcJSON = runStatus.running_status.dst_bc_filename;
+        const dst_bc = this.absPath(dirPath, dst_bcJSON);
+        const dst_irJSON = runStatus.running_status.dst_ir_filename;
+        const dst_ir = this.absPath(dirPath, dst_irJSON);
+        const objectFilenameJSON = runStatus.running_status.dst_object_filename;
+        const objectFilename = this.absPath(dirPath, objectFilenameJSON);
+        const harvestFilenameJSON = runStatus.running_status.dst_harvest_filename;
+        const harvestFilename = this.absPath(dirPath, harvestFilenameJSON);
+        const compile_logFilenameJSON = runStatus.running_status.compile_log_filename;
+        const compile_logFilename = this.absPath(dirPath, compile_logFilenameJSON);
         //console.log(`src_bc = ${src_bc}\n`);
         //console.log(`src_ir = ${src_ir}\n`);
         if (dstFilename === "") {

@@ -241,23 +241,25 @@ class Eqchecker {
 
   public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus) : boolean
   {
+    var messages;
     if (jsonMessages === null || jsonMessages === undefined || jsonMessages.messages === undefined) {
-      return false;
+      messages = undefined;
+    } else {
+      messages = jsonMessages.messages.MSG;
     }
-    let messages = jsonMessages.messages.MSG;
-    if (messages === undefined || messages.length === 0) {
-      //console.log("messages = " + messages);
-      return false;
-    }
+    //if (messages === undefined/* || messages.length === 0*/) {
+    //  //console.log("messages = " + messages);
+    //  return false;
+    //}
     //console.log("addEqcheckOutput called. messages.length = " + messages.length);
     //messages.foreach(function(message) {
     //  console.log(message);
     //});
-    if (Eqchecker.outputMap[dirPath] === undefined) {
+    if (/*Eqchecker.outputMap[dirPath] === undefined*/ messages !== undefined && messages.length > 0) {
       Eqchecker.outputMap[dirPath] = messages;
-    } else {
+    }/* else {
       Eqchecker.outputMap[dirPath] = Eqchecker.outputMap[dirPath].concat(messages);
-    }
+    }*/
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
     //console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
@@ -272,17 +274,19 @@ class Eqchecker {
     if (lastMessages[0] === EqcheckDoneMessage) {
       return true;
     }
-    if (runState === undefined || runState.running_status === undefined) {
-      //console.log(`runState.running_status is null`);
+    if (runStatus === undefined || runStatus.running_status === undefined) {
+      //console.log(`runState = ${runState}, runState.running_status is null`);
       return false;
     }
-    //console.log(`runState.running_status.status_flag = ${runState.running_status.status_flag}`);
-    return    runState.running_status.status_flag == runStateStatusFoundProof
-           || runState.running_status.status_flag == runStateStatusExhaustedSearchSpace
-           || runState.running_status.status_flag == runStateStatusSafetyCheckFailed
-           || runState.running_status.status_flag == runStateStatusTimedOut
-           || runState.running_status.status_flag == runStateStatusTerminated
+    //console.log(`runStatus.running_status.status_flag = ${runStatus.running_status.status_flag}`);
+    const ret = runStatus.running_status.status_flag == runStateStatusFoundProof
+           || runStatus.running_status.status_flag == runStateStatusExhaustedSearchSpace
+           || runStatus.running_status.status_flag == runStateStatusSafetyCheckFailed
+           || runStatus.running_status.status_flag == runStateStatusTimedOut
+           || runStatus.running_status.status_flag == runStateStatusTerminated
     ;
+    //console.log(`ret = ${ret}, runStatus.running_status.status_flag = ${runStatus.running_status.status_flag}`);
+    return ret;
   }
 
   public static determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus)
@@ -300,8 +304,8 @@ class Eqchecker {
   public static getLastMessages(dirPath, n)
   {
     var lastMessages : string[] = [];
-    let numMessages = Eqchecker.outputMap[dirPath].length;
-    for (let i = 0; i < n; i++) {
+    let numMessages = (Eqchecker.outputMap[dirPath] === undefined) ? 0 : Eqchecker.outputMap[dirPath].length;
+    for (let i = 0; i < n && i < numMessages; i++) {
       lastMessages.push(Eqchecker.outputMap[dirPath][numMessages - 1 - i]);
     }
     return lastMessages;
@@ -621,12 +625,14 @@ class Eqchecker {
     const jsonRequest = JSON.stringify(request);
     const result : any = await Eqchecker.RequestNextChunk(jsonRequest, request, "prepareDirpath");
 
-    const viewRequestRemove =
-        { type: 'removeEqcheckInView',
-          origRequest: request,
-        };
-    EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
-
+    const preparePhaseResult = await this.populatePreparePhaseInfo(request);
+    if (preparePhaseResult.retval) {
+      const viewRequestRemove =
+          { type: 'removeEqcheckInView',
+            origRequest: request,
+          };
+      EqcheckViewProvider.provider.viewProviderPostMessage(viewRequestRemove);
+    }
     const dirPath = result.dirPath;
     request.prepareDirpath = result.dirPath;
     request.dirPathIn = undefined;

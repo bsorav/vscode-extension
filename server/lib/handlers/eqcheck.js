@@ -37,6 +37,7 @@ const commandCheckLogin = 'checkLogin';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';
 
 const runStateStatusPreparing = 'preparing';
+const runStateStatusPointsTo = 'pointsto';
 const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';
@@ -1298,11 +1299,11 @@ class EqcheckHandler {
 
           if (runStatus !== undefined && runStatus !== null && runStatus.running_status !== undefined) {
             const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
-            //console.log(`pid = ${runStatus.running_status.pid}, pidRunning = ${pidRunning}, runStatus.running_status.status_flag = ${runStatus.running_status.status_flag}`);
+            console.log(`pid = ${runStatus.running_status.pid}, pidRunning = ${pidRunning}, runStatus.running_status.status_flag = ${runStatus.running_status.status_flag}`);
 
-            if (runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing) {
+            if (runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing || runStatus.running_status.status_flag == runStateStatusPointsTo) {
               runStatus = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
-              if ((runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing) && !pidRunning) {
+              if ((runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing || runStatus.running_status.status_flag == runStateStatusPointsTo) && !pidRunning) {
                 console.log(`Setting status_flag to terminated`);
                 runStatus.running_status.status_flag = runStateStatusTerminated;
               }

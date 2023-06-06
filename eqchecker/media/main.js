@@ -2,6 +2,7 @@
 // It cannot access the main VS Code APIs directly.
 
 const runStateStatusPreparing = 'preparing';
+const runStateStatusPointsTo = 'preparing';
 const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';
@@ -139,6 +140,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
     {
       if (runState == runStateStatusPreparing) {
         return "Preparing";
+      } else if (runState == runStateStatusPointsTo) {
+        return "Points-to analysis";
       } else if (runState == runStateStatusRunning) {
         return statusMessage;
       } else if (runState == runStateStatusQueued) {
@@ -167,7 +170,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       if (runState == runStateStatusQueued) {
         //console.log(`returning red colour\n`);
         return "rgb(150, 150, 0)";  //yellow
-      } else if (runState == runStateStatusRunning || runState == runStateStatusPreparing) {
+      } else if (runState == runStateStatusRunning || runState == runStateStatusPreparing || runState == runStateStatusPointsTo) {
         //console.log(`returning yellow colour\n`);
         return "rgb(0, 0, 0)"; //black
       } else if (runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckFailed) {
@@ -376,7 +379,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
     function eqcheckCancel(eqcheck) {
       console.log('eqcheckCancel called');
-      if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusQueued) {
+      if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusQueued) {
         eqcheck.viewState = viewStateCancelling;
         eqcheck.statusMessage = "Cancelling...";
         displayEqcheckList(eqchecks);
@@ -593,7 +596,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
           items[3].addEventListener('click', eqcheckCancelListener);
           items[4].innerHTML = 'Clear';
           items[4].addEventListener('click', eqcheckClearListener);
-        } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing) {
+        } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';
             items[0].addEventListener('click', eqcheckCancelListener);

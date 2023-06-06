@@ -1293,10 +1293,11 @@ class EqcheckHandler {
 
           if (runStatus !== undefined && runStatus !== null && runStatus.running_status !== undefined) {
             const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
+            //console.log(`pid = ${runStatus.running_status.pid}, pidRunning = ${pidRunning}, runStatus.running_status.status_flag = ${runStatus.running_status.status_flag}`);
 
-            if (runStatus.running_status.status_flag === runStateStatusRunning || runStatus.running_status.status_flag === runStateStatusPreparing) {
+            if (runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing) {
               runStatus = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
-              if ((runStatus.running_status.status_flag === runStateStatusRunning || runStatus.running_status.status_flag === runStateStatusPreparing) && !pidRunning) {
+              if ((runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing) && !pidRunning) {
                 console.log(`Setting status_flag to terminated`);
                 runStatus.running_status.status_flag = runStateStatusTerminated;
               }

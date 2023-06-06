@@ -751,8 +751,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
         if (eqcheck.dirPath !== undefined && eqc.dirPath !== undefined && eqcheck.dirPath.toString() == eqc.dirPath.toString()) {
           return true;
         }
-        if (eqcheck.prepareDirpath !== undefined && eqc.prepareDirpath !== undefined && eqcheck.prepareDirpath.toString() == eqc.prepareDirpath.toString()) {
-          return true;
+        if (eqcheck.dirPath === undefined && eqc.dirPath === undefined) {
+          if (eqcheck.prepareDirpath !== undefined && eqc.prepareDirpath !== undefined && eqcheck.prepareDirpath.toString() == eqc.prepareDirpath.toString()) {
+            return true;
+          }
         }
       }
       return false;

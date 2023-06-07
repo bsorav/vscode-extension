@@ -288,7 +288,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
         }
 
         for (const eqcheck of eqchecks) {
-          if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState != runStateStatusPreparing) {
+          if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusPreparing) {
             displayEqcheck(eqcheck, ul);
           }
         }

@@ -7,6 +7,7 @@ const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';
 const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
+const runStateStatusSafetyCheckRunning = 'safety_check_running';
 const runStateStatusSafetyCheckFailed = 'safety_check_failed';
 const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';
@@ -148,6 +149,8 @@ const viewStateViewSearchTree = 'viewSearchTree';
         return "Queued";
       } else if (runState == runStateStatusFoundProof) {
         return "Found proof and safety";
+      } else if (runState == runStateStatusSafetyCheckRunning) {
+        return "Found proof, safety check running";
       } else if (runState == runStateStatusSafetyCheckFailed) {
         return "Found proof, safety unclear";
       } else if (runState == runStateStatusExhaustedSearchSpace) {
@@ -173,7 +176,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
       } else if (runState == runStateStatusRunning || runState == runStateStatusPreparing || runState == runStateStatusPointsTo) {
         //console.log(`returning yellow colour\n`);
         return "rgb(0, 0, 0)"; //black
-      } else if (runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckFailed) {
+      } else if (runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckRunning || runState == runStateStatusSafetyCheckFailed) {
         //console.log(`returning green colour\n`);
         return "rgb(0, 150, 0)"; //green
       } else {
@@ -379,7 +382,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
     function eqcheckCancel(eqcheck) {
       console.log('eqcheckCancel called');
-      if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusQueued) {
+      if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusSafetyCheckRunning || eqcheck.runState == runStateStatusQueued) {
         eqcheck.viewState = viewStateCancelling;
         eqcheck.statusMessage = "Cancelling...";
         displayEqcheckList(eqchecks);
@@ -596,7 +599,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
           items[3].addEventListener('click', eqcheckCancelListener);
           items[4].innerHTML = 'Clear';
           items[4].addEventListener('click', eqcheckClearListener);
-        } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo) {
+        } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusSafetyCheckRunning) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';
             items[0].addEventListener('click', eqcheckCancelListener);

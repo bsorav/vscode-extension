@@ -42,6 +42,7 @@ const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';
 const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
+const runStateStatusSafetyCheckRunning = 'safety_check_running';
 const runStateStatusSafetyCheckFailed = 'safety_check_failed';
 const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';
@@ -1313,11 +1314,13 @@ class EqcheckHandler {
             const pidRunning = this.pidIsRunning(runStatus.running_status.pid);
             console.log(`pid = ${runStatus.running_status.pid}, pidRunning = ${pidRunning}, runStatus.running_status.status_flag = ${runStatus.running_status.status_flag}`);
 
-            if (runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing || runStatus.running_status.status_flag == runStateStatusPointsTo) {
+            if (runStatus.running_status.status_flag == runStateStatusSafetyCheckRunning || runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing || runStatus.running_status.status_flag == runStateStatusPointsTo) {
               runStatus = await this.getRunningStatus(dirPathIn); //get running status again after checking pidRunning (to avoid a condition where the process exits after the running status is taken)
               if ((runStatus.running_status.status_flag == runStateStatusRunning || runStatus.running_status.status_flag == runStateStatusPreparing || runStatus.running_status.status_flag == runStateStatusPointsTo) && !pidRunning) {
                 console.log(`Setting status_flag to terminated`);
                 runStatus.running_status.status_flag = runStateStatusTerminated;
+              } else if (runStatus.running_status.status_flag == runStateStatusSafetyCheckRunning && !pidRunning) {
+                runStatus.running_status.status_flag = runStateStatusSafetyCheckFailed;
               }
             }
           }

@@ -35,6 +35,7 @@ const runStateStatusQueued = 'queued';
 const runStateStatusRunning = 'running';
 const runStateStatusFoundProof = 'found_proof';
 const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
+const runStateStatusSafetyCheckRunning = 'safety_check_running';
 const runStateStatusSafetyCheckFailed = 'safety_check_failed';
 const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';

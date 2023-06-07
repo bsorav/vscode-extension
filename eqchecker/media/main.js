@@ -189,105 +189,109 @@ const viewStateViewSearchTree = 'viewSearchTree';
       //}
     }
 
+    function displayEqcheck(eqcheck, ul) {
+      const li = document.createElement('li');
+      li.className = 'eqcheck-entry';
+
+      const eqcheckPreview = document.createElement('div');
+      eqcheckPreview.className = 'eqcheck-preview';
+      //const bgColor = '000000';
+      const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
+      //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
+      eqcheckPreview.style.backgroundColor = `${bgColor}`;
+      eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
+          onEqcheckMouseOver(eqcheck);
+      });
+      eqcheckPreview.addEventListener('mouseleave', (event) => {
+          //hideRightClickMenu(eqcheck); //this hides it even if we go to the right-click-menu
+          onEqcheckMouseLeave(eqcheck);
+      });
+      eqcheckPreview.addEventListener('mouseout', (/*event*/) => {
+          onEqcheckMouseOut(eqcheck);
+      });
+      eqcheckPreview.addEventListener('contextmenu', (event) => {
+          hideStartButtonRightClickMenu(eqcheck);
+          onEqcheckRightClick(eqcheck, event);
+      });
+      eqcheckPreview.addEventListener('ondblclick', () => {
+          onEqcheckDoubleClick(eqcheck);
+      });
+      eqcheckPreview.addEventListener('click', (event) => {
+          hideEqcheckRightClickMenu();
+          hideStartButtonRightClickMenu(eqcheck);
+          onEqcheckClicked(eqcheck);
+      });
+
+      var t = document.createElement("table");
+      t.setAttribute("id", "eqcheck-preview-table");
+      eqcheckPreview.appendChild(t);
+
+      var th = document.createElement("th");
+      th.setAttribute("id", "Eqcheck header row");
+      var thd = document.createElement("td");
+      //var thd_text = document.createTextNode(`${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`);
+      //thd.appendChild(thd_text);
+      if (eqcheck.source2Name === undefined) {
+        thd.innerHTML = `Compiling ${eqcheck.source1Name}`;
+      } else if (eqcheck.functionName === undefined) {
+        thd.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
+      } else {
+        thd.innerHTML = `${eqcheck.functionName}: ${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
+      }
+      th.appendChild(thd);
+      t.appendChild(th);
+
+      var tr = document.createElement("tr");
+      tr.setAttribute("id", "Eqcheck status row");
+      var trd = document.createElement("td");
+      var trd_text = document.createTextNode(`${eqcheck.statusMessage}`);
+      trd.appendChild(trd_text);
+      tr.appendChild(trd);
+      t.appendChild(tr);
+
+      eqcheckPreview.appendChild(t);
+      //eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}<br>${eqcheck.statusMessage}`;
+      li.appendChild(eqcheckPreview);
+      var hr = document.createElement("hr");
+      li.appendChild(hr);
+
+      //const input = document.createElement('input');
+      //input.className = 'eqcheck-input';
+      //input.type = 'text';
+      //input.value = eqcheck.value;
+      //input.addEventListener('change', (e) => {
+      //    const value = e.target.value;
+      //    if (!value) {
+      //        // Treat empty value as delete
+      //        eqchecks.splice(eqchecks.indexOf(eqcheck), 1);
+      //    } else {
+      //        eqcheck.value = value;
+      //    }
+      //    updateEqcheckList(eqchecks);
+      //});
+      //li.appendChild(input);
+
+      ul.appendChild(li);
+    }
+
     /**
      * @param {Array<{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, runState: string }>} eqchecks
      */
     function displayEqcheckList(eqchecks) {
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
-        //console.log("displayEqcheckList:\n");
-        //for (const eqcheck of eqchecks) {
-        //  console.log(`eqcheck = ${eqcheck.dirPath}`);
-        //}
-        //ul.empty();
-        //ul.innerHTML = "";
+
         for (const eqcheck of eqchecks) {
-            const li = document.createElement('li');
-            li.className = 'eqcheck-entry';
-
-            const eqcheckPreview = document.createElement('div');
-            eqcheckPreview.className = 'eqcheck-preview';
-            //const bgColor = '000000';
-            const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
-            //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
-            eqcheckPreview.style.backgroundColor = `${bgColor}`;
-            eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
-                onEqcheckMouseOver(eqcheck);
-            });
-            eqcheckPreview.addEventListener('mouseleave', (event) => {
-                //hideRightClickMenu(eqcheck); //this hides it even if we go to the right-click-menu
-                onEqcheckMouseLeave(eqcheck);
-            });
-            eqcheckPreview.addEventListener('mouseout', (/*event*/) => {
-                onEqcheckMouseOut(eqcheck);
-            });
-            eqcheckPreview.addEventListener('contextmenu', (event) => {
-                hideStartButtonRightClickMenu(eqcheck);
-                onEqcheckRightClick(eqcheck, event);
-            });
-            eqcheckPreview.addEventListener('ondblclick', () => {
-                onEqcheckDoubleClick(eqcheck);
-            });
-            eqcheckPreview.addEventListener('click', (event) => {
-                hideEqcheckRightClickMenu();
-                hideStartButtonRightClickMenu(eqcheck);
-                onEqcheckClicked(eqcheck);
-            });
-
-            var t = document.createElement("table");
-            t.setAttribute("id", "eqcheck-preview-table");
-            eqcheckPreview.appendChild(t);
-
-            var th = document.createElement("th");
-            th.setAttribute("id", "Eqcheck header row");
-            var thd = document.createElement("td");
-            //var thd_text = document.createTextNode(`${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}`);
-            //thd.appendChild(thd_text);
-            if (eqcheck.source2Name === undefined) {
-              thd.innerHTML = `Compiling ${eqcheck.source1Name}`;
-            } else if (eqcheck.functionName === undefined) {
-              thd.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
-            } else {
-              thd.innerHTML = `${eqcheck.functionName}: ${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name}`;
-            }
-            th.appendChild(thd);
-            t.appendChild(th);
-
-            var tr = document.createElement("tr");
-            tr.setAttribute("id", "Eqcheck status row");
-            var trd = document.createElement("td");
-            var trd_text = document.createTextNode(`${eqcheck.statusMessage}`);
-            trd.appendChild(trd_text);
-            tr.appendChild(trd);
-            t.appendChild(tr);
-
-            eqcheckPreview.appendChild(t);
-            //eqcheckPreview.innerHTML = `${eqcheck.source1Name} &#x2192 ${eqcheck.source2Name} : ${eqcheck.functionName}<br>${eqcheck.statusMessage}`;
-            li.appendChild(eqcheckPreview);
-            var hr = document.createElement("hr");
-            li.appendChild(hr);
-
-            //const input = document.createElement('input');
-            //input.className = 'eqcheck-input';
-            //input.type = 'text';
-            //input.value = eqcheck.value;
-            //input.addEventListener('change', (e) => {
-            //    const value = e.target.value;
-            //    if (!value) {
-            //        // Treat empty value as delete
-            //        eqchecks.splice(eqchecks.indexOf(eqcheck), 1);
-            //    } else {
-            //        eqcheck.value = value;
-            //    }
-            //    updateEqcheckList(eqchecks);
-            //});
-            //li.appendChild(input);
-
-            ul.appendChild(li);
+          if (eqcheck.runState != runStateStatusRunning && eqcheck.runState != runStateStatusPointsTo && eqcheck.runState != runStateStatusPreparing) {
+            displayEqcheck(eqcheck, ul);
+          }
         }
-              //document.getElementById('hoverEqcheckSource1Uri').style.display='none';
-              //document.getElementById('hoverEqcheckSource2Uri').style.display='none';
-              //document.getElementById('hoverEqcheckArrow').style.display='none';
+
+        for (const eqcheck of eqchecks) {
+          if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState != runStateStatusPreparing) {
+            displayEqcheck(eqcheck, ul);
+          }
+        }
 
         // Update the saved state
         const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };

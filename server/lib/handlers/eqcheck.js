@@ -315,13 +315,17 @@ class EqcheckHandler {
 
     get_proof_filename(dirPath, cg_name) {
       //console.log('dirPath ', dirPath);
+      return path.join(dirPath, 'eq.proof');
+    }
+
+    get_proof_filename_xml(dirPath, cg_name) {
+      //console.log('dirPath ', dirPath);
       if (cg_name === undefined) {
         return path.join(dirPath, 'eq.proof.xml');
       } else {
         return path.join(dirPath, cg_name);
       }
     }
-
 
     get_srcfilename(dirPath) {
       //console.log('dirPath ', dirPath);
@@ -722,7 +726,7 @@ class EqcheckHandler {
     }
 
     async getProofXML(dirPath, cg_name) {
-      let proofFilename = this.get_proof_filename(dirPath, cg_name);
+      let proofFilename = this.get_proof_filename_xml(dirPath, cg_name);
       var buffer = await this.readBuffer(proofFilename);
       if (buffer === undefined) return undefined;
       return buffer;

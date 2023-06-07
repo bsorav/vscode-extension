@@ -130,6 +130,11 @@ function getChildren(key: string[] | undefined): string[][] {
   return ret;
 }
 
+function getSearchTreeNodeCorrelEntryFilename(searchTreeNode)
+{
+  return searchTreeNode.correl_entry_filename.toString();
+}
+
 function getSearchTreeNodeMarkdownTooltip(searchTreeNode)
 {
   return searchTreeNode.search_node_status_markdown_tooltip.toString();
@@ -145,6 +150,7 @@ function getTreeItem(webview: vscode.Webview, dirPath: string, key: string[]): v
   const searchNode = getNode(key);
   const description = getSearchTreeNodeDescription(searchNode);
   // An example of how to use codicons in a MarkdownString in a tree item tooltip.
+  const correl_entry_filename = getSearchTreeNodeCorrelEntryFilename(searchNode);
   const markdown_tooltip = getSearchTreeNodeMarkdownTooltip(searchNode);
   const tooltip = new vscode.MarkdownString(`$(zap) ${key.join('.')}\n\n${markdown_tooltip}`, true);
   //console.log(`key = ${key}, treeElement = ${JSON.stringify(treeElement)}`);
@@ -159,7 +165,7 @@ function getTreeItem(webview: vscode.Webview, dirPath: string, key: string[]): v
     id: id,
     command: {
       command: 'eqchecker.viewProductCFG',
-      arguments: [webview, dirPath, key],
+      arguments: [webview, dirPath, correl_entry_filename],
       title: 'View Correlation'
     },
     description: description
@@ -183,7 +189,7 @@ function getTreeElement(element: string[]): any {
 
 function getNode(key: string[]): { key: string[], isStable: boolean } {
   if (!Eqchecker.searchTreeNodes[key.join('.')]) {
-    Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, true, "", "");
+    Eqchecker.searchTreeNodes[key.join('.')] = new SearchTreeNode(key, true, undefined, "", "");
   }
   return Eqchecker.searchTreeNodes[key.join('.')];
 }
@@ -191,11 +197,13 @@ function getNode(key: string[]): { key: string[], isStable: boolean } {
 class SearchTreeNode {
   searchKey: string[];
   isStable: boolean;
+  correl_entry_filename: string;
   search_node_status_markdown_tooltip: string;
   search_node_status_description: string;
-  constructor(readonly key: string[], is_stable: boolean, tooltip: string, description: string) {
+  constructor(readonly key: string[], is_stable: boolean, filename: string, tooltip: string, description: string) {
     this.searchKey = key;
     this.isStable = is_stable;
+    this.correl_entry_filename = filename;
     this.search_node_status_markdown_tooltip = tooltip;
     this.search_node_status_description = description;
   }
@@ -700,9 +708,9 @@ class Eqchecker {
     return response.search_tree;
   }
 
-  public static async obtainProofFromServer(dirPathIn, key : string[])
+  public static async obtainProofFromServer(dirPathIn, cg_name: string/*key : string[]*/)
   {
-    const cg_name = (key === undefined) ? undefined : key.join('.');
+    //const cg_name = (key === undefined) ? undefined : key.join('.');
     let jsonRequest = JSON.stringify({serverCommand: commandObtainProof, dirPathIn: dirPathIn, cg_name: cg_name});
     const response = await this.RequestResponseForCommand(jsonRequest);
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
@@ -1034,7 +1042,7 @@ class Eqchecker {
               //console.log(`found trie_val`);
               const trie_child_val = trie_child_tree_node.trie_val[0];
               const is_stable = (trie_child_val.correl_entry_status_is_stable == "true");
-              treeNodes[curname.join('.')] = new SearchTreeNode(curname, is_stable, trie_child_val.correl_entry_status_markdown_tooltip, trie_child_val.correl_entry_status_description);
+              treeNodes[curname.join('.')] = new SearchTreeNode(curname, is_stable, trie_child_val.correl_entry_filename, trie_child_val.correl_entry_status_markdown_tooltip, trie_child_val.correl_entry_status_description);
               //console.log(`curname ${curname.join('.')} cg enum_status ${trie_child_val.cg_enum_status}`);
             }
           }
@@ -1357,10 +1365,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir];
   }
 
-  async viewProductCFG(webview: vscode.Webview, dirPath: string, key: string[])
+  async viewProductCFG(webview: vscode.Webview, dirPath: string, correl_entry_filename: string)
   {
     const proof_panels = this.proof_panels;
-    const proof_response = await Eqchecker.obtainProofFromServer(dirPath, key);
+    const proof_response = await Eqchecker.obtainProofFromServer(dirPath, correl_entry_filename);
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;

@@ -316,7 +316,7 @@ class EqcheckHandler {
     get_proof_filename(dirPath, cg_name) {
       //console.log('dirPath ', dirPath);
       if (cg_name === undefined) {
-        return path.join(dirPath, 'eq.proof');
+        return path.join(dirPath, 'eq.proof.xml');
       } else {
         return path.join(dirPath, cg_name);
       }
@@ -394,10 +394,16 @@ class EqcheckHandler {
         const optimized = (optimized_filename === undefined) ? this.readFileObjectToUint8Array(optimized_contents) : undefined;
         if (source !== undefined) {
           srcName = path.basename(srcName);
+          if (srcName.startsWith("\\") || srcName.startsWith("/")) {
+            srcName = srcName.substr(1);
+          }
           srcName = "src.".concat(srcName);
         }
         if (optimized !== undefined) {
           optName = path.basename(optName);
+          if (optName.startsWith("\\") || optName.startsWith("/")) {
+            optName = optName.substr(1);
+          }
           optName = "opt.".concat(optName);
         }
         //const src_ir = this.buffer_from_json(src_irJSON);
@@ -716,7 +722,7 @@ class EqcheckHandler {
     }
 
     async getProofXML(dirPath, cg_name) {
-      let proofFilename = this.get_proof_filename(dirPath, cg_name) + ".xml";
+      let proofFilename = this.get_proof_filename(dirPath, cg_name);
       var buffer = await this.readBuffer(proofFilename);
       if (buffer === undefined) return undefined;
       return buffer;

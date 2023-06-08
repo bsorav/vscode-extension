@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://neutron.cse.iitd.ac.in:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';

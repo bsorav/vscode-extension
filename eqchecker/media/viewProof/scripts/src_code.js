@@ -636,6 +636,34 @@ function drawEdgeBetweenPoints(canvas, ctx, node1, node2, is_fallthrough, is_sou
     }
 }
 
+function redraw()
+{
+  var canvas = document.getElementById("canvas");
+  var ctx = canvas.getContext("2d");
+
+  scroll(0, 0);
+  clearCanvas(canvas, ctx);
+
+  var codeDisplay;
+  if (curSyntaxType === "asm") {
+    codeDisplay = Prism.highlight(code, Prism.languages.nasm, 'nasm');
+    //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+  } else {
+    codeDisplay = Prism.highlight(code, Prism.languages.clike, 'clike');
+  }
+
+  // Clear old contents
+  codeEl.innerHTML = codeDisplay;
+
+  //await new Promise(r => setTimeout(r, 100));
+  setupCanvas();
+
+  //console.log(`message.path = ${JSON.stringify(message.path)}`);
+  if (current_highlight_message !== null) {
+    highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+  }
+}
+
 // Event listener for message from product graph webview
 window.addEventListener('message', async event => {
     const message = event.data; // The JSON data our extension sent
@@ -646,39 +674,18 @@ window.addEventListener('message', async event => {
     switch (message.command) {
         case "highlight": {
             //console.log(`highlight called on path ${JSON.stringify(message.path)}\n`);
-            clearCanvas(canvas, ctx);
             current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
-            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, current_codetype);
             break;
         }
         case "clear": {
-            clearCanvas(canvas, ctx);
+            current_highlight_message = null;
             break;
         }
         case "data": {
-            scroll(0, 0);
-            clearCanvas(canvas, ctx);
             code = message.code + "\n.";
             ir = message.ir;
-            //console.log(`code = ${JSON.stringify(code)}\n`);
-            //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             curSyntaxType = message.syntax_type;
-
-            var codeDisplay;
-            if (message.syntax_type === "asm") {
-              codeDisplay = Prism.highlight(code, Prism.languages.nasm, 'nasm');
-              //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
-            } else {
-              codeDisplay = Prism.highlight(code, Prism.languages.clike, 'clike');
-            }
-
-            // Clear old contents
-            codeEl.innerHTML = codeDisplay;
-
-            await new Promise(r => setTimeout(r, 100));
-            setupCanvas();
-            //console.log(`message.path = ${JSON.stringify(message.path)}`);
-            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, current_codetype);
+            current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
             break;
         }
         case "load": {
@@ -689,6 +696,7 @@ window.addEventListener('message', async event => {
             break;
         }
     }
+    redraw();
 
 });
 vscode.postMessage({command:"loaded"});

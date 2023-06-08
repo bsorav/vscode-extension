@@ -6,7 +6,10 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var code = null;
-var curCodeType = null;
+var ir = null;
+var current_codetype = "src";
+var curSyntaxType = null;
+var current_highlight_message = null;
 
 var codeEl = document.getElementById("code");
 codeEl.innerHTML = "";
@@ -197,7 +200,7 @@ function identifyFirstNodeWithCycle(path)
   return path.from_pc; //XXX : TODO: FIXME: find the first entry to a cycle
 }
 
-export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, srcdst, codetype)
+export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst, codetype)
 {
   if (path === undefined) {
     return;
@@ -207,7 +210,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   //console.log(`highlightPathInCode: tfg=\n${JSON.stringify(tfg)}\n`);
   // canvas -> <canvas> element in HTML DOM
   // ctx -> canvas context
-  // code -> <code> element in HTML DOM
+  // codeEl -> <code> element in HTML DOM
   // path -> graph-ec of pcs
   // pc -> line/col names
 
@@ -257,7 +260,7 @@ export function highlightPathInCode(canvas, ctx, code, path, eqcheck_info, tfg, 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
   //let scrollHeight = window.scrollHeight;
-  const styles = window.getComputedStyle(code);
+  const styles = window.getComputedStyle(codeEl);
   const deltaY = parseInt(styles.getPropertyValue("line-height"));
 
   codeEl = document.getElementById("code");;
@@ -644,7 +647,8 @@ window.addEventListener('message', async event => {
         case "highlight": {
             //console.log(`highlight called on path ${JSON.stringify(message.path)}\n`);
             clearCanvas(canvas, ctx);
-            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
+            current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, current_codetype);
             break;
         }
         case "clear": {
@@ -655,9 +659,10 @@ window.addEventListener('message', async event => {
             scroll(0, 0);
             clearCanvas(canvas, ctx);
             code = message.code + "\n.";
+            ir = message.ir;
             //console.log(`code = ${JSON.stringify(code)}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
-            curCodeType = message.syntax_type;
+            curSyntaxType = message.syntax_type;
 
             var codeDisplay;
             if (message.syntax_type === "asm") {
@@ -673,7 +678,7 @@ window.addEventListener('message', async event => {
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
             //console.log(`message.path = ${JSON.stringify(message.path)}`);
-            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, message.codetype);
+            highlightPathInCode(canvas, ctx, codeEl, message.path, message.eqcheck_info, message.tfg, message.srcdst, current_codetype);
             break;
         }
         case "load": {
@@ -754,7 +759,7 @@ function showRightClickMenu(mouseX, mouseY) {
 
   rightClickMenu.style.display = "inline";
 
-  if (curCodeType === "asm") {
+  if (curSyntaxType === "asm") {
     items[0].innerHTML = 'Download Object Code';
     items[0].addEventListener('click', downloadObjectListener);
     items[1].innerHTML = 'Download Assembly Code';

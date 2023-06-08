@@ -1414,10 +1414,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const prism_nasm_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/components/prism-nasm.min.js'));
     //const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
     const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-    const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    //const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
     const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-    const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
+    //const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
     const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
     const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3/dist/d3.js'));
     const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/@hpcc-js/wasm/dist/index.min.js'));
@@ -1429,17 +1429,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     this.panel_set_html(panel_src_code, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
     this.panel_set_html(panel_dst_code, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_code_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
 
-    if (src_ir !== undefined) {
-      this.panel_set_html(panel_src_ir, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
-    }
-    if (dst_ir !== undefined) {
-      this.panel_set_html(panel_dst_ir, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
-    }
+    //if (src_ir !== undefined) {
+    //  this.panel_set_html(panel_src_ir, EqcheckViewProvider.getSourceCodeWebviewContent(Eqchecker.extensionUri.fsPath, src_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
+    //}
+    //if (dst_ir !== undefined) {
+    //  this.panel_set_html(panel_dst_ir, EqcheckViewProvider.getAssemblyCodeWebviewContent(Eqchecker.extensionUri.fsPath, dst_ir_script, index_css, prism, prism_css, prism_ln_css, prism_ln_script, prism_nasm_script));
+    //}
     let panel_prd_loaded = false;
     let panel_src_code_loaded = false;
     let panel_dst_code_loaded = false;
-    let panel_src_ir_loaded = (panel_src_ir === undefined);
-    let panel_dst_ir_loaded = (panel_dst_ir === undefined);
+    //let panel_src_ir_loaded = (panel_src_ir === undefined);
+    //let panel_dst_ir_loaded = (panel_dst_ir === undefined);
 
     // Handle messages from the webview
     if (panel_prd !== undefined) {
@@ -1515,21 +1515,21 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         Eqchecker.context.subscriptions
       );
     }
-    if (panel_src_ir !== undefined) {
-      panel_src_ir.webview.onDidReceiveMessage(
-        message => {
-          switch (message.command) {
-            case 'loaded':
-              console.log("src-ir panel loaded.\n");
-              panel_src_ir_loaded = true;
-              //vscode.window.showErrorMessage(message.text);
-              break;
-          }
-        },
-        undefined,
-        Eqchecker.context.subscriptions
-      );
-    }
+    //if (panel_src_ir !== undefined) {
+    //  panel_src_ir.webview.onDidReceiveMessage(
+    //    message => {
+    //      switch (message.command) {
+    //        case 'loaded':
+    //          console.log("src-ir panel loaded.\n");
+    //          panel_src_ir_loaded = true;
+    //          //vscode.window.showErrorMessage(message.text);
+    //          break;
+    //      }
+    //    },
+    //    undefined,
+    //    Eqchecker.context.subscriptions
+    //  );
+    //}
 
 
     if (panel_src_code !== undefined) {
@@ -1548,21 +1548,21 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         Eqchecker.context.subscriptions
       );
     }
-    if (panel_dst_ir !== undefined) {
-      panel_dst_ir.webview.onDidReceiveMessage(
-        message => {
-          switch (message.command) {
-            case 'loaded':
-              //console.log("dst-ir panel loaded.\n");
-              panel_dst_ir_loaded = true;
-              //vscode.window.showErrorMessage(message.text);
-              break;
-          }
-        },
-        undefined,
-        Eqchecker.context.subscriptions
-      );
-    }
+    //if (panel_dst_ir !== undefined) {
+    //  panel_dst_ir.webview.onDidReceiveMessage(
+    //    message => {
+    //      switch (message.command) {
+    //        case 'loaded':
+    //          //console.log("dst-ir panel loaded.\n");
+    //          panel_dst_ir_loaded = true;
+    //          //vscode.window.showErrorMessage(message.text);
+    //          break;
+    //      }
+    //    },
+    //    undefined,
+    //    Eqchecker.context.subscriptions
+    //  );
+    //}
 
     if (panel_dst_code !== undefined) {
       panel_dst_code.webview.onDidReceiveMessage(
@@ -1583,13 +1583,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     if (proof_panels !== undefined) {
       this.panel_post_message(panel_prd, {command: 'load'});
       this.panel_post_message(panel_src_code, {command: 'load'});
-      this.panel_post_message(panel_src_ir, {command: 'load'});
+      //this.panel_post_message(panel_src_ir, {command: 'load'});
       this.panel_post_message(panel_dst_code, {command: 'load'});
-      this.panel_post_message(panel_dst_ir, {command: 'load'});
+      //this.panel_post_message(panel_dst_ir, {command: 'load'});
     } // otherwise the panels would have been freshly created and would have posted the "loaded" message anyway
 
     async function waitForLoading(){
-      while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false || panel_src_ir_loaded === false || panel_dst_ir_loaded === false) {
+      while (panel_prd_loaded === false || panel_src_code_loaded === false || panel_dst_code_loaded === false/* || panel_src_ir_loaded === false || panel_dst_ir_loaded === false*/) {
           //console.log(`panel_{prd,src_code,dst_code}_loaded ${panel_prd_loaded} ${panel_src_code_loaded} ${panel_dst_code_loaded} is still false`);
           await Eqchecker.wait(1000);
       }
@@ -1605,14 +1605,14 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "code"});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
-    this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
+    //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
-      this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst"/*, codetype: "code"*/});
+      //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
       this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
     }

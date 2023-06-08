@@ -644,12 +644,19 @@ function redraw()
   scroll(0, 0);
   clearCanvas(canvas, ctx);
 
+  var codeChosen;
+  if (current_codetype == "src") {
+    codeChosen = code;
+  } else if (current_codetype == "ir") {
+    codeChosen = ir;
+  }
+
   var codeDisplay;
   if (curSyntaxType === "asm") {
-    codeDisplay = Prism.highlight(code, Prism.languages.nasm, 'nasm');
+    codeDisplay = Prism.highlight(codeChosen, Prism.languages.nasm, 'nasm');
     //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
   } else {
-    codeDisplay = Prism.highlight(code, Prism.languages.clike, 'clike');
+    codeDisplay = Prism.highlight(codeChosen, Prism.languages.clike, 'clike');
   }
 
   // Clear old contents
@@ -737,6 +744,22 @@ function downloadLLVMIRListener(evt) {
   hideRightClickMenu();
 };
 
+function viewIR(evt) {
+  console.log('viewIR called');
+  hideRightClickMenu();
+  current_codetype = "ir";
+  redraw();
+};
+
+function viewSourceCode(evt) {
+  console.log('viewSourceCode called');
+  hideRightClickMenu();
+  current_codetype = "src";
+  redraw();
+};
+
+
+
 function showRightClickMenu(mouseX, mouseY) {
   console.log(`showRightClickMenu called`);
   const rightClickMenu = document.getElementById("right-click-menu");
@@ -745,38 +768,48 @@ function showRightClickMenu(mouseX, mouseY) {
 
   var items = rightClickMenu.querySelectorAll(".item");
 
-  items[0].removeEventListener('click', downloadObjectListener);
-  items[0].removeEventListener('click', downloadAssemblyListener);
-  items[0].removeEventListener('click', downloadSourceListener);
-  items[0].removeEventListener('click', downloadLLVMIRListener);
-  //items[0].removeEventListener('click', downloadVIRListener);
-
-  items[1].removeEventListener('click', downloadObjectListener);
-  items[1].removeEventListener('click', downloadAssemblyListener);
-  items[1].removeEventListener('click', downloadSourceListener);
-  items[1].removeEventListener('click', downloadLLVMIRListener);
-
-  items[2].removeEventListener('click', downloadObjectListener);
-  items[2].removeEventListener('click', downloadAssemblyListener);
-  items[2].removeEventListener('click', downloadSourceListener);
-  items[2].removeEventListener('click', downloadLLVMIRListener);
-
-  items[0].innerHTML = '';
-  items[1].innerHTML = '';
-  items[2].innerHTML = '';
+  for (var i = 0; i < 4; i++) {
+    items[i].removeEventListener('click', downloadObjectListener);
+    items[i].removeEventListener('click', downloadAssemblyListener);
+    items[i].removeEventListener('click', downloadSourceListener);
+    items[i].removeEventListener('click', downloadLLVMIRListener);
+    items[i].removeEventListener('click', viewIR);
+    items[i].removeEventListener('click', viewSourceCode);
+    items[i].innerHTML = '';
+  }
 
   rightClickMenu.style.display = "inline";
 
-  if (curSyntaxType === "asm") {
-    items[0].innerHTML = 'Download Object Code';
-    items[0].addEventListener('click', downloadObjectListener);
-    items[1].innerHTML = 'Download Assembly Code';
-    items[1].addEventListener('click', downloadAssemblyListener);
+  var i = 0;
+
+  if (curSyntaxType != "asm") {
+    if (current_codetype == "src") {
+      items[i].innerHTML = 'View IR';
+      items[i].addEventListener('click', viewIR);
+      i++;
+    } else if (current_codetype == "ir") {
+      items[i].innerHTML = 'View Source';
+      items[i].addEventListener('click', viewSourceCode);
+      i++;
+    }
+  }
+  if (curSyntaxType == "asm") {
+    items[i].innerHTML = 'Download Object Code';
+    items[i].addEventListener('click', downloadObjectListener);
+    i++;
+    items[i].innerHTML = 'Download Assembly Code';
+    items[i].addEventListener('click', downloadAssemblyListener);
+    i++;
   } else {
-    items[0].innerHTML = 'Download Source Code';
-    items[0].addEventListener('click', downloadSourceListener);
-    items[1].innerHTML = 'Download LLVM IR';
-    items[1].addEventListener('click', downloadLLVMIRListener);
+    if (current_codetype == "src") {
+      items[i].innerHTML = 'Download Source Code';
+      items[i].addEventListener('click', downloadSourceListener);
+      i++;
+    } else if (current_codetype == "ir") {
+      items[i].innerHTML = 'Download LLVM IR';
+      items[i].addEventListener('click', downloadLLVMIRListener);
+      i++;
+    }
   }
 
   rightClickMenu.classList.add("visible");
@@ -795,7 +828,7 @@ function onRightClick(event) {
   const { clientX: mouseX, clientY: mouseY } = event;
 
   const rightClickMenu = document.getElementById('right-click-menu');
-  if (rightClickMenu.style.display !== "inline") {
+  if (rightClickMenu.style.display != "inline") {
     showRightClickMenu(mouseX, mouseY);
   } else {
     hideRightClickMenu();

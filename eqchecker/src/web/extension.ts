@@ -1159,6 +1159,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             <div id="RightClickMenuItem1" class="item"></div>
             <div id="RightClickMenuItem2" class="item"></div>
             <div id="RightClickMenuItem3" class="item"></div>
+            <div id="RightClickMenuItem4" class="item"></div>
             </div>
         </div>
     </body>
@@ -1194,6 +1195,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <div id="RightClickMenuItem1" class="item"></div>
         <div id="RightClickMenuItem2" class="item"></div>
         <div id="RightClickMenuItem3" class="item"></div>
+        <div id="RightClickMenuItem4" class="item"></div>
         </div>
     </div>
 </body>

@@ -8,7 +8,7 @@ import * as fs from 'fs'
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://proton.cse.iitd.ac.in:81';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -37,6 +37,8 @@ const runStateStatusExhaustedSearchSpace = 'exhausted_search_space';
 const runStateStatusSafetyCheckFailed = 'safety_check_failed';
 const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';
+
+let recentlyUsedEntries: eqcheckMenuEntry[] =[];
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -181,6 +183,13 @@ function getNode(key: string[]): { key: string[], isStable: boolean } {
   return Eqchecker.searchTreeNodes[key.join('.')];
 }
 
+function matchEqCheckMenuEntries(e1 : eqcheckMenuEntry , e2 :eqcheckMenuEntry){
+      if(e1.source1Name === e2.source1Name && e1.source1Uri === e2.source1Uri && e1.source2Name === e2.source2Name && e1.source2Uri === e2.source2Uri){
+        return true;
+      }
+      return false;
+}
+
 class SearchTreeNode {
   searchKey: string[];
   isStable: boolean;
@@ -206,6 +215,7 @@ function getNonce() {
 function uri2str(uri : vscode.Uri) : string {
   return uri.fsPath;
 }
+
 
 class Eqchecker {
   public static context;
@@ -678,6 +688,7 @@ class Eqchecker {
     return;
   }
 
+
   public static async checkEq()
   {
       // Get labels of opened files in all groups
@@ -722,8 +733,25 @@ class Eqchecker {
       //cSources.forEach(function(cSource) { console.log("fileName = " + cSource.Uri); });
       //console.log("Printing ASM sources:");
       //asmSources.forEach(function(asmSource) { console.log("fileName = " + asmSource.Uri); });
-      let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
+      let eqcheckPairsnew = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
       //console.log("eqcheckPairs size " + eqcheckPairs.length);
+      //let eqcheckPairs = oldEqChecksMenuEntry;
+      //console.log(`EqCheckPairs are : ${JSON.stringify(eqcheckPairs)}`);
+      let eqcheckPairs = [...recentlyUsedEntries];
+
+      for(const e1 of eqcheckPairsnew){
+        let matched =false;
+        for(const e2 of recentlyUsedEntries){
+          if(matchEqCheckMenuEntries(e1,e2)){
+            matched=true;
+            break;
+          }
+        }
+        if(!matched){
+          eqcheckPairs.push(e1);
+        }
+      }
+      
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
       //console.log(`result = ${result}`);
       var eqcheckPair;
@@ -731,6 +759,7 @@ class Eqchecker {
         eqcheckPair = await Eqchecker.openSourceFiles();
       } else {
         eqcheckPair = eqcheckPairs[result];
+        recentlyUsedEntries.unshift(eqcheckPair);
       }
       console.log(`eqcheckPair = ${JSON.stringify(eqcheckPair)}\n`);
       if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
@@ -853,7 +882,7 @@ class Eqchecker {
         });
       }
     });
-    //console.log(`genLikelyEqcheckPairs returning ${JSON.stringify(ret)}`);
+
     return ret;
   }
 
@@ -872,7 +901,7 @@ class Eqchecker {
     //console.log("before findIndex call");
     //vscode.window.showInformationMessage(`Got: ${result}`);
     let resultIndex = items.findIndex(function (v : string, _ : number, o : object) { return (v === result); });
-    //console.log("resultIndex = " + resultIndex.toString());
+    console.log("resultIndex = " + resultIndex.toString());
     return resultIndex;
   }
 
@@ -1053,21 +1082,41 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   public static getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/src_code.html')).toString();
     //return eval('`' + html + '`');
+    const style = `
+    <style>
+      .line-numbered pre {
+        counter-reset: linenumber;
+      }
+      .line-numbered pre code {
+        position: relative;
+      }
+      .line-numbered pre code:before {
+        content: counter(linenumber);
+        counter-increment: linenumber;
+        position: absolute;
+        left: -2.5em;
+        text-align: right;
+        user-select: none;
+        opacity: 0.3;
+      }
+    </style>
+  `;
 
     const html =
     `<!doctype html>
     <html>
     <head>
+      ${style}
         <script type="module" src=${script}></script>
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
-        <link rel="stylesheet" href=${prism_ln_css}>
         <script type="module" src=${prism_ln_script}></script>
+        <link rel="stylesheet" href=${prism_ln_css}>
         <script type="module" src=${prism_nasm_script}></script>
     </head>
     <body class="full-view">
-        <div class=" full-view">
+        <div class="line-numbered">
             <div style="display:block;">
                 <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
@@ -1081,23 +1130,42 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   public static getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/dst_code.html')).toString();
     //return eval('`' + html + '`');
-
+    const style = `
+    <style>
+      .line-numbered pre {
+        counter-reset: linenumber;
+      }
+      .line-numbered pre code {
+        position: relative;
+      }
+      .line-numbered pre code:before {
+        content: counter(linenumber);
+        counter-increment: linenumber;
+        position: absolute;
+        left: -2.5em;
+        text-align: right;
+        user-select: none;
+        opacity: 0.3;
+      }
+    </style>
+  `;
     const html =
     `<!doctype html>
 <html>
 
 <head>
+    ${style}
     <script type="module" src=${script}></script>
     <link rel="stylesheet" href=${index_css}>
     <script type="module" src=${prism_script}></script>
     <link rel="stylesheet" href=${prism_css}>
-    <link rel="stylesheet" href="${prism_ln_css}">
     <script type="module" src=${prism_ln_script}></script>
+    <link rel="stylesheet" href="${prism_ln_css}">
     <script type="module" src=${prism_nasm_script}></script>
 </head>
 
 <body class="full-view">
-    <div class=" full-view">
+    <div class="full-view">
         <div style="display:block;">
             <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
         </div>
@@ -1666,6 +1734,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           console.log(`eqchecksLoaded received\n`);
           var eqcheckRequestPromises = [];
           const eqchecks = JSON.parse(data.eqchecks);
+          //console.log(`oldEqChecksMenuEntry are \n ${JSON.stringify(oldEqChecks)}`);
           //console.log(`eqchecks_str =\n${data.eqchecks}\n`);
           console.log(`eqchecks =\n${JSON.stringify(eqchecks)}\n`);
           for (var i = 0; i < eqchecks.length; i++) {

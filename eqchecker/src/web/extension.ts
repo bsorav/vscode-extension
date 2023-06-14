@@ -1193,6 +1193,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
   set_proof_panels_to_undef_if_all_disposed()
   {
+    console.log(`This.proof_panel is ${JSON.stringify(this.proof_panels)}`);
     if (this.proof_panels === undefined) {
       return;
     }
@@ -1211,7 +1212,30 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     if (this.proof_panels.dst_ir !== undefined) {
       return;
     }
+    console.log("reached Here to make proof panels undefined");
     this.proof_panels = undefined;
+  }
+
+
+  async sendPanelClosedMessage(){
+    const request =
+        { type: 'panelIsclosed',
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(request);
+  }
+  async sendAllPanelsClosedMessage(){
+    const request =
+        { type: 'allPanelsAreclosed',
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(request);
+  }
+  async sendClosedMessage(){
+    if(this.proof_panels === undefined){
+      this.sendAllPanelsClosedMessage();
+    }
+    else{
+      this.sendPanelClosedMessage();
+    }
   }
 
   getPanels(enable_panel_prd, src_ir, dst_ir) {
@@ -1233,8 +1257,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           );
         panel_prd.onDidDispose(
           () => {
+            vscode.window.showInformationMessage(`Product_cfg closed.`);
             this.proof_panels.panel_prd = undefined;
-            this.set_proof_panels_to_undef_if_all_disposed();
+            this.set_proof_panels_to_undef_if_all_disposed()
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1256,8 +1282,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         );
         panel_src_code.onDidDispose(
           () => {
+            vscode.window.showInformationMessage(`src_code closed.`);
             this.proof_panels.panel_src_code = undefined;
-            this.set_proof_panels_to_undef_if_all_disposed();
+            this.set_proof_panels_to_undef_if_all_disposed()
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1280,6 +1308,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           () => {
             this.proof_panels.panel_dst_code = undefined;
             this.set_proof_panels_to_undef_if_all_disposed();
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1304,6 +1333,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           () => {
             this.proof_panels.panel_src_ir = undefined;
             this.set_proof_panels_to_undef_if_all_disposed();
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1328,6 +1358,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           () => {
             this.proof_panels.panel_dst_ir = undefined;
             this.set_proof_panels_to_undef_if_all_disposed();
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions

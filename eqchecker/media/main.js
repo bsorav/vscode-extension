@@ -13,7 +13,11 @@ const runStateStatusTerminated = 'terminated';
 const viewStateBase = 'base';
 const viewStateCancelling = 'cancelling';
 const viewStateViewProof = 'viewProof';
+const viewStateProofPartiallyClosed = 'partialClose';
 const viewStateViewSearchTree = 'viewSearchTree';
+
+let currentlyShowingProofOfEqCheck;
+
 
 
 (function () {
@@ -25,7 +29,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
     let eqchecks = oldState.eqchecks;
     //let eqchecks = [];
-
+    console.log(`old eqchecks = \n ${JSON.stringify(eqchecks)}`);
     displayEqcheckList(eqchecks);
 
     //console.log(`posting eqchecksLoaded\n`);
@@ -88,7 +92,21 @@ const viewStateViewSearchTree = 'viewSearchTree';
                   }
                   displayEqcheckList(eqchecks);
                   vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(message.eqchecks)});
+                  break;
                 }
+            case 'panelIsclosed':
+              {
+                console.log("PanelIsClosed Received at main.js");
+                currentlyShowingProofOfEqCheck.viewState = viewStateProofPartiallyClosed;
+                break;
+              }
+            case 'allPanelsAreclosed':
+              {
+                console.log("AllPanelsAreClosed Received at main.js");
+                currentlyShowingProofOfEqCheck.viewState = viewStateBase;
+                currentlyShowingProofOfEqCheck = undefined;
+                break;
+              }
         }
     });
 
@@ -278,7 +296,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
     function eqchecks_remove_view_state(viewState)
     {
       for (const eqc of eqchecks) {
-        if (eqc.viewState === viewState) {
+        if (eqc.viewState === viewState)  {
           eqc.viewState = viewStateBase;
         }
       }
@@ -288,8 +306,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
       console.log('ViewProof clicked');
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       eqchecks_remove_view_state(viewStateViewProof);
+      eqchecks_remove_view_state(viewStateProofPartiallyClosed);
       eqcheck.viewState = viewStateViewProof;
       eqcheckRightClickMenu.style.display = "none";
+      currentlyShowingProofOfEqCheck = eqcheck;
       vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
     }
 
@@ -325,8 +345,10 @@ const viewStateViewSearchTree = 'viewSearchTree';
       console.log('HideProof clicked');
       //eqcheck.viewState = viewStateBase;
       eqchecks_remove_view_state(viewStateViewProof);
+      eqchecks_remove_view_state(viewStateProofPartiallyClosed);
       eqcheckRightClickMenu.style.display = "none";
       startButtonRightClickMenu.style.display = "none";
+      currentlyShowingProofOfEqCheck = undefined;
       vscode.postMessage({ type: 'eqcheckHideProof'/*, eqcheck: eqcheck*/});
     };
 
@@ -420,7 +442,7 @@ const viewStateViewSearchTree = 'viewSearchTree';
 
     function anyEqcheckInViewStateViewProof() {
       for (const eqcheck of eqchecks) {
-        if (eqcheck.viewState === viewStateViewProof) {
+        if (eqcheck.viewState === viewStateViewProof || eqcheck.viewState === viewStateProofPartiallyClosed) {
           return true;
         }
       }
@@ -533,22 +555,37 @@ const viewStateViewSearchTree = 'viewSearchTree';
         eqcheckRightClickMenu.style.display = "inline";
 
         if (eqcheck.runState == runStateStatusFoundProof) {
-          if (eqcheck.viewState != viewStateViewProof) {
-            items[0].innerHTML = 'View Proof';
+          if(eqcheck.viewState == viewStateProofPartiallyClosed){
+            items[0].innerHTML = 'View Whole Proof';
             items[0].addEventListener('click', viewProofListener);
-          } else {
-            //console.log(`adding HideProof to the menu`);
-            items[0].innerHTML = 'Hide Proof';
-            items[0].addEventListener('click', hideProofListener);
+            items[1].innerHTML = 'Hide Proof';
+            items[1].addEventListener('click', hideProofListener);
+            items[2].innerHTML = 'Code Analysis Report';
+            items[2].addEventListener('click', viewScanReportListener);
+            items[3].innerHTML = 'View Search Tree';
+            items[3].addEventListener('click', viewSearchTreeListener);
+            items[4].innerHTML = 'Clear';
+            items[4].addEventListener('click', eqcheckClearListener);
           }
-          items[1].innerHTML = 'Code Analysis Report';
-          items[1].addEventListener('click', viewScanReportListener);
-          items[2].innerHTML = 'View Search Tree';
-          items[2].addEventListener('click', viewSearchTreeListener);
-          items[3].innerHTML = 'Cancel';
-          items[3].addEventListener('click', eqcheckCancelListener);
-          items[4].innerHTML = 'Clear';
-          items[4].addEventListener('click', eqcheckClearListener);
+          else{
+            if (eqcheck.viewState != viewStateViewProof) {
+              items[0].innerHTML = 'View Proof';
+              items[0].addEventListener('click', viewProofListener);
+            }
+             else {
+              //console.log(`adding HideProof to the menu`);
+              items[0].innerHTML = 'Hide Proof';
+              items[0].addEventListener('click', hideProofListener);
+            }
+            items[1].innerHTML = 'Code Analysis Report';
+            items[1].addEventListener('click', viewScanReportListener);
+            items[2].innerHTML = 'View Search Tree';
+            items[2].addEventListener('click', viewSearchTreeListener);
+            items[4].innerHTML = 'Clear';
+            items[4].addEventListener('click', eqcheckClearListener);
+
+          }
+          
         } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';

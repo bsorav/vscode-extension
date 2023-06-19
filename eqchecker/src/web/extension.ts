@@ -1062,18 +1062,41 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const html =
     `<!DOCTYPE html>
     <html>
-    <meta charset="utf-8">
-    <head>
-    <link rel="stylesheet" href=${index_css}>
-    <script type="module" src=${graph_src}></script>
-    </head>
-    <body style="background-color:#FFFFFF;">
-    <script src="${d3_v5_min_js}"></script>
-    <script src="${index_min_js}"></script>
-    <script src="${d3_graphviz_js}"></script>
-    <div class="graph" id="graph" style="text-align: center;"></div>
+      <meta charset="utf-8">
+      <head>
+        <link rel="stylesheet" href=${index_css}>
+        <script type="module" src=${graph_src}></script>
+        <script>
+          function zoomIn() {
+            var content = document.getElementById("graph");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            content.style.zoom = currentZoom + 0.5;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.5)*100)+"%";
+          }
 
-    </body>
+          function zoomOut() {
+            var content = document.getElementById("graph");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            if(Math.abs(currentZoom - 0.5) > 1e-9){
+              content.style.zoom = currentZoom - 0.5;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
+            }
+          }
+        </script>
+      </head>
+      <body style="background-color:#FFFFFF;">
+        <script src="${d3_v5_min_js}"></script>
+        <script src="${index_min_js}"></script>
+        <script src="${d3_graphviz_js}"></script>
+        <div class="zoom-button">
+          <button onclick="zoomIn()">+</button>
+          <span id = "zoom_percent">100%</span>
+          <button onclick="zoomOut()">-</button>
+        </div>
+        <div class="graph" id="graph" style="text-align: center;"></div>
+      </body>
     </html>`;
 
     return eval('`' + html + '`');
@@ -1114,9 +1137,33 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <script type="module" src=${prism_ln_script}></script>
         <link rel="stylesheet" href=${prism_ln_css}>
         <script type="module" src=${prism_nasm_script}></script>
+        <script>
+          function zoomIn() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            content.style.zoom = currentZoom + 0.5;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.5)*100)+"%";
+          }
+
+          function zoomOut() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            if(Math.abs(currentZoom - 0.5) > 1e-9){
+              content.style.zoom = currentZoom - 0.5;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
+            }
+          }
+        </script>
     </head>
     <body class="full-view">
-        <div class="line-numbered">
+        <div class="zoom-button">
+          <button onclick="zoomIn()">+</button>
+          <span id = "zoom_percent">100%</span>
+          <button onclick="zoomOut()">-</button>
+        </div>
+        <div id="content">
             <div style="display:block;">
                 <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
@@ -1151,29 +1198,50 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   `;
     const html =
     `<!doctype html>
-<html>
+    <html>
+    <head>
+      ${style}
+        <script type="module" src=${script}></script>
+        <link rel="stylesheet" href=${index_css}>
+        <script type="module" src=${prism_script}></script>
+        <link rel="stylesheet" href=${prism_css}>
+        <script type="module" src=${prism_ln_script}></script>
+        <link rel="stylesheet" href=${prism_ln_css}>
+        <script type="module" src=${prism_nasm_script}></script>
+        <script>
+          function zoomIn() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            content.style.zoom = currentZoom + 0.5;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.5)*100)+"%";
+          }
 
-<head>
-    ${style}
-    <script type="module" src=${script}></script>
-    <link rel="stylesheet" href=${index_css}>
-    <script type="module" src=${prism_script}></script>
-    <link rel="stylesheet" href=${prism_css}>
-    <script type="module" src=${prism_ln_script}></script>
-    <link rel="stylesheet" href="${prism_ln_css}">
-    <script type="module" src=${prism_nasm_script}></script>
-</head>
-
-<body class="full-view">
-    <div class="full-view">
-        <div style="display:block;">
-            <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
+          function zoomOut() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            if(Math.abs(currentZoom - 0.5) > 1e-9){
+              content.style.zoom = currentZoom - 0.5;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
+            }
+          }
+        </script>
+    </head>
+    <body class="full-view">
+        <div class="zoom-button">
+          <button onclick="zoomIn()">+</button>
+          <span id = "zoom_percent">100%</span>
+          <button onclick="zoomOut()">-</button>
         </div>
-        <canvas id="canvas" style="position: absolute;"></canvas>
-    </div>
-</body>
-
-</html>`;
+        <div id="content">
+            <div style="display:block;">
+                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
+            </div>
+            <canvas id="canvas" style="position: absolute;"></canvas>
+        </div>
+    </body>
+    </html>`;
     return eval('`' + html + '`');
   }
 

@@ -3,7 +3,7 @@
   "displayName": "Eqchecker",
   "publisher": "CompilerAI",
   "description": "",
-  "version": "0.15.0",
+  "version": "0.19.0",
   "engines": {
     "vscode": "^1.54.0"
   },
@@ -54,28 +54,29 @@
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
   },
   "devDependencies": {
-    "@types/vscode": "^1.54.0",
     "@types/mocha": "^10.0.1",
-    "eslint": "^8.28.0",
+    "@types/vscode": "^1.54.0",
+    "@types/webpack-env": "^1.18.0",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
-    "mocha": "^10.1.0",
-    "typescript": "^4.9.3",
     "@vscode/test-web": "^0.0.33",
-    "ts-loader": "^9.4.1",
-    "webpack": "^5.75.0",
-    "webpack-cli": "^5.0.0",
-    "@types/webpack-env": "^1.18.0",
     "assert": "^2.0.0",
-    "process": "^0.11.10"
+    "eslint": "^8.28.0",
+    "mocha": "^10.1.0",
+    "process": "^0.11.10",
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.9.3",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.0"
   },
   "dependencies": {
     "@hpcc-js/wasm": "^0.3.11",
     "d3": "^7.8.4",
-    "d3-graphviz": "^3.0.5",
+    "d3-graphviz": "^5.0.2",
+    "highlight.js": "^11.7.0",
     "p5": "^1.4.1",
     "prismjs": "^1.29.0",
-    "highlight.js": "^11.7.0",
+    "vsce": "^2.15.0",
     "vscode-tas-client": "^0.1.63"
   },
   "repository": {

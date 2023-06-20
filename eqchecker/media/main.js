@@ -36,7 +36,7 @@ let currentlyShowingProofOfEqCheck;
     vscode.postMessage({ type: 'eqchecksLoaded', eqchecks: JSON.stringify(eqchecks)});
 
     const welcome = document.querySelector('.clear-eqchecks-button');
-    welcome.innerHTML = 'Start an Eqcheck';
+    welcome.innerHTML = 'Start a Eqcheck';
     welcome.addEventListener('click', () => {
       hideStartButtonRightClickMenu();
       hideEqcheckRightClickMenu();
@@ -381,6 +381,13 @@ let currentlyShowingProofOfEqCheck;
       eqcheckCancel(eqcheck);
     };
 
+    function matchEqCheckMenuEntries(e1 , e2){
+      if(e1.dirPath===e2.dirPath && e1.source1Name === e2.source1Name && e1.source1Uri === e2.source1Uri && e1.source2Name === e2.source2Name && e1.source2Uri === e2.source2Uri){
+        return true;
+      }
+      return false;
+    };
+
     function eqcheckClearListener(evt) {
       const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
       //const eqcheck = evt.currentTarget.eqcheck;
@@ -393,6 +400,12 @@ let currentlyShowingProofOfEqCheck;
       removeEqcheck(eqcheck);
       vscode.postMessage({ type: 'eqcheckClear', eqcheck: eqcheck});
       displayEqcheckList(eqchecks);
+      if(matchEqCheckMenuEntries(eqcheck,currentlyShowingProofOfEqCheck)){
+        eqchecks_remove_view_state(viewStateViewProof);
+        eqchecks_remove_view_state(viewStateProofPartiallyClosed);
+        currentlyShowingProofOfEqCheck = undefined;
+        vscode.postMessage({ type: 'eqcheckHideProof'/*, eqcheck: eqcheck*/});
+      }
     };
 
     function viewSearchTreeListener(evt) {

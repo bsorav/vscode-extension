@@ -757,7 +757,8 @@ class Eqchecker {
       var eqcheckPair;
       if (result >= eqcheckPairs.length) {
         eqcheckPair = await Eqchecker.openSourceFiles();
-      } else {
+      }
+       else {
         eqcheckPair = eqcheckPairs[result];
         recentlyUsedEntries.unshift(eqcheckPair);
       }
@@ -1071,17 +1072,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             var content = document.getElementById("graph");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
-            content.style.zoom = currentZoom + 0.5;
-            zoom.innerHTML=JSON.stringify((currentZoom+0.5)*100)+"%";
+            content.style.zoom = currentZoom + 0.25;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
           }
 
           function zoomOut() {
             var content = document.getElementById("graph");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
-            if(Math.abs(currentZoom - 0.5) > 1e-9){
-              content.style.zoom = currentZoom - 0.5;
-              zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
+            if(Math.abs(currentZoom - 0.25) > 1e-9){
+              content.style.zoom = currentZoom - 0.25;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
             }
           }
         </script>
@@ -1110,7 +1111,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       .line-number {
         float: left;
         margin-right: 20px;
-        color: #999; /* Line number color */
+        color: #CB3535; /* Line number color */
       }
     </style>
   `;
@@ -1129,17 +1130,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             var content = document.getElementById("content");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
-            content.style.zoom = currentZoom + 0.5;
-            zoom.innerHTML=JSON.stringify((currentZoom+0.5)*100)+"%";
+            content.style.zoom = currentZoom + 0.25;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
           }
 
           function zoomOut() {
             var content = document.getElementById("content");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
-            if(Math.abs(currentZoom - 0.5) > 1e-9){
-              content.style.zoom = currentZoom - 0.5;
-              zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
+            if(Math.abs(currentZoom - 0.25) > 1e-9){
+              content.style.zoom = currentZoom - 0.25;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
             }
           }
         
@@ -1170,7 +1171,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       .line-number {
         float: left;
         margin-right: 20px;
-        color: #999; /* Line number color */
+        color: #CB3535; /* Line number color */
       }
     </style>
   `;
@@ -1189,17 +1190,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             var content = document.getElementById("content");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
-            content.style.zoom = currentZoom + 0.5;
-            zoom.innerHTML=JSON.stringify((currentZoom+0.5)*100)+"%";
+            content.style.zoom = currentZoom + 0.25;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
           }
 
           function zoomOut() {
             var content = document.getElementById("content");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
-            if(Math.abs(currentZoom - 0.5) > 1e-9){
-              content.style.zoom = currentZoom - 0.5;
-              zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
+            if(Math.abs(currentZoom - 0.25) > 1e-9){
+              content.style.zoom = currentZoom - 0.25;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
             }
           }
 

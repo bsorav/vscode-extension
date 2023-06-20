@@ -12,7 +12,7 @@ var curSyntaxType = null;
 var current_highlight_message = null;
 
 var codeEl = document.getElementById("code");
-codeEl.innerHTML = "";
+//codeEl.innerHTML = "";
 codeEl.style.fontSize = "16px";
 
 let preEl = document.getElementById("pre-code");
@@ -661,6 +661,7 @@ function redraw()
 
   // Clear old contents
   codeEl.innerHTML = codeDisplay;
+  updateLineNumbers();
 
   //await new Promise(r => setTimeout(r, 100));
   setupCanvas();
@@ -669,6 +670,21 @@ function redraw()
   if (current_highlight_message !== null) {
     highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
   }
+}
+
+function updateLineNumbers() {
+  const codePre = document.querySelector('pre code');
+  const codeLines = codePre.innerText.split('\n');
+
+  const lineCount = codeLines.length;
+
+  // Generate line numbers and modify the code
+  let codeContent = '';
+  for (let i = 0; i < lineCount; i++) {
+    codeContent += `<span class="line-number">${i + 1}</span>${codeLines[i]}\n`;
+  }
+
+  codePre.innerHTML = codeContent;
 }
 
 // Event listener for message from product graph webview
@@ -706,6 +722,11 @@ window.addEventListener('message', async event => {
     redraw();
 
 });
+
+window.addEventListener('DOMContentLoaded', (event) => {
+  updateLineNumbers();
+});
+
 vscode.postMessage({command:"loaded"});
 
 function download(filename, text) {

@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 
 import * as vscode from 'vscode';
+import * as fs from 'fs'
 //var $ = require('jquery');
 //var _ = require('underscore');
 //var Promise = require('es6-promise').Promise;
@@ -41,6 +42,7 @@ const runStateStatusTimedOut = 'timed_out';
 const runStateStatusTerminated = 'terminated';
 
 declare var acquireVsCodeApi: any;
+let recentlyUsedEntries: eqcheckMenuEntry[] =[];
 
 interface eqcheckMenuEntry {
   source1Uri: string;
@@ -195,6 +197,13 @@ function getNode(key: string[]): { key: string[], isStable: boolean } {
   return Eqchecker.searchTreeNodes[key.join('.')];
 }
 
+function matchEqCheckMenuEntries(e1 : eqcheckMenuEntry , e2 :eqcheckMenuEntry){
+      if(e1.source1Name === e2.source1Name && e1.source1Uri === e2.source1Uri && e1.source2Name === e2.source2Name && e1.source2Uri === e2.source2Uri){
+        return true;
+      }
+      return false;
+}
+
 class SearchTreeNode {
   searchKey: string[];
   isStable: boolean;
@@ -222,6 +231,7 @@ function getNonce() {
 function uri2str(uri : vscode.Uri) : string {
   return uri.fsPath;
 }
+
 
 class Eqchecker {
   public static context;
@@ -758,6 +768,7 @@ class Eqchecker {
     return;
   }
 
+
   public static async checkEq()
   {
       // Get labels of opened files in all groups
@@ -802,15 +813,34 @@ class Eqchecker {
       //cSources.forEach(function(cSource) { console.log("fileName = " + cSource.Uri); });
       //console.log("Printing ASM sources:");
       //asmSources.forEach(function(asmSource) { console.log("fileName = " + asmSource.Uri); });
-      let eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
+      let eqcheckPairsnew = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
       //console.log("eqcheckPairs size " + eqcheckPairs.length);
+      //let eqcheckPairs = oldEqChecksMenuEntry;
+      //console.log(`EqCheckPairs are : ${JSON.stringify(eqcheckPairs)}`);
+      let eqcheckPairs = [...recentlyUsedEntries];
+
+      for(const e1 of eqcheckPairsnew){
+        let matched =false;
+        for(const e2 of recentlyUsedEntries){
+          if(matchEqCheckMenuEntries(e1,e2)){
+            matched=true;
+            break;
+          }
+        }
+        if(!matched){
+          eqcheckPairs.push(e1);
+        }
+      }
+      
       let result = await Eqchecker.showEqcheckFileOptions(eqcheckPairs);
       //console.log(`result = ${result}`);
       var eqcheckPair;
       if (result >= eqcheckPairs.length) {
         eqcheckPair = await Eqchecker.openSourceFiles();
-      } else {
+      }
+       else {
         eqcheckPair = eqcheckPairs[result];
+        recentlyUsedEntries.unshift(eqcheckPair);
       }
       console.log(`eqcheckPair = ${JSON.stringify(eqcheckPair)}\n`);
       if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
@@ -934,7 +964,7 @@ class Eqchecker {
         });
       }
     });
-    //console.log(`genLikelyEqcheckPairs returning ${JSON.stringify(ret)}`);
+
     return ret;
   }
 
@@ -954,7 +984,7 @@ class Eqchecker {
     //console.log("before findIndex call");
     //vscode.window.showInformationMessage(`Got: ${result}`);
     let resultIndex = items.findIndex(function (v : string, _ : number, o : object) { return (v === result); });
-    //console.log("resultIndex = " + resultIndex.toString());
+    console.log("resultIndex = " + resultIndex.toString());
     return resultIndex;
   }
 
@@ -1110,24 +1140,46 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return eval('`' + html + '`');
   }
 
-
   public static getProductWebviewContent(context_path: string, product_script: vscode.Uri, index_css: vscode.Uri, graph_src: vscode.Uri, d3_v5_min_js: vscode.Uri, index_min_js: vscode.Uri, d3_graphviz_js: vscode.Uri)
   {
     const html =
     `<!DOCTYPE html>
     <html>
-    <meta charset="utf-8">
-    <head>
-    <link rel="stylesheet" href=${index_css}>
-    <script type="module" src=${graph_src}></script>
-    </head>
-    <body style="background-color:#FFFFFF;">
-    <script src="${d3_v5_min_js}"></script>
-    <script src="${index_min_js}"></script>
-    <script src="${d3_graphviz_js}"></script>
-    <div class="graph" id="graph" style="text-align: center;"></div>
+      <meta charset="utf-8">
+      <head>
+        <link rel="stylesheet" href=${index_css}>
+        <script type="module" src=${graph_src}></script>
+        <script>
+          function zoomIn() {
+            var content = document.getElementById("graph");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            content.style.zoom = currentZoom + 0.25;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
+          }
 
-    </body>
+          function zoomOut() {
+            var content = document.getElementById("graph");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            if(Math.abs(currentZoom - 0.25) > 1e-9){
+              content.style.zoom = currentZoom - 0.25;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
+            }
+          }
+        </script>
+      </head>
+      <body style="background-color:#FFFFFF;">
+        <script src="${d3_v5_min_js}"></script>
+        <script src="${index_min_js}"></script>
+        <script src="${d3_graphviz_js}"></script>
+        <div class="zoom-button">
+          <button onclick="zoomIn()">+</button>
+          <span id = "zoom_percent">100%</span>
+          <button onclick="zoomOut()">-</button>
+        </div>
+        <div class="graph" id="graph" style="text-align: center;"></div>
+      </body>
     </html>`;
 
     return eval('`' + html + '`');
@@ -1136,23 +1188,55 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   public static getSourceCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/src_code.html')).toString();
     //return eval('`' + html + '`');
+    const style = `
+    <style>
+      .line-number {
+        float: left;
+        margin-right: 20px;
+        color: #CB3535; /* Line number color */
+      }
+    </style>
+  `;
 
     const html =
     `<!doctype html>
     <html>
     <head>
+      ${style}
         <script type="module" src=${script}></script>
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
-        <link rel="stylesheet" href=${prism_ln_css}>
-        <script type="module" src=${prism_ln_script}></script>
-        <script type="module" src=${prism_nasm_script}></script>
+        <script>
+          function zoomIn() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            content.style.zoom = currentZoom + 0.25;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
+          }
+
+          function zoomOut() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            if(Math.abs(currentZoom - 0.25) > 1e-9){
+              content.style.zoom = currentZoom - 0.25;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
+            }
+          }
+        
+        </script>
     </head>
     <body class="full-view">
-        <div class=" full-view">
-            <div style="display:block;">
-                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
+        <div class="zoom-button">
+          <button onclick="zoomIn()">+</button>
+          <span id = "zoom_percent">100%</span>
+          <button onclick="zoomOut()">-</button>
+        </div>
+        <div id="content">
+            <div class="code-container" style="display:block;">
+                <pre id="pre-code" ><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
             <div id="right-click-menu">
@@ -1170,37 +1254,60 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   public static getAssemblyCodeWebviewContent(context_path: string, script: vscode.Uri, index_css: vscode.Uri, prism_script: vscode.Uri, prism_css: vscode.Uri, prism_ln_css: vscode.Uri, prism_ln_script: vscode.Uri, prism_nasm_script: vscode.Uri) {
     //const html = readFileSync(path.join(context_path, 'src/web_view/views/dst_code.html')).toString();
     //return eval('`' + html + '`');
-
+    const style = `
+    <style>
+      .line-number {
+        float: left;
+        margin-right: 20px;
+        color: #CB3535; /* Line number color */
+      }
+    </style>
+  `;
     const html =
     `<!doctype html>
-<html>
+    <html>
+    <head>
+      ${style}
+        <script type="module" src=${script}></script>
+        <link rel="stylesheet" href=${index_css}>
+        <script type="module" src=${prism_script}></script>
+        <link rel="stylesheet" href=${prism_css}>
+        <script type="module" src=${prism_nasm_script}></script>
+        <script>
+          function zoomIn() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            content.style.zoom = currentZoom + 0.25;
+            zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
+          }
 
-<head>
-    <script type="module" src=${script}></script>
-    <link rel="stylesheet" href=${index_css}>
-    <script type="module" src=${prism_script}></script>
-    <link rel="stylesheet" href=${prism_css}>
-    <link rel="stylesheet" href="${prism_ln_css}">
-    <script type="module" src=${prism_ln_script}></script>
-    <script type="module" src=${prism_nasm_script}></script>
-</head>
+          function zoomOut() {
+            var content = document.getElementById("content");
+            var zoom = document.getElementById("zoom_percent");
+            var currentZoom = parseFloat(content.style.zoom) || 1;
+            if(Math.abs(currentZoom - 0.25) > 1e-9){
+              content.style.zoom = currentZoom - 0.25;
+              zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
+            }
+          }
 
-<body class="full-view">
-    <div class=" full-view">
-        <div style="display:block;">
-            <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
+        </script>
+    </head>
+    <body class="full-view">
+        <div class="zoom-button">
+          <button onclick="zoomIn()">+</button>
+          <span id = "zoom_percent">100%</span>
+          <button onclick="zoomOut()">-</button>
         </div>
-        <canvas id="canvas" style="position: absolute;"></canvas>
-        <div id="right-click-menu">
-        <div id="RightClickMenuItem1" class="item"></div>
-        <div id="RightClickMenuItem2" class="item"></div>
-        <div id="RightClickMenuItem3" class="item"></div>
-        <div id="RightClickMenuItem4" class="item"></div>
+        <div id="content">
+            <div class="code-container" style="display:block;">
+                <pre id="pre-code"><code id="code" class="language-clike"></code></pre>
+            </div>
+            <canvas id="canvas" style="position: absolute;"></canvas>
         </div>
-    </div>
-</body>
-
-</html>`;
+    </body>
+    </html>`;
     return eval('`' + html + '`');
   }
 
@@ -1241,13 +1348,35 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     this.proof_panels = undefined;
   }
 
+
+  async sendPanelClosedMessage(){
+    const request =
+        { type: 'panelIsclosed',
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(request);
+  }
+  async sendAllPanelsClosedMessage(){
+    const request =
+        { type: 'allPanelsAreclosed',
+        };
+    EqcheckViewProvider.provider.viewProviderPostMessage(request);
+  }
+  async sendClosedMessage(){
+    if(this.proof_panels === undefined){
+      this.sendAllPanelsClosedMessage();
+    }
+    else{
+      this.sendPanelClosedMessage();
+    }
+  }
+
   getPanels(enable_panel_prd, src_ir, dst_ir) {
     const proof_panels = this.proof_panels;
     var panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir;
 
     //vscode.window.showInformationMessage(`eqcheckViewProof received. proof ${JSON.stringify(proof)}`);
     if (enable_panel_prd) {
-      if (proof_panels === undefined) {
+      if (proof_panels === undefined || proof_panels.prd=== undefined) {
         panel_prd =
           vscode.window.createWebviewPanel(
               'productCFG',
@@ -1260,8 +1389,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           );
         panel_prd.onDidDispose(
           () => {
-            this.proof_panels.panel_prd = undefined;
-            this.set_proof_panels_to_undef_if_all_disposed();
+            this.proof_panels.prd = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed()
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1270,7 +1400,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         panel_prd = proof_panels.prd;
       }
     }
-    if (proof_panels === undefined) {
+    if (proof_panels === undefined || proof_panels.src_code === undefined) {
       panel_src_code =
         vscode.window.createWebviewPanel(
           'src_code',
@@ -1283,8 +1413,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         );
         panel_src_code.onDidDispose(
           () => {
-            this.proof_panels.panel_src_code = undefined;
-            this.set_proof_panels_to_undef_if_all_disposed();
+            this.proof_panels.src_code = undefined;
+            this.set_proof_panels_to_undef_if_all_disposed()
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1292,7 +1423,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     } else {
       panel_src_code = proof_panels.src_code;
     }
-    if (proof_panels === undefined) {
+    if (proof_panels === undefined || proof_panels.dst_code === undefined) {
       panel_dst_code =
         vscode.window.createWebviewPanel(
           'dst_code',
@@ -1305,8 +1436,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         );
         panel_dst_code.onDidDispose(
           () => {
-            this.proof_panels.panel_dst_code = undefined;
+            this.proof_panels.dst_code = undefined;
             this.set_proof_panels_to_undef_if_all_disposed();
+            this.sendClosedMessage();
           },
           null,
           Eqchecker.context.subscriptions
@@ -1316,7 +1448,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       panel_dst_code = proof_panels.dst_code;
     }
     if (src_ir !== undefined) {
-      if (proof_panels === undefined) {
+      if (proof_panels === undefined || proof_panels.src_ir === undefined) {
         panel_src_ir = undefined;
         //panel_src_ir =
         //  vscode.window.createWebviewPanel(
@@ -1341,7 +1473,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       }
     }
     if (dst_ir !== undefined) {
-      if (proof_panels === undefined) {
+      if (proof_panels === undefined || proof_panels.dst_ir === undefined) {
         panel_dst_ir = undefined;
         //panel_dst_ir =
         //  vscode.window.createWebviewPanel(
@@ -1600,7 +1732,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     // Message passing to src and dst webview
     //console.log(`Panels loaded. Posting proof to panel_prd.\n`);
     this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
-
     //console.log("Posted proof to panel_prd\n");
 
     const src_ec = correl_entry["src_ec"];
@@ -1815,6 +1946,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
+          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);  
+          // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);

@@ -3,7 +3,7 @@
   "displayName": "Eqchecker",
   "publisher": "CompilerAI",
   "description": "",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "engines": {
     "vscode": "^1.54.0"
   },
@@ -77,7 +77,6 @@
     "p5": "^1.4.1",
     "prismjs": "^1.29.0",
     "vsce": "^2.15.0",
-    "highlight.js": "^11.7.0",
     "vis-network": "^9.1.2",
     "vscode-tas-client": "^0.1.63"
   },

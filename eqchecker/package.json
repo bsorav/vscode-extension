@@ -66,7 +66,7 @@
     "process": "^0.11.10",
     "ts-loader": "^9.4.1",
     "typescript": "^4.9.3",
-    "webpack": "^5.75.0",
+    "webpack": "^5.83.1",
     "webpack-cli": "^5.0.0"
   },
   "dependencies": {
@@ -77,6 +77,8 @@
     "p5": "^1.4.1",
     "prismjs": "^1.29.0",
     "vsce": "^2.15.0",
+    "highlight.js": "^11.7.0",
+    "vis-network": "^9.1.2",
     "vscode-tas-client": "^0.1.63"
   },
   "repository": {

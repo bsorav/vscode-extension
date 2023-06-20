@@ -987,7 +987,7 @@ class EqcheckHandler {
     async getRunningStatus(dirPath) {
       const runStatusFilename = this.get_runstatus_filename(dirPath);
       if (!fs.existsSync(runStatusFilename)) {
-        return "";
+        return {};
       }
       const buffer = fs.readFileSync(runStatusFilename);
       const runStatusXML = buffer.toString();
@@ -1349,6 +1349,11 @@ class EqcheckHandler {
         console.log('obtainFunctionListsAfterPreparePhase received with dirPathIn ', dirPathIn, ', offset ', offsetIn);
         const dirPath = dirPathIn;
         const runStatus = await this.getRunningStatus(dirPathIn);
+
+        if (runStatus.running_status === undefined) {
+          res.end(JSON.stringify({}));
+          return;
+        }
         const srcFilenameJSON = runStatus.running_status.src_filename;
         const srcFilename = this.absPath(dirPath, srcFilenameJSON);
         const dstFilenameJSON = runStatus.running_status.dst_filename;

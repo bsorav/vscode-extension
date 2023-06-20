@@ -1535,11 +1535,13 @@ class EqcheckHandler {
         const ssdir = await this.savedSessionsDir();
         const sessionFile = path.join(ssdir, sessionName);
         var response = fs.readFile(sessionFile, 'utf8', function(err, data) {
+          var eqchecks = [];
           if (err) {
             console.log(`Could not load from ${sessionFile}: ${err}`);
-          }
+          } else {
           //console.log(`data = ${data}`);
-          const eqchecks = JSON.parse(data);
+            eqchecks = JSON.parse(data);
+          }
           console.log(`Number of eqchecks = ${eqchecks.length}`);
           const chunkStr = JSON.stringify({eqchecks: eqchecks});
           res.end(chunkStr);

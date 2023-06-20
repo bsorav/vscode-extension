@@ -8,7 +8,7 @@ const vscode = acquireVsCodeApi();
 var code = null;
 
 var codeEl = document.getElementById("code");
-codeEl.innerHTML = "";
+//codeEl.innerHTML = "";
 codeEl.style.fontSize = "16px";
 
 let preEl = document.getElementById("pre-code");
@@ -567,7 +567,20 @@ function drawArrowHead(ctx, x, y, theta, color) {
     ctx.closePath();
 }
 
+function updateLineNumbers() {
+  const codePre = document.querySelector('pre code');
+  const codeLines = codePre.innerText.split('\n');
 
+  const lineCount = codeLines.length;
+
+  // Generate line numbers and modify the code
+  let codeContent = '';
+  for (let i = 0; i < lineCount; i++) {
+    codeContent += `<span class="line-number">${i + 1}</span>${codeLines[i]}\n`;
+  }
+
+  codePre.innerHTML = codeContent;
+}
 
 // Event listener for message from product graph webview
 window.addEventListener('message', async event => {
@@ -594,10 +607,12 @@ window.addEventListener('message', async event => {
             //console.log(`code = ${JSON.stringify(code)}\n`);
             //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             if (message.syntax_type === "asm") {
-              codeEl.innerHTML = Prism.highlight(code, Prism.languages.nasm, 'nasm');
+              codeEl.innerHTML =code;
+              updateLineNumbers();
               //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
             } else {
-              codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
+              codeEl.innerHTML = code;
+              updateLineNumbers();
             }
             await new Promise(r => setTimeout(r, 100));
             setupCanvas();
@@ -615,4 +630,9 @@ window.addEventListener('message', async event => {
     }
 
 });
+
+window.addEventListener('DOMContentLoaded', (event) => {
+  updateLineNumbers();
+});
+
 vscode.postMessage({command:"loaded"});

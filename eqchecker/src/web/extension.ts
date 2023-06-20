@@ -1107,20 +1107,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //return eval('`' + html + '`');
     const style = `
     <style>
-      .line-numbered pre {
-        counter-reset: linenumber;
-      }
-      .line-numbered pre code {
-        position: relative;
-      }
-      .line-numbered pre code:before {
-        content: counter(linenumber);
-        counter-increment: linenumber;
-        position: absolute;
-        left: -2.5em;
-        text-align: right;
-        user-select: none;
-        opacity: 0.3;
+      .line-number {
+        float: left;
+        margin-right: 20px;
+        color: #999; /* Line number color */
       }
     </style>
   `;
@@ -1134,9 +1124,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
-        <script type="module" src=${prism_ln_script}></script>
-        <link rel="stylesheet" href=${prism_ln_css}>
-        <script type="module" src=${prism_nasm_script}></script>
         <script>
           function zoomIn() {
             var content = document.getElementById("content");
@@ -1155,6 +1142,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
             }
           }
+        
         </script>
     </head>
     <body class="full-view">
@@ -1164,8 +1152,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           <button onclick="zoomOut()">-</button>
         </div>
         <div id="content">
-            <div style="display:block;">
-                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
+            <div class="code-container" style="display:block;">
+                <pre id="pre-code" ><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
         </div>
@@ -1179,20 +1167,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //return eval('`' + html + '`');
     const style = `
     <style>
-      .line-numbered pre {
-        counter-reset: linenumber;
-      }
-      .line-numbered pre code {
-        position: relative;
-      }
-      .line-numbered pre code:before {
-        content: counter(linenumber);
-        counter-increment: linenumber;
-        position: absolute;
-        left: -2.5em;
-        text-align: right;
-        user-select: none;
-        opacity: 0.3;
+      .line-number {
+        float: left;
+        margin-right: 20px;
+        color: #999; /* Line number color */
       }
     </style>
   `;
@@ -1205,8 +1183,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
-        <script type="module" src=${prism_ln_script}></script>
-        <link rel="stylesheet" href=${prism_ln_css}>
         <script type="module" src=${prism_nasm_script}></script>
         <script>
           function zoomIn() {
@@ -1226,6 +1202,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               zoom.innerHTML=JSON.stringify((currentZoom-0.5)*100)+"%";
             }
           }
+
         </script>
     </head>
     <body class="full-view">
@@ -1235,8 +1212,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           <button onclick="zoomOut()">-</button>
         </div>
         <div id="content">
-            <div style="display:block;">
-                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
+            <div class="code-container" style="display:block;">
+                <pre id="pre-code"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
         </div>

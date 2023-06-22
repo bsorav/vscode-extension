@@ -1,0 +1,314 @@
+#!/usr/bin/env node
+
+const
+    nopt = require('nopt'),
+    path = require('path'),
+    fs = require('fs'),
+    tar = require('tar'),
+    xml2js = require('xml2js'),
+    child_process = require('child_process')
+;
+const { promisify } = require('util');
+const { resolve } = require('path');
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
+
+const defaultProtocol = 'http';
+const defaultServer = 'neutron.cse.iitd.ac.in';
+const defaultPort = '80';
+const commandSaveSession = 'saveSession';
+const commandUploadEqcheckDir = 'uploadEqcheckDir';
+const viewStateBase = 'base';
+
+const prepareDirname = "prepare";
+const submitDirPrefix = "submit.";
+const runStatusFilename = "eqcheck.runstatus";
+const runStateStatusFoundProof = 'found_proof';
+
+async function RequestResponseForCommand(serverURL, jsonRequest) {
+  var url = serverURL + "/api/eqchecker/submit_eqcheck";
+  //console.log("extra =\n" + JSON.stringify(extra));
+  return new Promise((resolve, reject) =>
+    fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-cache',
+      body: jsonRequest,
+      headers: {
+        'Content-Type' : 'application/json',
+        'Accept' : 'application/json',
+      }
+    })
+    .then(function (response) {
+      resolve(response.json());
+    })
+    /*.catch(function(err) {
+      console.log(`error = ${JSON.stringify(err)}\n`);
+      reject();
+    })*/
+  );
+}
+
+async function looksLikeAnEqcheckDir(dir) {
+  const subdirs = await readdir(dir);
+  for (var i = 0; i < subdirs.length; i++) {
+    if (subdirs[i] == prepareDirname) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function getEqchecksRecursivelyInDir(dir) {
+  const subdirs = await readdir(dir);
+  const files = await Promise.all(subdirs.map(async (subdir) => {
+    //console.log(`subdir = ${JSON.stringify(subdir)}`);
+    const res = await resolve(dir, subdir);
+    //console.log(`getEqchecks Calling stat on ${res}`);
+    const resStat = await fs.statSync(res);
+    if (resStat.isDirectory()) {
+      if (await looksLikeAnEqcheckDir(res)) {
+        return res;
+      } else {
+        return getEqchecksRecursivelyInDir(res);
+      }
+    } else {
+      return "";
+    }
+  }));
+  //console.log(`files = ${JSON.stringify(files)}`);
+  var ret = [];
+  if (await looksLikeAnEqcheckDir(dir)) {
+    ret.push(dir);
+  }
+  files.forEach( (file) => {
+    if (file != "") {
+      ret.push(file);
+    }
+  });
+  console.log(`dir = ${JSON.stringify(dir)}, ret = ${JSON.stringify(ret)}`);
+  return ret;
+}
+
+async function obtainSubmitDirAttrs(dir)
+{
+  const runStatusFilepath = dir + "/" + runStatusFilename;
+  if (!fs.existsSync(runStatusFilepath)) {
+    return undefined;
+  }
+  //console.log(`runStatusFilepath = ${runStatusFilepath}`);
+  const buffer = fs.readFileSync(runStatusFilepath);
+  const runStatusXML = buffer.toString();
+  var runStatus;
+  xml2js.parseString(runStatusXML, {explicitArray: false}, function (err, result) {
+    //console.log(`result = ${JSON.stringify(result)}`);
+    runStatus = result;
+  });
+  //console.log(`runStatus = ${JSON.stringify(runStatus)}`);
+  if (runStatus === undefined) {
+    return undefined;
+  }
+  const srcFilename = runStatus.running_status.src_filename;
+  const dstFilename = runStatus.running_status.dst_filename;
+  const runState = runStatus.running_status.status_flag;
+
+  const source1Name = path.basename(srcFilename);
+  const source2Name = path.basename(dstFilename);
+
+  const statusMessage = "";
+
+  const ret = { source1Name: source1Name, source2Name: source2Name, statusMessage: statusMessage, runState: runState };
+  //console.log(`returning ${JSON.stringify(ret)}`);
+
+  return ret;
+}
+
+async function readSubmitFunctions(dir, passingOnly)
+{
+  var submitFunctions = {};
+
+  const subdirs = await readdir(dir);
+  //console.log(`subdirs = ${JSON.stringify(subdirs)}`);
+  for (var i = 0; i < subdirs.length; i++) {
+    const subdir = subdirs[i];
+    const res = await resolve(dir, subdir);
+    //console.log(`readSubmit Calling stat on ${res}`);
+    const resStat = await fs.statSync(res);
+    if (resStat.isDirectory() && subdir.startsWith(submitDirPrefix)) {
+      const functionName = subdir.substr(submitDirPrefix.length);
+      //console.log(`functionName = ${functionName}, dir = ${res}`);
+      var dirAttrs = await obtainSubmitDirAttrs(res);
+      //console.log(`dirAttrs = ${JSON.stringify(dirAttrs)}`);
+      if (dirAttrs !== undefined && (passingOnly !== true || dirAttrs.runState == runStateStatusFoundProof)) {
+        submitFunctions[functionName] = dirAttrs;
+        //console.log(`submitFunctions = ${JSON.stringify(submitFunctions)}`);
+      }
+    }
+  }
+  //console.log(`returning submitFunctions = ${JSON.stringify(submitFunctions)}`);
+  return submitFunctions;
+}
+
+async function cleanUnnecessaryFilesInEqcheckDir(dir)
+{
+  const files = await readdir(dir);
+  for (var i = 0; i < files.length; i++) {
+    const file = files[i];
+    //console.log(`dir = ${dir}, file = ${file}`);
+    const res = await resolve(dir, file);
+    //console.log(`cleanUnnecessary Calling stat on ${res}`);
+    const resStat = await fs.statSync(res);
+    //console.log(`resStat = ${JSON.stringify(resStat)}`);
+    if (!resStat.isDirectory()) {
+      await fs.unlinkSync(res);
+    } else {
+      const files2 = await readdir(res);
+      for (var j = 0; j < files2.length; j++) {
+        const file2 = files2[j];
+        if (file2 == "eqcheck.example.out" || file2.endsWith(".tfg")) {
+          const path2 = await resolve(res, file2);
+          await fs.unlinkSync(path2);
+        }
+      }
+    }
+  }
+}
+
+async function cleanAndBundleDir(dir, passingOnly)
+{
+  await cleanUnnecessaryFilesInEqcheckDir(dir);
+  const tarFilename = dir + ".tar";
+  const dirParent = path.dirname(dir);
+  const dirBase = path.basename(dir);
+  //console.log(`dirParent = ${dirParent}, dirBase = ${dirBase}`);
+  var dirAttrs = {};
+  dirAttrs.submitFunctions = await readSubmitFunctions(dir, passingOnly);
+
+  if (Object.keys(dirAttrs.submitFunctions).length == 0) {
+    console.log(`No submit directories found in ${dir}`);
+    return dirAttrs;
+  }
+  await tar.c(
+    { file: tarFilename, cwd: dirParent /*, gzip: true */},
+    [dirBase]
+  );
+  //const tarFileContents = fs.readFileSync(tarFilename);
+  dirAttrs.eqcheckDirBundleName = tarFilename;
+  //dirAttrs.eqcheckDirBundleContents = tarFileContents;
+  return dirAttrs;
+}
+
+async function uploadFile(filenameOnClient)
+{
+  const dirOnServer = "/tmp";
+  console.log(`filenameOnClient = ${filenameOnClient}`);
+  console.log(`server = ${server}`);
+  console.log(`dirOnServer = ${dirOnServer}`);
+  var executor = child_process.spawnSync("/usr/bin/scp", [filenameOnClient, `eqcheck@${server}:${dirOnServer}`]);
+  console.log(`executed scp command`);
+  //console.log(`executor = ${JSON.stringify(executor)}`);
+  /*executor.stdout.on('end', function(data) {
+    console.log(`Uploaded ${filenameOnClient} to ${dirOnServer}`);
+  });
+  executor.on('close', function(code) {
+    if (code !== 0) {
+        console.log('Upload failed: ' + code);
+    }
+  });*/
+  const basename = path.basename(filenameOnClient);
+  return dirOnServer + "/" + basename;
+}
+
+async function bundleAndUploadEqcheckDir(dir, passingOnly)
+{
+  const dirAttrs = await cleanAndBundleDir(dir, passingOnly);
+  var eqchecks = [];
+  //console.log(`dirAttrs.submitFunctions = ${JSON.stringify(dirAttrs.submitFunctions)}`);
+  if (Object.keys(dirAttrs.submitFunctions).length == 0) {
+    return eqchecks;
+  }
+  const filenameOnServer = await uploadFile(dirAttrs.eqcheckDirBundleName);
+  //console.log(`submitFunctions = ${JSON.stringify(dirAttrs.submitFunctions)}`);
+  const jsonRequest = JSON.stringify({serverCommand: commandUploadEqcheckDir, eqcheckDirBundleName: dirAttrs.eqcheckDirBundleName, filenameOnServer: filenameOnServer/*, eqcheckDirBundleContents: dirAttrs.eqcheckDirBundleContents*/});
+  //console.log(`jsonRequest = ${jsonRequest}`);
+  const response = await RequestResponseForCommand(serverURL, jsonRequest);
+
+  for (submitFunction in dirAttrs.submitFunctions) {
+    if (dirAttrs.submitFunctions.hasOwnProperty(submitFunction)) {
+      //console.log(`eqcheck dirPath ${submitFunction.dirPath} created by uploading ${dir}.`);
+      const funAttrs = dirAttrs.submitFunctions[submitFunction];
+      const submitFunctionDirPath = response.dirPath + "/" + submitDirPrefix + submitFunction;
+      const eqcheck = { dirPath: submitFunctionDirPath, functionName: submitFunction, source1Uri: funAttrs.source1Name, source1Name: funAttrs.source1Name, source2Uri: funAttrs.source2Name, source2Name: funAttrs.source2Name, statusMessage: funAttrs.statusMessage, runState: funAttrs.runState, prepareDirpath: response.prepareDirpath, pointsToDirpath: response.pointsToDirpath, viewState: viewStateBase };
+      eqchecks.push(eqcheck);
+    }
+  }
+  return eqchecks;
+}
+
+async function saveSession(server, port, sessionName, eqchecks) {
+  const jsonRequest = JSON.stringify({serverCommand: commandSaveSession, sessionName: sessionName, eqchecks: eqchecks});
+  const response = (await RequestResponseForCommand(serverURL, jsonRequest));
+  if (response.done !== false) {
+    console.log(`Session ${sessionName} saved with ${eqchecks.length} eqchecks.`);
+  } else {
+    console.log(`Failed to save ${sessionName}.`);
+  }
+}
+
+async function main(server, port, sessionName, eqchecksDirs) {
+  var eqchecks = [];
+  //console.log(`eqchecksDirs = ${JSON.stringify(eqchecksDirs)}`);
+  for  (var i = 0; i < eqchecksDirs.length; i++) {
+    const eqchecksDir = eqchecksDirs[i];
+    //console.log(`eqchecksDir = ${JSON.stringify(eqchecksDir)}`);
+    const eqcheckDirs = await getEqchecksRecursivelyInDir(eqchecksDir);
+    for (var j = 0; j < eqcheckDirs.length; j++) {
+      const dirEqchecks = await bundleAndUploadEqcheckDir(eqcheckDirs[j], passingOnly);
+      //console.log(`${eqcheckDirs[i]}: dirEqchecks  = ${JSON.stringify(dirEqchecks)}`);
+      eqchecks = eqchecks.concat(dirEqchecks);
+      //console.log(`${eqcheckDirs[i]}: eqchecks = ${JSON.stringify(eqchecks)}`);
+    }
+  }
+  saveSession(server, port, sessionName, eqchecks);
+}
+
+const opts = nopt(
+knownOpts = {
+  "server": [String],
+  "port": [String],
+  "protocol": [String],
+  "sessionName": [String],
+  "eqchecksDir": [path, Array],
+  "passingOnly": Boolean,
+},
+shortHands = {
+  "s" : [ "--sessionName" ],
+  "e" : [ "--eqchecksDir" ],
+  "p" : [ "--passingOnly" ],
+}
+);
+
+const protocol = opts.protocol || defaultProtocol;
+const server = opts.server || defaultServer;
+const port = opts.port || defaultPort;
+const serverURL = protocol + "://" + server + ":" + port;
+const sessionName = opts.sessionName;
+const eqchecksDir = opts.eqchecksDir;
+const passingOnly = opts.passingOnly;
+
+if (sessionName === undefined) {
+  console.log(`sessionName is undefined, exiting.`);
+  process.exit();
+}
+if (eqchecksDir === undefined) {
+  console.log(`eqchecksDir is undefined, exiting.`);
+  process.exit();
+}
+
+main(server, port, sessionName, eqchecksDir, passingOnly)
+    .then(() => {
+    })
+    /*.catch(err => {
+        console.log(`Top-level error (shutting down): ${err}`);
+        process.exit(1);
+    })*/;

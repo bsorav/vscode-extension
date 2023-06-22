@@ -1,12 +1,18 @@
 export SUPEROPT_PROJECT_DIR ?= $(PWD)/..
 NODE=node-v20.3.1-linux-x64
 
-.PHONY: build
-node_install_modules:
+.PHONY: server_install_modules
+server_install_modules:
 	cd server && npm i && cd ..
 	cd scripts/ && npm i && cd ..
 	chmod +x scripts/upload-eqcheck
-	#cd eqchecker && npm i && cd .. # the client is packaged through vsce
+
+.PHONY: client_install_modules
+client_install_modules:
+	cd eqchecker && npm i && cd ..
+
+.PHONY: client_package
+	cd eqchecker && vsce package && cd ..
 
 .PHONY: node_install
 node_install:

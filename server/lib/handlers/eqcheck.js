@@ -1201,9 +1201,10 @@ class EqcheckHandler {
         const basename = path.basename(filename);
         const untar_dirname = basename.substr(0, basename.length - tarSuffix.length);
         //fs.writeFileSync(pathname, contents);
-        await tar.x({ file: tarFilename, sync: true, cwd: dirName  });
-
-        return dirName + "/" + untar_dirname;
+        if (fs.existsSync(tarFilename)) {
+          await tar.x({ file: tarFilename, sync: true, cwd: dirName  });
+          return dirName + "/" + untar_dirname;
+        }
       }
       return undefined;
     }

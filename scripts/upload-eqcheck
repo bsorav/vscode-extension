@@ -14,7 +14,7 @@ const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
 const defaultProtocol = 'http';
-const defaultServer = 'neutron.cse.iitd.ac.in';
+const defaultServer = 'localhost';
 const defaultPort = '80';
 const commandSaveSession = 'saveSession';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';

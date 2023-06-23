@@ -51,7 +51,8 @@ const prepareSuffix = "/prepare";
 const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
 const rewritten_prefix = "rewritten.";
-const defaultQuotaForNewUser = 10;
+
+var defaultQuotaForNewUser = 10;
 
 function def(a) {
   return (a === undefined) ? "undef" : "def";
@@ -98,11 +99,14 @@ function initialise(/*compilerEnv*/) {
 }
 
 class EqcheckHandler {
-    constructor(hostname, port, superoptInstall/*, codeAnalysisURL*/) {
+    constructor(hostname, port, superoptInstall, defaultEqcheckQuota) {
         this.compilersById = {};
         this.hostname = hostname;
         this.port = port;
         this.superoptInstall = superoptInstall;
+        if (defaultEqcheckQuota !== undefined) {
+          defaultQuotaForNewUser = defaultEqcheckQuota;
+        }
         //this.codeAnalysisURL = codeAnalysisURL;
         //this.compilerEnv = compilationEnvironment;
         this.factories = {};

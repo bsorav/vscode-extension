@@ -13,8 +13,8 @@ const { resolve } = require('path');
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
-const defaultProtocol = 'http';
-const defaultServer = 'localhost';
+const defaultProtocol = 'http';  //https
+const defaultServer = 'localhost'; //vayu.cse.iitd.ac.in
 const defaultPort = '80';
 const commandSaveSession = 'saveSession';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';

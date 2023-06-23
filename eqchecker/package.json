@@ -76,7 +76,7 @@
     "highlight.js": "^11.7.0",
     "p5": "^1.4.1",
     "prismjs": "^1.29.0",
-    "vsce": "^2.15.0",
+    "@vscode/vsce": "^2.19.0",
     "vis-network": "^9.1.2",
     "vscode-tas-client": "^0.1.63"
   },

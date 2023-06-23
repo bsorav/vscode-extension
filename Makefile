@@ -1,4 +1,4 @@
-export SUPEROPT_PROJECT_DIR ?= $(PWD)/..
+SUPEROPT_PROJECT_DIR ?= $(realpath $(CURDIR)/..)
 NODE=node-v20.3.1-linux-x64
 
 .PHONY: server_install_modules

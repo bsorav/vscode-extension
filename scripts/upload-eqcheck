@@ -16,6 +16,7 @@ const stat = promisify(fs.stat);
 const defaultProtocol = 'http';  //https
 const defaultServer = 'localhost'; //vayu.cse.iitd.ac.in
 const defaultPort = '80';
+const sshPortOnServer = '2222';
 const commandSaveSession = 'saveSession';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';
 const viewStateBase = 'base';
@@ -204,7 +205,7 @@ async function uploadFile(filenameOnClient)
   console.log(`filenameOnClient = ${filenameOnClient}`);
   console.log(`server = ${server}`);
   console.log(`dirOnServer = ${dirOnServer}`);
-  var executor = child_process.spawnSync("/usr/bin/scp", [filenameOnClient, `eqcheck@${server}:${dirOnServer}`]);
+  var executor = child_process.spawnSync("/usr/bin/scp", [filenameOnClient, "-P", sshPortOnServer, `eqcheck@${server}:${dirOnServer}`]);
   console.log(`executed scp command`);
   //console.log(`executor = ${JSON.stringify(executor)}`);
   /*executor.stdout.on('end', function(data) {

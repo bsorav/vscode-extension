@@ -856,13 +856,24 @@ class Eqchecker {
 
   public static async setServer()
   {
-    let servers : string[] = [];
-    servers.push(defaultServerURL);
-    const result = await vscode.window.showQuickPick(servers, {
-      placeHolder: servers?.[0],
+    //let servers : string[] = [];
+    //servers.push(defaultServerURL);
+    //const result = await vscode.window.showQuickPick(servers, {
+    //  placeHolder: servers?.[0],
+    //  ignoreFocusOut: true
+    //});
+    //Eqchecker.serverURL = result;
+
+    const options: vscode.InputBoxOptions = {
+      prompt: "Enter the server URL",
+      placeHolder: Eqchecker.serverURL,
       ignoreFocusOut: true
+    };
+    await vscode.window.showInputBox(options).then(async ea => {
+      if (ea) {
+        Eqchecker.serverURL = ea;
+      }
     });
-    Eqchecker.serverURL = result;
   }
 
   private static async openSourceFiles() : Promise<eqcheckMenuEntry>

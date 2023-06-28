@@ -199,6 +199,9 @@ function getNode(key: string[]): { key: string[], isStable: boolean } {
 }
 
 function matchEqCheckMenuEntries(e1 : eqcheckMenuEntry , e2 :eqcheckMenuEntry){
+      if (e1 === undefined || e2 === undefined) {
+        return false;
+      }
       if(e1.source1Name === e2.source1Name && e1.source1Uri === e2.source1Uri && e1.source2Name === e2.source2Name && e1.source2Uri === e2.source2Uri){
         return true;
       }

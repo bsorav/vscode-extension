@@ -673,18 +673,18 @@ function redraw()
 }
 
 function updateLineNumbers() {
-  const codePre = document.querySelector('pre code');
-  const codeLines = codePre.innerText.split('\n');
+  //const codePre = document.querySelector('pre code');
+  //const codeLines = codePre.innerText.split('\n');
 
-  const lineCount = codeLines.length;
+  //const lineCount = codeLines.length;
 
-  // Generate line numbers and modify the code
-  let codeContent = '';
-  for (let i = 0; i < lineCount; i++) {
-    codeContent += `<span class="line-number">${i + 1}</span>${codeLines[i]}\n`;
-  }
+  //// Generate line numbers and modify the code
+  //let codeContent = '';
+  //for (let i = 0; i < lineCount; i++) {
+  //  codeContent += `<span class="line-number">${i + 1}</span>${codeLines[i]}\n`;
+  //}
 
-  codePre.innerHTML = codeContent;
+  //codePre.innerHTML = codeContent;
 }
 
 // Event listener for message from product graph webview

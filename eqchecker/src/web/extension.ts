@@ -1125,6 +1125,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
+        <script type="module" src=${prism_ln_script}></script>
+        <link rel="stylesheet" href=${prism_ln_css}>
+        <script type="module" src=${prism_nasm_script}></script>
         <script>
           function zoomIn() {
             var content = document.getElementById("content");
@@ -1184,6 +1187,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
+        <script type="module" src=${prism_ln_script}></script>
+        <link rel="stylesheet" href=${prism_ln_css}>
         <script type="module" src=${prism_nasm_script}></script>
         <script>
           function zoomIn() {

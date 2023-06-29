@@ -36,7 +36,7 @@ async function main() {
     const CompilationEnvironment = require('./lib/compilation-env');
     const compilationEnvironment = new CompilationEnvironment(/*compilerProps, compilationQueue, defArgs.doCache*/);
     const EqcheckHandler = require('./lib/handlers/eqcheck').Handler;
-    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall/*, codeAnalysisURL*/);
+    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall, process.env.DEFAULT_EQCHECK_QUOTA);
 
     const StorageHandler = require('./lib/storage/storage');
     const storageHandler = StorageHandler.storageFactory('local'/*, compilerProps, awsProps*/, '/');

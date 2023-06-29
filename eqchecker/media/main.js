@@ -621,7 +621,7 @@ let currentlyShowingProofOfEqCheck;
 
         eqcheckRightClickMenu.style.display = "inline";
 
-        if (eqcheck.runState == runStateStatusFoundProof || eqcheck.runState == runStateStatusSafetyCheckFailed || eqcheck.runState == runStateSafetyCheckRunning) {
+        if (eqcheck.runState == runStateStatusFoundProof || eqcheck.runState == runStateStatusSafetyCheckFailed || eqcheck.runState == runStateStatusSafetyCheckRunning) {
           if(eqcheck.viewState == viewStateProofPartiallyClosed){
             items[0].innerHTML = 'View Whole Proof';
             items[0].addEventListener('click', viewProofListener);

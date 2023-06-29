@@ -8,7 +8,8 @@ import * as fs from 'fs'
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+//const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://localhost:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -856,13 +857,24 @@ class Eqchecker {
 
   public static async setServer()
   {
-    let servers : string[] = [];
-    servers.push(defaultServerURL);
-    const result = await vscode.window.showQuickPick(servers, {
-      placeHolder: servers?.[0],
+    //let servers : string[] = [];
+    //servers.push(defaultServerURL);
+    //const result = await vscode.window.showQuickPick(servers, {
+    //  placeHolder: servers?.[0],
+    //  ignoreFocusOut: true
+    //});
+    //Eqchecker.serverURL = result;
+
+    const options: vscode.InputBoxOptions = {
+      prompt: "Enter the server URL",
+      placeHolder: Eqchecker.serverURL,
       ignoreFocusOut: true
+    };
+    await vscode.window.showInputBox(options).then(async ea => {
+      if (ea) {
+        Eqchecker.serverURL = ea;
+      }
     });
-    Eqchecker.serverURL = result;
   }
 
   private static async openSourceFiles() : Promise<eqcheckMenuEntry>

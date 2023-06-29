@@ -14,7 +14,7 @@ const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
 
 const statusEqcheckPinging = "eqcheckPinging";
-const statusEqcheckCancelled = "eqcheckCancelled";
+//const statusEqcheckCancelled = "eqcheckCancelled";
 
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
@@ -757,8 +757,9 @@ class Eqchecker {
         dirPathIn: dirPath,
       };
     let jsonRequest = JSON.stringify(request);
-    const response = (await this.RequestResponseForCommand(jsonRequest));
-    console.log("Cancel Eqcheck response: ", JSON.stringify(response));
+    this.RequestResponseForCommand(jsonRequest);
+    //const response = (await this.RequestResponseForCommand(jsonRequest));
+    //console.log("Cancel Eqcheck response: ", JSON.stringify(response));
     //var viewRequest =
     //    { type: 'eqcheckCancelled',
     //      //dirPath: dirPath,
@@ -2031,7 +2032,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         }
         case 'eqcheckCancel': {
           //console.log(`eqcheckCancel received\n`);
-          await Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
+          /*await */Eqchecker.eqcheckCancel(webviewView.webview, data.eqcheck.dirPath);
           break;
         }
         case 'eqcheckClear': {

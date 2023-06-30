@@ -752,7 +752,7 @@ class EqcheckHandler {
 
       // Setup arguments for calling vir_gen
       const in_tfg = ['--in_tfg', tfg_file];
-      const func = ['--func', "main"];
+      // const func = ['--func', "main"];
       const tmpdir = ['--tmpdir-path', dirPath];
       const is_ssa = ['--ssa', 'y'];
       const outpath = ['--outpath', vir_file];
@@ -763,7 +763,7 @@ class EqcheckHandler {
 
       console.log("tmpdir-path:", dirPath);
 
-      var vir_gen_args = (in_tfg).concat(func).concat(tmpdir).concat(is_ssa).concat(outpath);
+      var vir_gen_args = (in_tfg).concat(tmpdir).concat(is_ssa).concat(outpath);
 
       console.log('calling vir_gen ' + vir_gen_args + '\n');
       exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args);

@@ -78,12 +78,12 @@ let currentlyShowingProofOfEqCheck;
                     removeEqcheckInView(message.origRequest);
                     break;
                 }
-            case 'eqcheckCancelled':
-                {
-                    //console.log("received eqcheckCancelled message '" + message.type + "'");
-                    updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
-                    break;
-                }
+            //case 'eqcheckCancelled':
+            //    {
+            //        //console.log("received eqcheckCancelled message '" + message.type + "'");
+            //        updateEqcheckInView(message.origRequest, "Cancelled", runStateStatusTerminated);
+            //        break;
+            //    }
             case 'loadEqchecks':
                 {
                   for (var i = message.eqchecks.length - 1; i >= 0; i--) {
@@ -410,10 +410,10 @@ let currentlyShowingProofOfEqCheck;
       console.log('eqcheckCancel called');
       if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusSafetyCheckRunning || eqcheck.runState == runStateStatusQueued) {
         eqcheck.viewState = viewStateCancelling;
-        eqcheck.statusMessage = "Cancelling...";
+        eqcheck.statusMessage = "Cancelled";
         displayEqcheckList(eqchecks);
         vscode.postMessage({ type: 'eqcheckCancel', eqcheck: eqcheck});
-        eqcheck.statusMessage = 'Cancelled';
+        //eqcheck.statusMessage = 'Cancelled';
         eqcheck.runState = runStateStatusTerminated;
       }
     }

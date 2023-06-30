@@ -8,8 +8,8 @@ import * as fs from 'fs'
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-//const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
-const defaultServerURL = 'http://localhost:80';
+const defaultServerURL = 'http://proton.cse.iitd.ac.in:8080';
+// const defaultServerURL = 'http://localhost:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -1256,6 +1256,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             <div id="RightClickMenuItem2" class="item"></div>
             <div id="RightClickMenuItem3" class="item"></div>
             <div id="RightClickMenuItem4" class="item"></div>
+            <div id="RightClickMenuItem4" class="item"></div>
             </div>
         </div>
     </body>
@@ -1523,6 +1524,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_code = proof_response.dst_code;
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
+    const vir = (proof_response.vir === undefined) ? undefined : proof_response.vir;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
@@ -1750,7 +1752,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, vir:vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});

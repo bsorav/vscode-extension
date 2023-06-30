@@ -769,7 +769,9 @@ class EqcheckHandler {
       exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args);
       console.log('called vir gen');
 
-      return vir_file;
+      if (fs.existsSync(vir_file)) {
+        return vir_file;
+      }
     }
 
     async getSrcFiles(dirPath) {

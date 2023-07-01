@@ -8,14 +8,14 @@ import * as fs from 'fs'
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'http://proton.cse.iitd.ac.in:8080';
-// const defaultServerURL = 'http://localhost:80';
+//const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://localhost:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
 
 const statusEqcheckPinging = "eqcheckPinging";
-//const statusEqcheckCancelled = "eqcheckCancelled";
+const statusEqcheckCancelled = "eqcheckCancelled";
 
 const commandCancelEqcheck = 'cancelEqcheck';
 const commandSubmitEqcheck = 'submitEqcheck';
@@ -1529,6 +1529,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
     const vir = (proof_response.vir === undefined) ? undefined : proof_response.vir;
+    //console.log("eqcheckViewProof vir = ", vir);
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));

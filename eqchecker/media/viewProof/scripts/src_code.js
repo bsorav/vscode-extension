@@ -170,6 +170,7 @@ function getNodesEdgesFromPath(path, codetype, subprogram_info, tfg_llvm, tfg_as
 {
   const edge_ids = mk_array(path.edge_id);
   if (edge_ids.length == 0) {
+    //console.log(`${curSyntaxType}: returning epsilon`);
     return { is_epsilon: true, edges: [], nodes: [], nodeMap: {} };
   }
 
@@ -179,6 +180,7 @@ function getNodesEdgesFromPath(path, codetype, subprogram_info, tfg_llvm, tfg_as
   //  console.log(`ll_filename_linenum_map = ${JSON.stringify(tfg_llvm["ll_filename_linenum_map"])}`);
   //}
 
+  //console.log(`${curSyntaxType}: edge_ids = ${JSON.stringify(edge_ids)}`);
   edge_ids.forEach(function (edge_id) {
     //console.log(`ec =\n${JSON.stringify(ec)}\n`);
     const from_pc = edge_id.from_pc;
@@ -257,6 +259,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   const is_epsilon = graph_ec.is_epsilon;
 
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap, codetype);
+  NODES.push(from_pc_xy);
 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
@@ -277,6 +280,8 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
     //console.log(`node_with_mu_annotation = ${node_with_mu_annotation}\n`);
   }
 
+  //console.log(`${curSyntaxType}: NODES = ${JSON.stringify(NODES)}`);
+  //console.log(`${curSyntaxType}: EDGES = ${JSON.stringify(EDGES)}`);
   NODES.forEach(element => {
     if (!isNaN(element.y)) {
       const ypx = Math.max(0, (element.y * 1 - 5) * deltaY);
@@ -297,6 +302,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   }
 
   if (is_epsilon) {
+    //console.log(`${curSyntaxType}: is_epsilon: calling drawPointOnNode with from_pc_xy = ${JSON.stringify(from_pc_xy)}`);
     drawPointOnNode(canvas, ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
     return;
   }
@@ -450,8 +456,10 @@ function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_
     let x1 = (node.x - 1) * 1 * deltaX;
     let y1 = node.y * 1 * deltaY - deltaY/4;
 
+    //console.log(`x1 = ${x1}, y1 = ${y1}`);
+
     let color;
-    if(unroll > 1){
+    if(unroll !== undefined && unroll > 1){
         let r = 10;
         color = "rgb(252, 3, 219)";
         drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);

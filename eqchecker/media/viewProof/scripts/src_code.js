@@ -7,6 +7,7 @@ const vscode = acquireVsCodeApi();
 
 var code = null;
 var ir = null;
+var vir = null;
 var current_codetype = "src";
 var curSyntaxType = null;
 var current_highlight_message = null;
@@ -649,6 +650,8 @@ function redraw()
     codeChosen = code;
   } else if (current_codetype == "ir") {
     codeChosen = ir;
+  } else if (current_codetype == "vir") {
+    codeChosen = vir;
   }
 
   var codeDisplay;
@@ -707,6 +710,7 @@ window.addEventListener('message', async event => {
         case "data": {
             code = message.code + "\n.";
             ir = message.ir;
+            vir = message.vir;
             curSyntaxType = message.syntax_type;
             current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
             break;
@@ -772,6 +776,13 @@ function viewIR(evt) {
   redraw();
 };
 
+function viewVIR(evt) {
+  console.log('viewVIR called');
+  hideRightClickMenu();
+  current_codetype = "vir";
+  redraw();
+}
+
 function viewSourceCode(evt) {
   console.log('viewSourceCode called');
   hideRightClickMenu();
@@ -789,7 +800,7 @@ function showRightClickMenu(mouseX, mouseY) {
 
   var items = rightClickMenu.querySelectorAll(".item");
 
-  for (var i = 0; i < 4; i++) {
+  for (var i = 0; i < items.length; i++) {
     items[i].removeEventListener('click', downloadObjectListener);
     items[i].removeEventListener('click', downloadAssemblyListener);
     items[i].removeEventListener('click', downloadSourceListener);
@@ -808,12 +819,19 @@ function showRightClickMenu(mouseX, mouseY) {
       items[i].innerHTML = 'View IR';
       items[i].addEventListener('click', viewIR);
       i++;
-    } else if (current_codetype == "ir") {
+    } else if ((current_codetype == "ir") || (current_codetype == "vir")) {
       items[i].innerHTML = 'View Source';
       items[i].addEventListener('click', viewSourceCode);
       i++;
-    }
+    } 
   }
+
+  if (current_codetype != "vir") {
+    items[i].innerHTML = 'View VIR';
+    items[i].addEventListener('click', viewVIR);
+    i++;
+  }
+
   if (curSyntaxType == "asm") {
     items[i].innerHTML = 'Download Object Code';
     items[i].addEventListener('click', downloadObjectListener);

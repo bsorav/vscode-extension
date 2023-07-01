@@ -149,6 +149,10 @@ let currentlyShowingProofOfEqCheck;
         welcome.innerHTML = `<small><small>${curState.currentUser}</small></small><br>Start an Eqcheck<br><small><small>(${curState.quotaRemaining} remaining)</small></small>`;
         if (curState.quotaRemaining > 0) {
           welcome.addEventListener('click', welcomeButtonStartEqcheck);
+        } else {
+          const oldState = vscode.getState() || { eqchecks: [], currentUser: undefined, quotaRemaining: undefined };
+          vscode.setState({ eqchecks : oldState.eqchecks, currentUser: undefined, quotaRemaining: undefined });
+          displayWelcomeButton();
         }
         vscode.postMessage({ type: 'registerLogin', currentUser: curState.currentUser});
       }

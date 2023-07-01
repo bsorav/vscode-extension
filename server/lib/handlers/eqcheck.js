@@ -741,6 +741,39 @@ class EqcheckHandler {
       return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
     }
 
+    getVIR(src_file, tfg_file, dirPath){
+
+      const vir_file = src_file + ".vir";
+
+      if (fs.existsSync(vir_file)) {
+        // VIR file has already been generated once.
+        return vir_file;
+      }
+
+      // Setup arguments for calling vir_gen
+      const in_tfg = ['--in_tfg', tfg_file];
+      // const func = ['--func', "main"];
+      const tmpdir = ['--tmpdir-path', dirPath];
+      const is_ssa = ['--ssa', 'y'];
+      const outpath = ['--outpath', vir_file];
+
+      console.log("INPUT TFG PATH:", in_tfg);
+
+      console.log("OUTPUT PATH:", vir_file);
+
+      console.log("tmpdir-path:", dirPath);
+
+      var vir_gen_args = (in_tfg).concat(tmpdir).concat(is_ssa).concat(outpath);
+
+      console.log('calling vir_gen ' + vir_gen_args + '\n');
+      exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args);
+      console.log('called vir gen');
+
+      if (fs.existsSync(vir_file)) {
+        return vir_file;
+      }
+    }
+
     async getSrcFiles(dirPath) {
       const runStatus = await this.getRunningStatus(dirPath);
       const srcFilenameJSON = runStatus.running_status.src_filename;
@@ -1427,10 +1460,18 @@ class EqcheckHandler {
         const src_ir = (src_files.ir === undefined) ? undefined : (await this.readBuffer(src_files.ir)).toString();
         const dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
         const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
+        
+        const tfg_file = src_files.etfg;
+        const vir_file = this.getVIR(src_files.src, tfg_file, dirPathIn);
+        
+        const src_vir = (vir_file === undefined) ? undefined : (await this.readBuffer(vir_file)).toString();
+
+        // console.log(JSON.stringify(vir));
+        // const vir = this.readBuffer(vir_file).toString();
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, vir: src_vir});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;

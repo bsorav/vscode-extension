@@ -771,6 +771,9 @@ class EqcheckHandler {
 
       if (fs.existsSync(vir_file)) {
         return vir_file;
+      } else {
+        console.log(`WARNING: VIR file does not exist!`);
+        return undefined;
       }
     }
 
@@ -1465,6 +1468,7 @@ class EqcheckHandler {
         const vir_file = this.getVIR(src_files.src, tfg_file, dirPathIn);
         
         const src_vir = (vir_file === undefined) ? undefined : (await this.readBuffer(vir_file)).toString();
+        //console.log(`src_vir = ${src_vir}`);
 
         // console.log(JSON.stringify(vir));
         // const vir = this.readBuffer(vir_file).toString();

@@ -8,7 +8,7 @@ import * as fs from 'fs'
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'http://neutron.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://kiwi.cse.iitd.ac.in:81';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -1114,6 +1114,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private proof_panels;
   private scanview_panel;
+  private hideProofPressed;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -1239,7 +1240,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         </div>
         <div id="content">
             <div class="code-container" style="display:block;">
-                <pre id="pre-code" ><code id="code" class="language-clike"></code></pre>
+                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
             <div id="right-click-menu">
@@ -1307,7 +1308,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         </div>
         <div id="content">
             <div class="code-container" style="display:block;">
-                <pre id="pre-code"><code id="code" class="language-clike"></code></pre>
+                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
         </div>
@@ -1370,7 +1371,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     if(this.proof_panels === undefined){
       this.sendAllPanelsClosedMessage();
     }
-    else{
+    else if(!this.hideProofPressed){
       this.sendPanelClosedMessage();
     }
   }
@@ -1955,8 +1956,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           // [HACK] Call viewProductCFG twice to fix click/hover bug
-          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
+          //await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
+          this.hideProofPressed=false;
 
           //this.proof_panels = new_panels;
           //console.log(`ViewProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
@@ -1967,17 +1969,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`HideProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
           //console.log(`HideProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
           //console.log(`HideProof received. this.panels[data.eqcheck.dirPath].length = ${this.panels[data.eqcheck.dirPath].length}\n`);
+          this.hideProofPressed=true;
           const panel = this.proof_panels;
           if (panel !== undefined) {
+            
             panel.prd.dispose();
             panel.src_code.dispose();
             panel.dst_code.dispose();
-            if (panel.src_ir !== undefined) {
-              panel.src_ir.dispose();
-            }
-            if (panel.dst_ir !== undefined) {
-              panel.dst_ir.dispose();
-            }
+            // if (panel.src_ir !== undefined) {
+            //   panel.src_ir.dispose();
+            // }
+            // if (panel.dst_ir !== undefined) {
+            //   panel.dst_ir.dispose();
+            // }
             this.proof_panels = undefined;
           }
           break;

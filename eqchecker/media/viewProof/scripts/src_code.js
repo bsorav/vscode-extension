@@ -661,7 +661,8 @@ function redraw()
 
   // Clear old contents
   codeEl.innerHTML = codeDisplay;
-  updateLineNumbers();
+  //updateLineNumbers();
+  Prism.highlightAll();
 
   //await new Promise(r => setTimeout(r, 100));
   setupCanvas();
@@ -674,6 +675,7 @@ function redraw()
 
 function updateLineNumbers() {
   const codePre = document.querySelector('pre code');
+  console.log(codePre.innerText);
   const codeLines = codePre.innerText.split('\n');
 
   const lineCount = codeLines.length;
@@ -724,7 +726,7 @@ window.addEventListener('message', async event => {
 });
 
 window.addEventListener('DOMContentLoaded', (event) => {
-  updateLineNumbers();
+  //updateLineNumbers();
 });
 
 vscode.postMessage({command:"loaded"});

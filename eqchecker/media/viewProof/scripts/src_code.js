@@ -710,7 +710,7 @@ window.addEventListener('message', async event => {
         case "data": {
             code = message.code + "\n.";
             ir = message.ir;
-            vir = message.vir;
+            vir = message.src_vir;
             curSyntaxType = message.syntax_type;
             current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
             break;
@@ -822,6 +822,9 @@ function showRightClickMenu(mouseX, mouseY) {
     } else if ((current_codetype == "ir") || (current_codetype == "vir")) {
       items[i].innerHTML = 'View Source';
       items[i].addEventListener('click', viewSourceCode);
+      i++;
+      items[i].innerHTML = 'View IR';
+      items[i].addEventListener('click', viewIR);
       i++;
     } 
   }

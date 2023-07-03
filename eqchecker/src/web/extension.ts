@@ -1524,7 +1524,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_code = proof_response.dst_code;
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
-    const vir = (proof_response.vir === undefined) ? undefined : proof_response.vir;
+    const src_vir = (proof_response.src_vir === undefined) ? undefined : proof_response.src_vir;
+    const dst_vir = (proof_response.dst_vir === undefined) ? undefined : proof_response.dst_vir;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
@@ -1752,16 +1753,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, vir:vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, src_vir: src_vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst"/*, codetype: "code"*/});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info,  dst_vir: dst_vir, srcdst: "dst"/*, codetype: "code"*/});
       //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", dst_vir: dst_vir, codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
@@ -1960,6 +1961,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
+          console.log(JSON.stringify(data.eqcheck));
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);  
           // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);

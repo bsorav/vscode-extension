@@ -1007,6 +1007,10 @@ class Eqchecker {
   private static getQuickPickItemsFromEqcheckMenuEntries(menuItems : eqcheckMenuEntry[]) : string[] {
     //console.log("calling menuItems.map(). menuItems.length = " + menuItems.length.toString());
     let ret = menuItems.map(function (menuItem) {
+                if (menuItem === undefined) {
+                  console.log(`WARNING: empty menuItem, indicates a bug!`);
+                  return "";
+                }
                 if (menuItem.source2Name !== undefined) {
                   return `${menuItem.source1Name} -> ${menuItem.source2Name}`;
                 } else {

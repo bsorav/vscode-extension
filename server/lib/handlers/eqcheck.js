@@ -1,3 +1,5 @@
+const { existsSync } = require('fs');
+
 const temp = require('temp'),
     fs = require('fs-extra'),
     path = require('path'),
@@ -758,43 +760,23 @@ class EqcheckHandler {
       }
 
       var src_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.src-tfg';
-      // var dst_tfg = dirPath + "/" + 'eq.proof.' + functionName + '.dst-tfg';
       
       console.log("TFG PATHS:\n", src_tfg/*, "\n", dst_tfg*/);
 
-      // return {src_tfg_for_vir:src_tfg, dst_tfg_for_vir:dst_tfg};
       return src_tfg;
+    }
+
+    wait_for_ms(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     get_vir_file_for_proof(dirPath) {
       var vir_dir = dirPath;
-
-      // if (dirPath.endsWith(prepareSuffix)) {
-      //   vir_dir = dirPath.substring(0, dirPath.length - prepareSuffix.length)  + submitSuffix + functionName ;
-      // } else if (dirPath.endsWith(pointsToSuffix)) {
-      //   vir_dir = dirPath.substring(0, dirPath.length - pointsToSuffix.length) + submitSuffix + functionName;
-      // } else {
-      //   vir_dir = dirPath;
-      // }
-
-      // var dst_vir = vir_dir + '/' + 'eq.proof.' + functionName + '.dst-tfg.vir';
       var src_vir = vir_dir + '/' + 'eq.proof.' + 'src.vir';
-
-      console.log("VIR PATHS:\n", src_vir /*, "\n", dst_vir*/);
-
-      // return {src_vir:src_vir, dst_vir:dst_vir};
       return src_vir;
     }
 
     getVIR(tfg_file, dirPath, vir_file){
-
-      // const vir_file = dirPath ;
-
-      // if (fs.existsSync(vir_file)) {
-      //   // VIR file has already been generated once.
-      //   return vir_file;
-      // }
-
       // Setup arguments for calling vir_gen
       const in_tfg = ['--in_tfg', tfg_file];
       // const func = ['--func', "main"];
@@ -804,9 +786,9 @@ class EqcheckHandler {
 
       console.log("INPUT TFG PATH:", in_tfg, "\n");
 
-      console.log("OUTPUT PATH:", vir_file, "\n");
+      // console.log("OUTPUT PATH:", vir_file, "\n");
 
-      console.log("tmpdir-path:", dirPath, "\n");
+      // console.log("tmpdir-path:", dirPath, "\n");
 
       var vir_gen_args = (in_tfg).concat(tmpdir).concat(is_ssa).concat(outpath);
 
@@ -814,11 +796,6 @@ class EqcheckHandler {
       return new Promise((resolve,reject) => {
         resolve(exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args));
       });
-      // console.log('called vir gen');
-
-      // if (fs.existsSync(vir_file)) {
-      //   return vir_file;
-      // }
     }
 
     async getSrcFiles(dirPath) {
@@ -1368,18 +1345,22 @@ class EqcheckHandler {
                       fs.writeFileSync(stderr_filename, result.stderr);
 
                       res.end(JSON.stringify({retcode: 0}));
-                      
-                      var src_tfg_file_for_vir = this.get_tfg_for_vir_gen(dirPath, functionName);
 
-                      var vir_file = this.get_vir_file_for_proof(dirPath);
-
-                      return this.getVIR(src_tfg_file_for_vir, dirPath, vir_file);
+                      if (dirPath.endsWith(submitSuffix + functionName)){
+                        var src_tfg_file_for_vir = this.get_tfg_for_vir_gen(dirPath, functionName);
+                        var vir_file = this.get_vir_file_for_proof(dirPath);
+                        return this.getVIR(src_tfg_file_for_vir, dirPath, vir_file);
+                      } else {
+                        return;
+                      }
                     },
                   error => {
                       this.eqcheck_error(error, res);
                   }).then(result => {
-                    console.log("Generated VIR now!");
-                    console.log(fs.existsSync(this.get_vir_file_for_proof(dirPath)));
+                    if (dirPath.endsWith(submitSuffix+ functionName)){
+                      console.log("Generated VIR now!");
+                      console.log(fs.existsSync(this.get_vir_file_for_proof(dirPath)));
+                    }
                   });
           if (commandIn === commandPointsToAnalysis) { //decrement as soon as we start doing compute-intensive stuff
             await this.decrementQuotaForUser(loginName);
@@ -1522,7 +1503,13 @@ class EqcheckHandler {
         // const tfg_file = src_files.etfg;
         var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
 
-        const src_vir_file = vir_file_paths /*vir_file_paths.src_vir*/;
+        const src_vir_file = vir_file_paths;
+
+        // In case VIR file is not generated yet
+        // while(!existsSync(src_vir_file)){
+        //   await this.wait_for_ms(1000);
+        // }
+        
         // const dst_vir_file = vir_file_paths.dst_vir;
         
         const src_vir = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file)).toString();

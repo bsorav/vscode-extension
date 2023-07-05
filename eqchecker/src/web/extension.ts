@@ -1317,8 +1317,18 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             <div class="code-container" style="display:block;">
                 <pre id="pre-code"><code id="code" class="language-clike"></code></pre>
             </div>
+            <!--
+            <div id="right-click-menu">
+              <div id="RightClickMenuItem1" class="item"></div>
+              <div id="RightClickMenuItem2" class="item"></div>
+              <div id="RightClickMenuItem3" class="item"></div>
+              <div id="RightClickMenuItem4" class="item"></div>
+              <div id="RightClickMenuItem4" class="item"></div>
+            </div>
+            -->
             <canvas id="canvas" style="position: absolute;"></canvas>
         </div>
+        
     </body>
     </html>`;
     return eval('`' + html + '`');

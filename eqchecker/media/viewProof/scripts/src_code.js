@@ -669,6 +669,8 @@ function redraw()
   //await new Promise(r => setTimeout(r, 100));
   setupCanvas();
 
+  // console.log("Current HL Message:", current_highlight_message);
+
   //console.log(`message.path = ${JSON.stringify(message.path)}`);
   if (current_highlight_message !== null) {
     highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
@@ -789,8 +791,6 @@ function viewSourceCode(evt) {
   current_codetype = "src";
   redraw();
 };
-
-
 
 function showRightClickMenu(mouseX, mouseY) {
   console.log(`showRightClickMenu called`);

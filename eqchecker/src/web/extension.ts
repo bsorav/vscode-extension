@@ -1617,6 +1617,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 tfg: message.src_tfg,
                 eqcheck_info: message.eqcheck_info,
                 srcdst: "src",
+                edge_vir : message.src_edge_vir,
                 codetype: "code"
                 //subprogram_info: message.src_subprogram_info,
                 //nodeMap: message.src_nodeMap
@@ -1637,6 +1638,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 tfg: message.dst_tfg,
                 eqcheck_info: message.eqcheck_info,
                 srcdst: "dst",
+                edge_vir : message.dst_edge_vir,
                 codetype: "code"
                 //subprogram_info: message.dst_subprogram_info,
                 //nodeMap: message.dst_nodeMap

@@ -73,6 +73,79 @@ function setupCanvas(){
     document.addEventListener('contextmenu', onRightClick);
 }
 
+// Function to get line numbers to map for edge 
+function get_points_for_vir(edge){
+  if (edge === undefined){
+    return {valid: false, points:[]};
+  }
+  console.log("get_points_for_vir EDGE:", edge);
+
+  // The from and to PCs
+  const from_pc = edge.from_pc;
+  const to_pc = edge.to_pc;
+
+  // Array of VIR code 
+  const vir_code_arr = vir.split("\n");
+
+  var points = [];
+  // Point = {x, y, type}
+
+  var chk1 = vir_code_arr.findIndex(function(str) {
+    return str.includes("BB%" + from_pc + " :");
+  });
+
+  var chk2 = vir_code_arr.findIndex(function(str) {
+    return str.includes("BB%" + to_pc + " :");
+  });
+
+  if (chk1 == -1 || chk2 == -1){
+    return {valid: false, points: []};
+  }
+
+  var curr_pc = from_pc;
+
+  var i;
+
+  while (curr_pc != to_pc){
+    console.log("CURRENT PC:", curr_pc);
+    i = vir_code_arr.findIndex(function(str) {
+      return str.includes("BB%" + curr_pc + " :");
+    });
+
+    if (i == -1) {
+      return {valid: false, points: points};
+    }
+
+    if (curr_pc == "L0%0%d"){
+      points.push({x: 5, y: i, type:"L0%0%d"});
+    } else {
+      console.log("i: ", i);
+      points.push({x: 5, y: i, type:"L"})
+    }
+
+    // Reach the end of the block 
+    while(i < vir_code_arr.length && !(vir_code_arr[i].includes("goto"))){
+      points.push({x: 5, y: i, type:"L"});
+      i++;
+    }
+
+    // Reached a goto
+    console.log("SPLITARR:", vir_code_arr[i].split(" "));
+    curr_pc = vir_code_arr[i].split(" ")[1].replace("BB%","");
+
+    console.log("NEXT PC:", curr_pc);
+  }
+
+  i = vir_code_arr.findIndex(function(str) {
+    return str.includes("BB%" + curr_pc + " :");
+  });
+
+  points.push({x: 5, y: i, type:"L"})
+
+  return {valid: true, points: points};
+
+}
+
 function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
 {
   //let canvas = document.getElementById("canvas");
@@ -199,6 +272,86 @@ function getNodesEdgesFromPath(path, codetype, subprogram_info, tfg_llvm, tfg_as
 function identifyFirstNodeWithCycle(path)
 {
   return path.from_pc; //XXX : TODO: FIXME: find the first entry to a cycle
+}
+
+
+function highlightPathinVIR(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst, edge_vir){
+  if (path === undefined) {
+    return;
+  }
+  scroll(0, 0);
+
+  const [assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst);
+
+  const tfg_llvm = tfg["tfg_llvm"];
+  const tfg_asm = tfg["tfg_asm"];
+
+  const nodes = tfg["graph"]["nodes"];
+
+  var code_subprogram_info, ir_subprogram_info;
+  if (tfg_llvm === undefined) {
+    code_subprogram_info = tfg_asm_obtain_subprogram_info(tfg_asm, assembly);
+  } else {
+    [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
+  }
+
+  const styles = window.getComputedStyle(codeEl);
+  const deltaY = parseInt(styles.getPropertyValue("line-height"));
+
+  codeEl = document.getElementById("code");;
+  let rect = codeEl.getBoundingClientRect();
+
+  let topNode = rect.height*1;
+  let bottomNode = 0*1;
+
+  console.log("Getting points for vir GEN");
+  var res = get_points_for_vir(edge_vir);
+  var points;
+  if (res.valid){
+    points = res.points;
+  } else {
+    // We are done
+    return;
+  }
+  console.log("POINTS: ", points);
+
+  points.forEach(element => {
+    if (!isNaN(element.y)) {
+      const ypx = Math.max(0, (element.y * 1 - 5) * deltaY);
+      //console.log(`ypx = ${ypx}`);
+      topNode = Math.max(0, Math.min(topNode, ypx));
+      bottomNode = Math.max(bottomNode, ypx);
+    }
+  });
+
+  const newCanvasHeight = (bottomNode - topNode) + 2*canvasMarginY*deltaY;
+  const newCanvasTop = Math.max(minCanvasTop, topNode - canvasMarginY*deltaY);
+  //console.log(`deltaY = ${deltaY}, canvasMarginY = ${canvasMarginY}, bottomNode = ${bottomNode}, topNode = ${topNode}, newCanvasHeight = ${newCanvasHeight}, newCanvasTop = ${newCanvasTop}`);
+
+  if (!isNaN(newCanvasHeight) && !isNaN(newCanvasTop)) {
+    canvas.height = newCanvasHeight;
+    curCanvasTop = newCanvasTop;
+    canvas.style.top = curCanvasTop + "px";
+  }
+
+  console.log("Reached here.");
+
+  for (var i = 0; i < points.length; i++) {
+    var unroll = 1;
+    var unroll_is_only_mu = false;
+    var element = points[i];
+    drawPointAtCoord(canvas, ctx, element.x, element.y, undefined, unroll, unroll_is_only_mu, (i == 0), (i == points.length));
+  }
+
+  for (var i = 0; i < points.length-1; i++){
+    var pt1 = points[i];
+    var pt2 = points[i+1];
+
+    // drawEdgeBetweenPoints(canvas, ctx, element.from_node, element.to_node, element.is_fallthrough, is_source_code);
+
+    drawEdgeBetweenCoords(canvas, ctx, pt1, pt2, false, true);
+  }
+  
 }
 
 export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst, codetype)
@@ -340,8 +493,6 @@ function canvasRelativeX(canvas, abs_x)
   return ret;
 }
 
-
-
 function drawArc(canvas, ctx, abs_cx, abs_cy, radius, theta1, theta2, anticlockwise, color, pattern)
 {
     const cx = canvasRelativeX(canvas, abs_cx)
@@ -435,6 +586,211 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+// Functions for VIR 
+
+
+
+function drawPointAtCoord(canvas, ctx, x, y, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
+{
+    //node = node.split("_");
+    //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
+    //let canvas = document.getElementById("canvas");
+    //let ctx = canvas.getContext("2d");
+
+    let styles = window.getComputedStyle(document.getElementById("code"));
+
+    let deltaY = styles.lineHeight.replace("px", "") * 1;
+    let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
+
+    let x1 = (x - 1) * 1 * deltaX;
+    let y1 = y * 1 * deltaY - deltaY/4;
+
+    let color;
+    if(unroll > 1){
+        let r = 10;
+        color = "rgb(252, 3, 219)";
+        drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
+        ctx.lineWidth = 1;
+        drawArc(canvas, ctx, x1, y1, r, 0, 3*Math.PI/2, false, color, []);
+        drawArrowHead(canvas, ctx, x1, y1-r, 0, color);
+        let x = x1 + 2*r*Math.cos(Math.PI/4);
+        let y = y1 - 2*r*Math.sin(Math.PI/4);
+        const textcolor = "rgb(3, 3, 255)";
+        var prefix_to_unroll = "";
+        if (unroll_is_only_mu) {
+          prefix_to_unroll = "<=";
+        }
+        drawText(canvas, ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
+    } else {
+        color = "rgb(255, 0, 0)";
+        drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
+    }
+    if (text !== undefined) {
+      let r = 5;
+      let x = x1 + r*Math.cos(7*Math.PI/4);
+      let y = y1 - r*Math.sin(7*Math.PI/4);
+      const textcolor = "rgb(255, 0, 0)";
+      drawText(canvas, ctx, x, y, text, 10, textcolor);
+    }
+}
+
+function drawEdgeBetweenCoords(canvas, ctx, pt1, pt2, is_fallthrough, is_source_code)
+{
+    // pt1 is predecessor
+    // pt2 is successor
+    // Draw edge between pt1 and pt2
+    //console.log(`pt1 = ${pt1.pc}, pt2 = ${pt2.pc}, pt1.x = ${pt1.x}, pt2.x = ${pt2.x}, is_fallthrough = ${is_fallthrough}`);
+
+    let pattern = [];
+
+    //let canvas = document.getElementById("canvas");
+    //let ctx = canvas.getContext("2d");
+
+    let styles = window.getComputedStyle(document.getElementById("code"));
+
+    let deltaY = styles.lineHeight.replace("px", "") * 1;
+    const delta2Y = parseInt(styles.getPropertyValue("line-height"));
+    let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7; // 3/7 is roughly the ratio of width to height (as taken from the Internet)
+
+    if (pt1.x === undefined) {
+      pt1.x = defaultNodeX;
+    }
+    if (pt2.x === undefined) {
+      pt2.x = defaultNodeX;
+    }
+
+    if (pt1.x === pt2.x && pt1.y === pt2.y) {
+      //console.log(`Ignoring the edge: (${pt1.x},${pt1.y}) -> (${pt2.x},${pt2.y})`);
+      return;
+    }
+
+    if (pt1.type === "entry") {
+      var label_node = pt1;
+      label_node.y = (pt1.y*1) - entryLabelGap;
+      drawPointAtCoord(canvas, ctx, pt1.x, pt1.y, "ENTRY", undefined, undefined, true, false);
+    }
+    if (pt2.type === "exit") {
+      pt2.x = pt1.x;
+      pt2.y = (pt1.y*1) + exitLabelGap;
+      drawPointAtCoord(canvas, ctx, pt2.x, pt2.y, "EXIT", undefined, undefined, false, true);
+    }
+
+    //console.log(`Drawing an edge: (${pt1.type},${pt1.x},${pt1.y}) -> (${pt2.type},${pt2.x},${pt2.y})`);
+
+    let x1 = (pt1.x - 1) * 1 * deltaX;
+    let y1 = pt1.y * 1 * deltaY - deltaY/4;
+    let x2 = (pt2.x - 1) * 1 * deltaX;
+    let y2 = pt2.y * 1 * deltaY - deltaY/4;
+
+    let color1 = 'rgb(255, 0, 0)';
+    let color2 = 'rgb(52, 58, 235, 0.8)';
+    let theta = angleFromXAxis(x1, y1, x2, y2);
+
+    //if (x1 === x2 && y1 === y2) {
+    //  let radius = deltaX*3;
+    //  // drawCircle(x1, y1, 2, color1);
+    //  drawArc(ctx, x1 + radius, y1, radius, 0, 2*Math.PI, false, color2, pattern);
+    //  drawArrowHead(ctx, x1 + 2*radius, y1, 3*Math.PI/2, color1);
+    //  // drawCircle(x2, y2, 2, color1);
+    //  return;
+    //}
+
+    const backward_jump = (y1 > y2 || (y1 === y2 && x1 > x2));
+    const forward_jump = !backward_jump && !is_source_code && is_fallthrough != "true" && pt1.x == pt2.x;
+    //if (forward_jump) {
+    //  console.log(`forward jump for ${JSON.stringify(pt1)}->${JSON.stringify(pt2)}`);
+    //}
+    //console.log(`pt1 = ${pt1.pc}, pt2 = ${pt2.pc}, pt1.x = ${pt1.x}, pt2.x = ${pt2.x}, is_fallthrough = ${is_fallthrough}, backward_jump = ${backward_jump}, forward_jump = ${forward_jump}`);
+
+    if (backward_jump || forward_jump) { //back jump || forward jump
+        var loc, anticlockwise;
+        if (backward_jump) {
+          if (x1 >= x2) {
+              loc = 1;
+              anticlockwise = true;
+          }
+          else {
+              loc = -1;
+              anticlockwise = false;
+          }
+        } else {
+          loc = 1
+          anticlockwise = true;
+        }
+        var prependicular_to_theta = -1 * (x2 - x1) / (y2 - y1);
+
+        var coord1 = {x:x1, y:y1};
+        var coord2 = {x:x2, y:y2};
+
+        var dist = Math.sqrt((coord1.x - coord2.x) ** 2 + (coord1.y - coord2.y) ** 2);
+
+        const distance_threshold_for_drawing_arc = 30;
+        const angle_between_radius_and_line_between_coords = 1.309; //between 45 and 60 degrees
+
+        var distance_of_arc_center_from_line_center;
+        if (dist < distance_threshold_for_drawing_arc) {
+            distance_of_arc_center_from_line_center = 0;
+        }
+        else{
+            distance_of_arc_center_from_line_center  = Math.tan(angle_between_radius_and_line_between_coords) * dist / 2;
+        }
+        var line_center = { x: (coord1.x + coord2.x) / 2, y: (coord1.y + coord2.y) / 2 };
+
+
+        var arc_center = coordAtDist(line_center.x, line_center.y, prependicular_to_theta, -1 * loc * distance_of_arc_center_from_line_center);
+
+        if (y1 === y2){
+            arc_center = {x: line_center.x, y: line_center.y + loc*distance_of_arc_center_from_line_center};
+        }
+        if (x1 === x2 && forward_jump){
+            arc_center = {x: line_center.x + loc*distance_of_arc_center_from_line_center, y: line_center.y};
+        }
+
+        //var theta1 = Math.atan((coord1.y - c2.y) / (coord1.x - c2.x));
+        //var theta2 = Math.atan((coord2.y - c2.y) / (coord2.x - c2.x));
+        var radius = Math.sqrt((coord1.x - arc_center.x) ** 2 + (coord1.y - arc_center.y) ** 2);
+
+        //if (loc === -1) {
+        //    theta1 = Math.PI + theta1;
+        //    theta2 = Math.PI + theta2;
+        //}
+        var theta1 = angleFromXAxis(arc_center.x, arc_center.y, coord1.x, coord1.y);
+        var theta2 = angleFromXAxis(arc_center.x, arc_center.y, coord2.x, coord2.y);
+
+        var point_in_middle_of_arc = coordAtDist(line_center.x, line_center.y, prependicular_to_theta, loc * (radius - distance_of_arc_center_from_line_center));
+
+        if(y1 === y2){
+            point_in_middle_of_arc = {x:arc_center.x, y:(arc_center.y - radius)};
+        }
+        if(x1 === x2 && forward_jump){
+            point_in_middle_of_arc = {x:arc_center.x - radius, y:arc_center.y};
+        }
+
+
+        var ntheta = angleFromXAxis(arc_center.x, arc_center.y, point_in_middle_of_arc.x, point_in_middle_of_arc.y);
+        if(loc === -1){
+            ntheta = Math.PI/2 + ntheta;
+        }
+        else{
+            ntheta = ntheta - Math.PI/2;
+        }
+
+        // drawCircle(ctx, x1, y1, 2, color1);
+        drawArc(canvas, ctx, arc_center.x, arc_center.y, radius, theta1, theta2, anticlockwise, color2, pattern);
+        drawArrowHead(canvas, ctx, point_in_middle_of_arc.x, point_in_middle_of_arc.y, ntheta, color1);
+        // drawCircle(ctx, x2, y2, 2, color1);
+
+    } else if (y1 <= y2) {
+        // drawCircle(ctx, x1, y1, 2, color1);
+        drawLine(canvas, ctx, x1, y1, x2, y2, color2, pattern);
+        drawArrowHead(canvas, ctx, (x1+x2)/2, (y1+y2)/2, theta, color1);
+        // drawArrowHead(ctx, x1, y1, theta, color1);
+        // drawArrowHead(ctx, x2, y2, theta, color1);
+        // drawCircle(ctx, x2, y2, 2, color1);
+    }
+}
+
+
 function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
 {
     //node = node.split("_");
@@ -478,8 +834,6 @@ function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_
       drawText(canvas, ctx, x, y, text, 10, textcolor);
     }
 }
-
-
 
 function drawEdgeBetweenPoints(canvas, ctx, node1, node2, is_fallthrough, is_source_code)
 {
@@ -657,11 +1011,13 @@ function redraw()
   var codeDisplay;
   if (curSyntaxType === "asm") {
     codeDisplay = Prism.highlight(codeChosen, Prism.languages.nasm, 'nasm');
+    
     //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
   } else {
     codeDisplay = Prism.highlight(codeChosen, Prism.languages.clike, 'clike');
   }
 
+  // console.log("CODE TO DISPLAY:", codeChosen.split("\n"));
   // Clear old contents
   codeEl.innerHTML = codeDisplay;
   updateLineNumbers();
@@ -673,7 +1029,13 @@ function redraw()
 
   //console.log(`message.path = ${JSON.stringify(message.path)}`);
   if (current_highlight_message !== null) {
-    highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+    console.log("Going to highlight");
+    if (current_codetype == "vir") {
+      console.log("Current codetype is VIR");
+      highlightPathinVIR(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_highlight_message.vir_edge);
+    } else {
+      highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+    }
   }
 }
 
@@ -702,7 +1064,8 @@ window.addEventListener('message', async event => {
     switch (message.command) {
         case "highlight": {
             //console.log(`highlight called on path ${JSON.stringify(message.path)}\n`);
-            current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst, vir_edge : message.edge_vir};
+            console.log("VIR EDGE:", current_highlight_message.vir_edge);
             break;
         }
         case "clear": {

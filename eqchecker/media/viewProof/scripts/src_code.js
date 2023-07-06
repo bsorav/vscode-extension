@@ -340,7 +340,7 @@ function highlightPathinVIR(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst
     var unroll = 1;
     var unroll_is_only_mu = false;
     var element = points[i];
-    drawPointAtCoord(canvas, ctx, element.x, element.y, undefined, unroll, unroll_is_only_mu, (i == 0), (i == points.length));
+    drawPointAtCoord(canvas, ctx, element.x, element.y, undefined, unroll, unroll_is_only_mu, (i == 0), (i == points.length-1));
   }
 
   for (var i = 0; i < points.length-1; i++){

@@ -384,6 +384,9 @@ let currentlyShowingProofOfEqCheck;
       // Else the webview crashes
       if (eqcheck.runState == runStateStatusFoundProof && eqcheck.virStatus){
         vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+      } else {
+        // vscode.window.showErrorMessage('The equivalence check is not complete yet.');
+        vscode.postMessage({ type: 'eqcheckNotReady'});
       }
     }
 

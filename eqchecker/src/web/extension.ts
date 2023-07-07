@@ -2005,6 +2005,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           }
           break;
         }
+        case 'eqcheckNotReady': {
+          vscode.window.showErrorMessage('Please wait the equivalence check is ongoing.');
+          break;
+        }
         case 'eqcheckViewProof': {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);

@@ -22,6 +22,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandVIRCheck = 'checkVIR';
 const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
@@ -259,7 +260,7 @@ class Eqchecker {
     //vscode.window.showInformationMessage(`Connection failed to eqchecker server URL ${url}: error ='${err}'`);
   }
 
-  public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus) : boolean
+  public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus, vir_status_flag) : boolean
   {
     var messages;
     if (jsonMessages === null || jsonMessages === undefined || jsonMessages.messages === undefined) {
@@ -283,12 +284,14 @@ class Eqchecker {
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
     //console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
+
     var request =
         { type: 'updateEqcheckInView',
           //dirPath: dirPath,
           origRequest: origRequest,
           statusMessage: statusMessage,
           runState: runState,
+          vir_flag: vir_status_flag,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
     if (lastMessages[0] === EqcheckDoneMessage) {
@@ -414,7 +417,36 @@ class Eqchecker {
         let runStatus = result.runStatus;
         //console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
-        const done = Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus);
+        var vir_status_flag = false;
+        if (runStatus != undefined && runStatus != null && runStatus.running_status != undefined && runStatus.running_status != null){
+          if (runStatus.running_status.status_flag == runStateStatusFoundProof){
+            // console.log("Proof completed just waiting for VIR101");
+            var vir_status = await Eqchecker.obtainVIRStatusFromServer(dirPath);
+            if (vir_status == '200'){
+              vir_status_flag = true;
+            }
+          }
+        }
+
+        const done = Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus, vir_status_flag);
+        
+        if (runStatus != undefined && runStatus != null && runStatus.running_status != undefined && runStatus.running_status != null){
+
+          if (runStatus.running_status.status_flag == runStateStatusFoundProof && done && vir_status_flag == false) {
+            while (vir_status_flag == false){
+              // console.log("Proof complete just waiting for VIR");
+              await Eqchecker.wait(10000);
+              var vir_status = await Eqchecker.obtainVIRStatusFromServer(dirPath);
+              if (vir_status =='200'){
+                vir_status_flag = true;
+              } else {
+                console.log("VIR File still not generated!");
+              }
+            }
+            Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus, vir_status_flag);
+          }
+        }
+        
         if (!done) {
           if (Eqchecker.statusMap[dirPath] === statusEqcheckPinging) {
             await Eqchecker.wait(500);
@@ -728,6 +760,12 @@ class Eqchecker {
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
     //const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
+    return response;
+  }
+
+  public static async obtainVIRStatusFromServer(dirPathIn) {
+    let jsonRequest = JSON.stringify({serverCommand: commandVIRCheck, dirPathIn: dirPathIn});
+    const response = await this.RequestResponseForCommand(jsonRequest);
     return response;
   }
 
@@ -1978,7 +2016,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           // [HACK] Call viewProductCFG twice to fix click/hover bug
-          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
+          // await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
           //this.proof_panels = new_panels;

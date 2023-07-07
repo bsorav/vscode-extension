@@ -1506,9 +1506,10 @@ class EqcheckHandler {
         const src_vir_file = vir_file_paths;
 
         // In case VIR file is not generated yet
-        // while(!existsSync(src_vir_file)){
-        //   await this.wait_for_ms(1000);
-        // }
+        while(!existsSync(src_vir_file)){
+          await this.wait_for_ms(500);
+          console.log("VIR file not generated yet");
+        }
         
         // const dst_vir_file = vir_file_paths.dst_vir;
         

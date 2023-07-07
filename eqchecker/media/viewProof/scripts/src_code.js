@@ -1007,6 +1007,7 @@ function redraw()
   } else if (current_codetype == "ir") {
     codeChosen = ir;
   } else if (current_codetype == "vir") {
+    console.log("VIR:", vir);
     codeChosen = vir;
   }
 
@@ -1077,7 +1078,7 @@ window.addEventListener('message', async event => {
         case "data": {
             code = message.code + "\n.";
             ir = message.ir;
-            vir = message.src_vir;
+            vir = message.vir;
             curSyntaxType = message.syntax_type;
             current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
             break;

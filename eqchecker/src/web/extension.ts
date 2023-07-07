@@ -435,7 +435,7 @@ class Eqchecker {
           if (runStatus.running_status.status_flag == runStateStatusFoundProof && done && vir_status_flag == false) {
             while (vir_status_flag == false){
               // console.log("Proof complete just waiting for VIR");
-              await Eqchecker.wait(10000);
+              await Eqchecker.wait(1000);
               var vir_status = await Eqchecker.obtainVIRStatusFromServer(dirPath);
               if (vir_status =='200'){
                 vir_status_flag = true;
@@ -1355,7 +1355,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             <div class="code-container" style="display:block;">
                 <pre id="pre-code"><code id="code" class="language-clike"></code></pre>
             </div>
-            <!--
             <div id="right-click-menu">
               <div id="RightClickMenuItem1" class="item"></div>
               <div id="RightClickMenuItem2" class="item"></div>
@@ -1363,7 +1362,6 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               <div id="RightClickMenuItem4" class="item"></div>
               <div id="RightClickMenuItem4" class="item"></div>
             </div>
-            -->
             <canvas id="canvas" style="position: absolute;"></canvas>
         </div>
         
@@ -1803,16 +1801,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, src_vir: src_vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, vir: src_vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info,  dst_vir: dst_vir, srcdst: "dst"/*, codetype: "code"*/});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, vir: dst_vir, srcdst: "dst"/*, codetype: "code"*/});
       //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", dst_vir: dst_vir, codetype: "code"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", vir: dst_vir, codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
@@ -2006,7 +2004,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'eqcheckNotReady': {
-          vscode.window.showErrorMessage('Please wait the equivalence check is ongoing.');
+          vscode.window.showErrorMessage('Please wait while the equivalence check is ongoing.');
           break;
         }
         case 'eqcheckViewProof': {

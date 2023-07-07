@@ -380,7 +380,11 @@ let currentlyShowingProofOfEqCheck;
       eqcheck.viewState = viewStateViewProof;
       eqcheckRightClickMenu.style.display = "none";
       currentlyShowingProofOfEqCheck = eqcheck;
-      vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+      // Only send a message if proof is completed and ready to view 
+      // Else the webview crashes
+      if (eqcheck.runState == runStateStatusFoundProof && eqcheck.virStatus){
+        vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+      }
     }
 
     function viewProofListener(evt) {

@@ -28,6 +28,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandVIRCheck = 'checkVIR';
 const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
@@ -37,6 +38,9 @@ const commandLoadSession = 'loadSession';
 const commandObtainSearchTree = 'obtainSearchTree';
 const commandCheckLogin = 'checkLogin';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';
+
+const messageVIR200 = '200';
+const messageVIR404 = '404';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusPointsTo = 'pointsto';
@@ -1360,6 +1364,7 @@ class EqcheckHandler {
                     if (dirPath.endsWith(submitSuffix+ functionName)){
                       console.log("Generated VIR now!");
                       console.log(fs.existsSync(this.get_vir_file_for_proof(dirPath)));
+                      // res.end(messageSrcVIRGen);
                     }
                   });
           if (commandIn === commandPointsToAnalysis) { //decrement as soon as we start doing compute-intensive stuff
@@ -1525,6 +1530,16 @@ class EqcheckHandler {
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
+      } else if (commandIn === commandVIRCheck) {
+        console.log("Got check VIR request from extension");
+        var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
+        const src_vir_file = vir_file_paths;
+        // In case VIR file is not generated yet
+        if (existsSync(src_vir_file)){
+          res.end(messageVIR200);
+        } else {
+          res.end(messageVIR404);
+        }
       } else if (commandIn === commandObtainScanviewReport) {
         console.log(`ObtainScanviewReport received with dirPathIn ${dirPathIn} source ${source}`);
 

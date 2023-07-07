@@ -117,15 +117,15 @@ function get_points_for_vir(edge){
     }
 
     if (curr_pc == "L0%0%d"){
-      points.push({x: 5, y: i, type:"L0%0%d"});
+      points.push({x: 1, y: i+1, type:"L0%0%d"});
     } else {
       console.log("i: ", i);
-      points.push({x: 5, y: i, type:"L"})
+      points.push({x: 1, y: i+1, type:"L"})
     }
 
     // Reach the end of the block 
     while(i < vir_code_arr.length && !(vir_code_arr[i].includes("goto"))){
-      points.push({x: 5, y: i, type:"L"});
+      points.push({x: 1, y: i+1, type:"L"});
       i++;
     }
 
@@ -140,7 +140,7 @@ function get_points_for_vir(edge){
     return str.includes("BB%" + curr_pc + " :");
   });
 
-  points.push({x: 5, y: i, type:"L"})
+  points.push({x: 1, y: i+1, type:"L"})
 
   return {valid: true, points: points};
 
@@ -351,6 +351,8 @@ function highlightPathinVIR(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst
 
     drawEdgeBetweenCoords(canvas, ctx, pt1, pt2, false, true);
   }
+
+  scroll(0, topNode);
   
 }
 

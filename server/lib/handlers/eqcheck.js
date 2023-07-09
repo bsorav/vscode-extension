@@ -764,10 +764,11 @@ class EqcheckHandler {
       }
 
       var src_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.src-tfg';
+      var dst_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.dst-tfg';
       
-      console.log("TFG PATHS:\n", src_tfg/*, "\n", dst_tfg*/);
+      console.log("TFG PATHS:\n", src_tfg, "\n", dst_tfg);
 
-      return src_tfg;
+      return {src_tfg:src_tfg, dst_tfg:dst_tfg};
     }
 
     wait_for_ms(ms) {
@@ -777,7 +778,8 @@ class EqcheckHandler {
     get_vir_file_for_proof(dirPath) {
       var vir_dir = dirPath;
       var src_vir = vir_dir + '/' + 'eq.proof.' + 'src.vir';
-      return src_vir;
+      var dst_vir = vir_dir + '/' + 'eq.proof.' + 'dst.vir';
+      return {src_vir:src_vir,dst_vir:dst_vir};
     }
 
     getVIR(tfg_file, dirPath, vir_file){
@@ -1351,20 +1353,25 @@ class EqcheckHandler {
                       res.end(JSON.stringify({retcode: 0}));
 
                       if (dirPath.endsWith(submitSuffix + functionName)){
-                        var src_tfg_file_for_vir = this.get_tfg_for_vir_gen(dirPath, functionName);
-                        var vir_file = this.get_vir_file_for_proof(dirPath);
-                        return this.getVIR(src_tfg_file_for_vir, dirPath, vir_file);
+                        var src_tfg_file_for_vir = this.get_tfg_for_vir_gen(dirPath, functionName).src_tfg;
+                        var src_vir_file = this.get_vir_file_for_proof(dirPath).src_vir;
+                        return this.getVIR(src_tfg_file_for_vir, dirPath, src_vir_file);
                       } else {
                         return;
                       }
-                    },
-                  error => {
+                    },error => {
                       this.eqcheck_error(error, res);
                   }).then(result => {
                     if (dirPath.endsWith(submitSuffix+ functionName)){
-                      console.log("Generated VIR now!");
-                      console.log(fs.existsSync(this.get_vir_file_for_proof(dirPath)));
+                      var dst_tfg_file_for_vir = this.get_tfg_for_vir_gen(dirPath, functionName).dst_tfg;
+                      var dst_vir_file = this.get_vir_file_for_proof(dirPath).dst_vir;
+                      return this.getVIR(dst_tfg_file_for_vir, dirPath, dst_vir_file);
                       // res.end(messageSrcVIRGen);
+                    }
+                  }).then(result=>{
+                    if (dirPath.endsWith(submitSuffix+ functionName)){
+                      console.log("Generated VIR files now!");
+                      console.log(fs.existsSync(this.get_vir_file_for_proof(dirPath)));
                     }
                   });
           if (commandIn === commandPointsToAnalysis) { //decrement as soon as we start doing compute-intensive stuff
@@ -1508,34 +1515,36 @@ class EqcheckHandler {
         // const tfg_file = src_files.etfg;
         var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
 
-        const src_vir_file = vir_file_paths;
+        const src_vir_file = vir_file_paths.src_vir;
+        const dst_vir_file = vir_file_paths.dst_vir;
 
         // In case VIR file is not generated yet
-        while(!existsSync(src_vir_file)){
-          await this.wait_for_ms(500);
-          console.log("VIR file not generated yet");
-        }
+        // while(!existsSync(src_vir_file)){
+        //   await this.wait_for_ms(500);
+        //   console.log("VIR file not generated yet");
+        // }
         
         // const dst_vir_file = vir_file_paths.dst_vir;
         
         const src_vir = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file)).toString();
-        // const dst_vir = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file)).toString();
+        const dst_vir = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file)).toString();
 
         // console.log(JSON.stringify(vir));
         // const vir = this.readBuffer(vir_file).toString();proofSt
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, src_vir: src_vir/*, dst_vir: dst_vir*/});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, src_vir: src_vir, dst_vir: dst_vir});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
       } else if (commandIn === commandVIRCheck) {
         console.log("Got check VIR request from extension");
         var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
-        const src_vir_file = vir_file_paths;
+        const src_vir_file = vir_file_paths.src_vir;
+        const dst_vir_file = vir_file_paths.dst_vir;
         // In case VIR file is not generated yet
-        if (existsSync(src_vir_file)){
+        if (existsSync(src_vir_file) && existsSync(dst_vir_file)){
           res.end(messageVIR200);
         } else {
           res.end(messageVIR404);

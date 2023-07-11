@@ -2007,6 +2007,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           vscode.window.showErrorMessage('Please wait while the equivalence check is ongoing.');
           break;
         }
+        case 'eqcheckFailed':  {
+          vscode.window.showWarningMessage('No proof found: Search space exhausted!');
+          break;
+        }
         case 'eqcheckViewProof': {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);

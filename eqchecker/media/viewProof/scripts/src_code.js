@@ -73,22 +73,44 @@ function setupCanvas(){
     document.addEventListener('contextmenu', onRightClick);
 }
 
-function find_path(pc_arr, to_pc, vir_code_arr) {
+function find_path(pc_arr, to_pc, vir_code_arr, visited) {
   console.log("find path called with ", pc_arr, to_pc);
   var pc_size = pc_arr.length;
   var points = Array.from({ length: pc_size }, () => []);
   var curr_pc;
   var j = 0;
+
+  pc_arr.forEach(element => {
+    visited.add(element);
+  });
+
+  const exhausted_paths = new Set([]);
   
   // Cycle through all the PCs (Perform a "BFS")
   while (j < pc_size){
     curr_pc = pc_arr[j];
 
-    if (curr_pc == "E0%d%d"){
+    // If all paths are exhausted
+    if (exhausted_paths.size == pc_size){
+      return [];
+    } 
+
+    // If this path is exhausted
+    if (exhausted_paths.has(j)){
       j = ((j+1)%(pc_size));
       console.log("Reached the end on one path");
       continue;
     }
+
+    if (curr_pc == "E0%d%d"){
+      exhausted_paths.add(j);
+      j = ((j+1)%(pc_size)); 
+      console.log("Reached the end on one path");
+      continue;
+    }
+
+    // Add the pc to the visited arr
+    visited.add(curr_pc);
     
     var i = vir_code_arr.findIndex(function(str) {
       return str.includes("BB%" + curr_pc + " :");
@@ -117,19 +139,39 @@ function find_path(pc_arr, to_pc, vir_code_arr) {
       console.log("found a if statement");
       var new_pc_arr = [];
       while(vir_code_arr[i].includes("if")){
-        new_pc_arr.push(vir_code_arr[i].split(" ")[3].replace("BB%",""));
+        var target_pc = vir_code_arr[i].split(" ")[3].replace("BB%","");
+        // We need to check visited here since we are "committing" to this branch 
+        // In a DFS manner. So we must prevent infinite loops 
+        if (!visited.has(target_pc)){
+          new_pc_arr.push(target_pc);
+        }
         i++;
       }
       console.log("PC arr in if statement,", new_pc_arr);
-      var path = find_path(new_pc_arr, to_pc, vir_code_arr);
-      var final_path = points[j].concat(path);
-      console.log("Final path:", final_path);
-      return final_path;
+      var path = find_path(new_pc_arr, to_pc, vir_code_arr, visited);
+      if (path == []){
+        exhausted_paths.add(j);
+      } else {
+        var final_path = points[j].concat(path);
+        console.log("Final path:", final_path);
+        return final_path;
+      }
+
     }
 
     // Reached a goto
     // console.log("SPLITARR:", vir_code_arr[i].split(" "));
-    curr_pc = vir_code_arr[i].split(" ")[1].replace("BB%","");
+    var target_pc = vir_code_arr[i].split(" ")[1].replace("BB%","");
+
+    // Target pc of this path is already visited
+    if (visited.has(target_pc)){
+      exhausted_paths.add(j);
+      j = ((j+1)%pc_size);
+      console.log("target pc is already visited");
+      continue;
+    }
+
+    curr_pc = target_pc;
     pc_arr[j] = curr_pc;
 
     if (curr_pc == to_pc){
@@ -181,47 +223,9 @@ function get_points_for_vir(edge){
   }
 
   var pc_arr = [from_pc];
-  points = find_path(pc_arr, to_pc, vir_code_arr);
+  var visited = new Set([]);
 
-  // var curr_pc = from_pc;
-
-  // var i;
-
-  // while (curr_pc != to_pc){
-  //   // console.log("CURRENT PC:", curr_pc);
-  //   i = vir_code_arr.findIndex(function(str) {
-  //     return str.includes("BB%" + curr_pc + " :");
-  //   });
-
-  //   if (i == -1) {
-  //     return {valid: false, points: points};
-  //   }
-
-  //   if (curr_pc == "L0%0%d"){
-  //     points.push({x: 1, y: i+1, type:"L0%0%d"});
-  //   } else {
-  //     console.log("i: ", i);
-  //     points.push({x: 1, y: i+1, type:"L"})
-  //   }
-
-  //   // Reach the end of the block 
-  //   while(i < vir_code_arr.length && !(vir_code_arr[i].includes("goto"))){
-  //     points.push({x: 1, y: i+1, type:"L"});
-  //     i++;
-  //   }
-
-  //   // Reached a goto
-  //   // console.log("SPLITARR:", vir_code_arr[i].split(" "));
-  //   curr_pc = vir_code_arr[i].split(" ")[1].replace("BB%","");
-
-  //   // console.log("NEXT PC:", curr_pc);
-  // }
-
-  // i = vir_code_arr.findIndex(function(str) {
-  //   return str.includes("BB%" + curr_pc + " :");
-  // });
-
-  // points.push({x: 1, y: i+1, type:"L"})
+  points = find_path(pc_arr, to_pc, vir_code_arr, visited);
 
   return {valid: true, points: points};
 

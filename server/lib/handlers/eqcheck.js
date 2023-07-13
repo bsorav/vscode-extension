@@ -1,3 +1,5 @@
+const { existsSync } = require('fs');
+
 const temp = require('temp'),
     fs = require('fs-extra'),
     path = require('path'),
@@ -26,6 +28,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandVIRCheck = 'checkVIR';
 const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
@@ -35,6 +38,9 @@ const commandLoadSession = 'loadSession';
 const commandObtainSearchTree = 'obtainSearchTree';
 const commandCheckLogin = 'checkLogin';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';
+
+const messageVIR200 = '200';
+const messageVIR404 = '404';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusPointsTo = 'pointsto';
@@ -51,6 +57,9 @@ const prepareSuffix = "/prepare";
 const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
 const rewritten_prefix = "rewritten.";
+
+const srcVIRPath = null;
+const destVIRPath = null;
 
 var defaultQuotaForNewUser = 10;
 
@@ -425,6 +434,8 @@ class EqcheckHandler {
 
         //const source = sourceJSON;
         //const optimized = optimizedJSON;
+        // console.log("===================\n", "Directory Path: ", dirPath, "===================\n");
+
         const src_ir = src_irJSON;
         const src_etfg = src_etfgJSON;
         const dst_ir = dst_irJSON;
@@ -741,15 +752,37 @@ class EqcheckHandler {
       return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
     }
 
-    getVIR(src_file, tfg_file, dirPath){
+    get_tfg_for_vir_gen(dirPath, functionName) {
+      var vir_dir;
 
-      const vir_file = src_file + ".vir";
-
-      if (fs.existsSync(vir_file)) {
-        // VIR file has already been generated once.
-        return vir_file;
+      if (dirPath.endsWith(prepareSuffix)) {
+        vir_dir = dirPath.substring(0, dirPath.length - prepareSuffix.length)  + submitSuffix + functionName ;
+      } else if (dirPath.endsWith(pointsToSuffix)) {
+        vir_dir = dirPath.substring(0, dirPath.length - pointsToSuffix.length) + submitSuffix + functionName;
+      } else {
+        vir_dir = dirPath;
       }
 
+      var src_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.src-tfg';
+      var dst_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.dst-tfg';
+      
+      console.log("TFG PATHS:\n", src_tfg, "\n", dst_tfg);
+
+      return {src_tfg:src_tfg, dst_tfg:dst_tfg};
+    }
+
+    wait_for_ms(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    get_vir_file_for_proof(dirPath) {
+      var vir_dir = dirPath;
+      var src_vir = vir_dir + '/' + 'eq.proof.' + 'src.vir';
+      var dst_vir = vir_dir + '/' + 'eq.proof.' + 'dst.vir';
+      return {src_vir:src_vir,dst_vir:dst_vir};
+    }
+
+    getVIR(tfg_file, dirPath, vir_file){
       // Setup arguments for calling vir_gen
       const in_tfg = ['--in_tfg', tfg_file];
       // const func = ['--func', "main"];
@@ -757,24 +790,18 @@ class EqcheckHandler {
       const is_ssa = ['--ssa', 'y'];
       const outpath = ['--outpath', vir_file];
 
-      console.log("INPUT TFG PATH:", in_tfg);
+      console.log("INPUT TFG PATH:", in_tfg, "\n");
 
-      console.log("OUTPUT PATH:", vir_file);
+      // console.log("OUTPUT PATH:", vir_file, "\n");
 
-      console.log("tmpdir-path:", dirPath);
+      // console.log("tmpdir-path:", dirPath, "\n");
 
       var vir_gen_args = (in_tfg).concat(tmpdir).concat(is_ssa).concat(outpath);
 
       console.log('calling vir_gen ' + vir_gen_args + '\n');
-      exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args);
-      console.log('called vir gen');
-
-      if (fs.existsSync(vir_file)) {
-        return vir_file;
-      } else {
-        console.log(`WARNING: VIR file does not exist!`);
-        return undefined;
-      }
+      return new Promise((resolve,reject) => {
+        resolve(exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args));
+      });
     }
 
     async getSrcFiles(dirPath) {
@@ -1324,9 +1351,28 @@ class EqcheckHandler {
                       fs.writeFileSync(stderr_filename, result.stderr);
 
                       res.end(JSON.stringify({retcode: 0}));
-                  },
-                  error => {
+
+                      if (dirPath.endsWith(submitSuffix + functionName)){
+                        var src_tfg_file_for_vir = this.get_tfg_for_vir_gen(dirPath, functionName).src_tfg;
+                        var src_vir_file = this.get_vir_file_for_proof(dirPath).src_vir;
+                        return this.getVIR(src_tfg_file_for_vir, dirPath, src_vir_file);
+                      } else {
+                        return;
+                      }
+                    },error => {
                       this.eqcheck_error(error, res);
+                  }).then(result => {
+                    if (dirPath.endsWith(submitSuffix+ functionName)){
+                      var dst_tfg_file_for_vir = this.get_tfg_for_vir_gen(dirPath, functionName).dst_tfg;
+                      var dst_vir_file = this.get_vir_file_for_proof(dirPath).dst_vir;
+                      return this.getVIR(dst_tfg_file_for_vir, dirPath, dst_vir_file);
+                      // res.end(messageSrcVIRGen);
+                    }
+                  }).then(result=>{
+                    if (dirPath.endsWith(submitSuffix+ functionName)){
+                      console.log("Generated VIR files now!");
+                      console.log(fs.existsSync(this.get_vir_file_for_proof(dirPath)));
+                    }
                   });
           if (commandIn === commandPointsToAnalysis) { //decrement as soon as we start doing compute-intensive stuff
             await this.decrementQuotaForUser(loginName);
@@ -1456,6 +1502,8 @@ class EqcheckHandler {
             proofObj = result;
         });
 
+        // console.log(JSON.stringify(proofObj.functionName));
+
         const src_files = await this.getSrcFiles(dirPathIn);
         const dst_files = await this.getDstFiles(dirPathIn);
 
@@ -1464,21 +1512,43 @@ class EqcheckHandler {
         const dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
         const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
         
-        const tfg_file = src_files.etfg;
-        const vir_file = this.getVIR(src_files.src, tfg_file, dirPathIn);
+        // const tfg_file = src_files.etfg;
+        var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
+
+        const src_vir_file = vir_file_paths.src_vir;
+        const dst_vir_file = vir_file_paths.dst_vir;
+
+        // In case VIR file is not generated yet
+        // while(!existsSync(src_vir_file)){
+        //   await this.wait_for_ms(500);
+        //   console.log("VIR file not generated yet");
+        // }
         
-        const src_vir = (vir_file === undefined) ? undefined : (await this.readBuffer(vir_file)).toString();
-        //console.log(`src_vir = ${src_vir}`);
+        // const dst_vir_file = vir_file_paths.dst_vir;
+        
+        const src_vir = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file)).toString();
+        const dst_vir = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file)).toString();
 
         // console.log(JSON.stringify(vir));
-        // const vir = this.readBuffer(vir_file).toString();
+        // const vir = this.readBuffer(vir_file).toString();proofSt
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, vir: src_vir});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, src_vir: src_vir, dst_vir: dst_vir});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
+      } else if (commandIn === commandVIRCheck) {
+        console.log("Got check VIR request from extension");
+        var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
+        const src_vir_file = vir_file_paths.src_vir;
+        const dst_vir_file = vir_file_paths.dst_vir;
+        // In case VIR file is not generated yet
+        if (existsSync(src_vir_file) && existsSync(dst_vir_file)){
+          res.end(messageVIR200);
+        } else {
+          res.end(messageVIR404);
+        }
       } else if (commandIn === commandObtainScanviewReport) {
         console.log(`ObtainScanviewReport received with dirPathIn ${dirPathIn} source ${source}`);
 

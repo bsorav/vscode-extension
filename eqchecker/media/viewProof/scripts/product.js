@@ -18,7 +18,8 @@ var g_src_tfg = null;
 var g_dst_tfg = null;
 var selected_edge = null;
 var g_eqcheck_info = null;
-
+var g_src_edge_map = {};
+var g_dst_edge_map = {};
 
 window.addEventListener('message', async event => {
     const message = event.data;
@@ -62,6 +63,32 @@ function initializeContainer(){
 function getEdgeId(from_pc, to_pc)
 {
   return `${from_pc} -> ${to_pc}`;
+}
+
+function get_src_dst_pc_from_prod(pc)
+{
+  var result = pc.split("_");
+  var src_pc = result[0];
+  var dst_pc = result[1];
+  return {src_pc : src_pc, dst_pc : dst_pc};
+}
+
+function set_src_edge_map(edges){
+  for (var edge of edges) {
+    const e_src_from_pc = get_src_dst_pc_from_prod(edge.from_pc).src_pc;
+    const e_src_to_pc = get_src_dst_pc_from_prod(edge.to_pc).src_pc;
+    const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
+    g_src_edge_map[edgeId] = {from_pc : e_src_from_pc, to_pc : e_src_to_pc};
+  }
+}
+
+function set_dst_edge_map(edges){
+  for (var edge of edges) {
+    const e_dst_from_pc = get_src_dst_pc_from_prod(edge.from_pc).dst_pc;
+    const e_dst_to_pc = get_src_dst_pc_from_prod(edge.to_pc).dst_pc;
+    const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
+    g_dst_edge_map[edgeId] = {from_pc : e_dst_from_pc, to_pc : e_dst_to_pc};
+  }
 }
 
 function getEdgesFromEC_recursive(ec)
@@ -438,6 +465,12 @@ function drawNetwork(correl_entry) {
   const cg_nodes_ = cg_collapsed_nodes_and_edges["node_pc_after_collapse"];
   const cg_nodes = mk_array(cg_nodes_);
 
+  // Send the edges for VIR
+  set_src_edge_map(cg_edges);
+  set_dst_edge_map(cg_edges);
+
+  // console.log(g_src_edge_map);
+
   const alloc_assumes = corr_graph["alloca_pc_local_sprel_assumes"];
   const dealloc_assumes = corr_graph["dealloca_pc_local_sprel_assumes"];
 
@@ -531,8 +564,11 @@ function drawNetwork(correl_entry) {
     //const label = `${from_label} -> ${to_label}`;
 
     //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
+    
     return {from: from_idx, to: to_idx, color: color, label: label};
   });
+
+
 
   // Get the dot file from nodes and edges
   var dotSrc = generateDot(nodes, edges);
@@ -544,8 +580,6 @@ function drawNetwork(correl_entry) {
 
   return dotSrc;
 }
-
-
 
 function refreshPanel()
 {
@@ -609,6 +643,8 @@ function refreshPanel()
       // Select the new edge
       selected_edge = edgeId;
       const edge = g_edgeMap[edgeId];
+      const src_edge_vir = g_src_edge_map[edgeId];
+      const dst_edge_vir = g_dst_edge_map[edgeId];
       vscode.postMessage({
         command:"highlight",
         from: from,
@@ -616,7 +652,9 @@ function refreshPanel()
         edge: edge,
         eqcheck_info: g_eqcheck_info,
         src_tfg: g_src_tfg,
-        dst_tfg: g_dst_tfg
+        dst_tfg: g_dst_tfg,
+        src_edge_vir : src_edge_vir,
+        dst_edge_vir : dst_edge_vir
       });
       drawNetwork(g_prodCfg);
     }

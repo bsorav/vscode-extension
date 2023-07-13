@@ -22,6 +22,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+const commandVIRCheck = 'checkVIR';
 const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
@@ -262,7 +263,7 @@ class Eqchecker {
     //vscode.window.showInformationMessage(`Connection failed to eqchecker server URL ${url}: error ='${err}'`);
   }
 
-  public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus) : boolean
+  public static addEqcheckOutput(origRequest, dirPath: string, jsonMessages, runStatus, vir_status_flag) : boolean
   {
     var messages;
     if (jsonMessages === null || jsonMessages === undefined || jsonMessages.messages === undefined) {
@@ -286,12 +287,14 @@ class Eqchecker {
     const lastMessages = Eqchecker.getLastMessages(dirPath, NUM_LAST_MESSAGES);
     const [statusMessage, runState] = Eqchecker.determineEqcheckViewStatusFromLastMessages(lastMessages, runStatus);
     //console.log(`updateEqcheckInView being called on dirPath ${origRequest.dirPath}\n`);
+
     var request =
         { type: 'updateEqcheckInView',
           //dirPath: dirPath,
           origRequest: origRequest,
           statusMessage: statusMessage,
           runState: runState,
+          vir_flag: vir_status_flag,
         };
     EqcheckViewProvider.provider.viewProviderPostMessage(request);
     if (lastMessages[0] === EqcheckDoneMessage) {
@@ -417,7 +420,36 @@ class Eqchecker {
         let runStatus = result.runStatus;
         //console.log(`dirPath = ${dirPath}, offset = ${offset}.\n`);
         //console.log(`chunk = ${chunk}.\n`);
-        const done = Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus);
+        var vir_status_flag = false;
+        if (runStatus != undefined && runStatus != null && runStatus.running_status != undefined && runStatus.running_status != null){
+          if (runStatus.running_status.status_flag == runStateStatusFoundProof){
+            // console.log("Proof completed just waiting for VIR101");
+            var vir_status = await Eqchecker.obtainVIRStatusFromServer(dirPath);
+            if (vir_status == '200'){
+              vir_status_flag = true;
+            }
+          }
+        }
+
+        const done = Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus, vir_status_flag);
+        
+        if (runStatus != undefined && runStatus != null && runStatus.running_status != undefined && runStatus.running_status != null){
+
+          if (runStatus.running_status.status_flag == runStateStatusFoundProof && done && vir_status_flag == false) {
+            while (vir_status_flag == false){
+              // console.log("Proof complete just waiting for VIR");
+              await Eqchecker.wait(1000);
+              var vir_status = await Eqchecker.obtainVIRStatusFromServer(dirPath);
+              if (vir_status =='200'){
+                vir_status_flag = true;
+              } else {
+                console.log("VIR File still not generated!");
+              }
+            }
+            Eqchecker.addEqcheckOutput(origRequest, dirPath, chunk, runStatus, vir_status_flag);
+          }
+        }
+        
         if (!done) {
           if (Eqchecker.statusMap[dirPath] === statusEqcheckPinging) {
             await Eqchecker.wait(500);
@@ -731,6 +763,12 @@ class Eqchecker {
     //console.log("obtainProofFromServer response: ", JSON.stringify(response));
     //const proof = response.proof;
     //console.log("response proof: ", JSON.stringify(proof));
+    return response;
+  }
+
+  public static async obtainVIRStatusFromServer(dirPathIn) {
+    let jsonRequest = JSON.stringify({serverCommand: commandVIRCheck, dirPathIn: dirPathIn});
+    const response = await this.RequestResponseForCommand(jsonRequest);
     return response;
   }
 
@@ -1325,8 +1363,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             <div class="code-container" style="display:block;">
                 <pre id="pre-code"><code id="code" class="language-clike"></code></pre>
             </div>
+            <div id="right-click-menu">
+              <div id="RightClickMenuItem1" class="item"></div>
+              <div id="RightClickMenuItem2" class="item"></div>
+              <div id="RightClickMenuItem3" class="item"></div>
+              <div id="RightClickMenuItem4" class="item"></div>
+              <div id="RightClickMenuItem4" class="item"></div>
+            </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
         </div>
+        
     </body>
     </html>`;
     return eval('`' + html + '`');
@@ -1532,8 +1578,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_code = proof_response.dst_code;
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
-    const vir = (proof_response.vir === undefined) ? undefined : proof_response.vir;
-    //console.log("eqcheckViewProof vir = ", vir);
+    const src_vir = (proof_response.src_vir === undefined) ? undefined : proof_response.src_vir;
+    const dst_vir = (proof_response.dst_vir === undefined) ? undefined : proof_response.dst_vir;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
@@ -1615,6 +1661,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 tfg: message.src_tfg,
                 eqcheck_info: message.eqcheck_info,
                 srcdst: "src",
+                edge_vir : message.src_edge_vir,
                 codetype: "code"
                 //subprogram_info: message.src_subprogram_info,
                 //nodeMap: message.src_nodeMap
@@ -1635,6 +1682,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 tfg: message.dst_tfg,
                 eqcheck_info: message.eqcheck_info,
                 srcdst: "dst",
+                edge_vir : message.dst_edge_vir,
                 codetype: "code"
                 //subprogram_info: message.dst_subprogram_info,
                 //nodeMap: message.dst_nodeMap
@@ -1761,16 +1809,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ec = correl_entry["dst_ec"];
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, vir:vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, vir: src_vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst"/*, codetype: "code"*/});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, vir: dst_vir, srcdst: "dst"/*, codetype: "code"*/});
       //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", vir: dst_vir, codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
@@ -1963,17 +2011,26 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           }
           break;
         }
+        case 'eqcheckNotReady': {
+          vscode.window.showErrorMessage('Please wait while the equivalence check is ongoing.');
+          break;
+        }
+        case 'eqcheckFailed':  {
+          vscode.window.showWarningMessage('No proof found: Search space exhausted!');
+          break;
+        }
         case 'eqcheckViewProof': {
           //console.log(`ViewProof received\n`);
           //console.log(`data.eqcheck = ${JSON.stringify(data.eqcheck)}`);
           //console.log(`source1Text = ${JSON.stringify(data.eqcheck.source1Text)}\n`);
           //const source1Str = Eqchecker.Text2String(data.eqcheck.source1Text);
           //const source2Str = Eqchecker.Text2String(data.eqcheck.source2Text);
+          console.log(JSON.stringify(data.eqcheck));
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);  
           // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           // [HACK] Call viewProductCFG twice to fix click/hover bug
-          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
+          // await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
 
           //this.proof_panels = new_panels;

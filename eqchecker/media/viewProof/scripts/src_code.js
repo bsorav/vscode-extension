@@ -247,6 +247,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   //console.log(`highlightPathInCode: nodeMap=\n${JSON.stringify(nodeMap)}`);
 
   const graph_ec = getNodesEdgesFromPath(path.graph_ec_constituent_edge_list, codetype, subprogram_info, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+  console.log("graph_ec = \n"+JSON.stringify(graph_ec));
 
   add_to_nodeMap(graph_ec.nodeMap, codetype, path.from_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
 
@@ -323,7 +324,9 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);
 
   //window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
-  scroll(0, topNode);
+  var content = document.getElementById("content");
+  var currentZoom = parseFloat(content.style.zoom) || 1;
+  scroll(0, topNode*currentZoom);
 }
 
 function canvasRelativeY(canvas, abs_y)
@@ -673,21 +676,7 @@ function redraw()
   }
 }
 
-function updateLineNumbers() {
-  const codePre = document.querySelector('pre code');
-  console.log(codePre.innerText);
-  const codeLines = codePre.innerText.split('\n');
 
-  const lineCount = codeLines.length;
-
-  // Generate line numbers and modify the code
-  let codeContent = '';
-  for (let i = 0; i < lineCount; i++) {
-    codeContent += `<span class="line-number">${i + 1}</span>${codeLines[i]}\n`;
-  }
-
-  codePre.innerHTML = codeContent;
-}
 
 // Event listener for message from product graph webview
 window.addEventListener('message', async event => {
@@ -725,9 +714,6 @@ window.addEventListener('message', async event => {
 
 });
 
-window.addEventListener('DOMContentLoaded', (event) => {
-  //updateLineNumbers();
-});
 
 vscode.postMessage({command:"loaded"});
 

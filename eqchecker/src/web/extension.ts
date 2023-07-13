@@ -1285,6 +1285,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
             content.style.zoom = currentZoom + 0.25;
+            console.log("zoom is"+content.style.zoom);
             zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
           }
 
@@ -1292,8 +1293,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             var content = document.getElementById("content");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
+            console.log("zoomOut called");
             if(Math.abs(currentZoom - 0.25) > 1e-9){
               content.style.zoom = currentZoom - 0.25;
+              console.log("zoom is "+content.style.zoom);
               zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
             }
           }

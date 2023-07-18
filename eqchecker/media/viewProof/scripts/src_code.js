@@ -164,7 +164,8 @@ function find_path(pc_arr, to_pc, vir_code_arr, visited) {
     var target_pc = vir_code_arr[i].split(" ")[1].replace("BB%","");
 
     // Target pc of this path is already visited
-    if (visited.has(target_pc)){
+    // 2nd condition for the case of loops 
+    if (visited.has(target_pc) && target_pc != to_pc){
       exhausted_paths.add(j);
       j = ((j+1)%pc_size);
       console.log("target pc is already visited");

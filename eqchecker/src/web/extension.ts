@@ -1314,6 +1314,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
+            <div id="right-click-menu">
+            <div id="RightClickMenuItem1" class="item"></div>
+            <div id="RightClickMenuItem2" class="item"></div>
+            <div id="RightClickMenuItem3" class="item"></div>
+            <div id="RightClickMenuItem4" class="item"></div>
+            </div>
         </div>
     </body>
     </html>`;
@@ -1605,16 +1611,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 //subprogram_info: message.src_subprogram_info,
                 //nodeMap: message.src_nodeMap
               });
-              this.panel_post_message(panel_src_ir, {
-                command: "highlight",
-                path: message.edge.src_edge,
-                tfg: message.src_tfg,
-                eqcheck_info: message.eqcheck_info,
-                srcdst: "src",
-                codetype: "ir"
-                //subprogram_info: message.src_ir_subprogram_info,
-                //nodeMap: message.src_ir_nodeMap
-              });
+              // this.panel_post_message(panel_src_ir, {
+              //   command: "highlight",
+              //   path: message.edge.src_edge,
+              //   tfg: message.src_tfg,
+              //   eqcheck_info: message.eqcheck_info,
+              //   srcdst: "src",
+              //   codetype: "ir"
+              //   //subprogram_info: message.src_ir_subprogram_info,
+              //   //nodeMap: message.src_ir_nodeMap
+              // });
               this.panel_post_message(panel_dst_code, {
                 command: "highlight",
                 path: message.edge.dst_edge,
@@ -1625,16 +1631,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 //subprogram_info: message.dst_subprogram_info,
                 //nodeMap: message.dst_nodeMap
               });
-              this.panel_post_message(panel_dst_ir, {
-                  command: "highlight",
-                  path: message.edge.dst_edge,
-                  tfg: message.dst_tfg,
-                  eqcheck_info: message.eqcheck_info,
-                  srcdst: "dst",
-                  codetype: "ir"
-                  //subprogram_info: message.dst_ir_subprogram_info,
-                  //nodeMap: message.dst_ir_nodeMap
-              });
+              // this.panel_post_message(panel_dst_ir, {
+              //     command: "highlight",
+              //     path: message.edge.dst_edge,
+              //     tfg: message.dst_tfg,
+              //     eqcheck_info: message.eqcheck_info,
+              //     srcdst: "dst",
+              //     codetype: "ir"
+              //     //subprogram_info: message.dst_ir_subprogram_info,
+              //     //nodeMap: message.dst_ir_nodeMap
+              // });
               break;
             case "clear":
               this.panel_post_message(panel_src_code, {
@@ -1685,6 +1691,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               panel_src_code_loaded = true;
               //vscode.window.showErrorMessage(message.text);
               break;
+            case 'switch_codetype':
+              this.panel_post_message(panel_prd, {
+                command: "switch_codetype",
+                srcdst: "src",
+                codetype: message.codetype
+              });
+              break;
           }
         },
         undefined,
@@ -1715,6 +1728,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               //console.log("dst-code panel loaded.\n");
               panel_dst_code_loaded = true;
               //vscode.window.showErrorMessage(message.text);
+              break;
+            case 'switch_codetype':
+              this.panel_post_message(panel_prd, {
+                command: "switch_codetype",
+                srcdst: "dst",
+                codetype: message.codetype
+              });
               break;
           }
         },

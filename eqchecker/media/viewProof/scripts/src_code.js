@@ -1,7 +1,7 @@
 //import { highlightPathInCode, clearCanvas} from "./utils.js";
 import {Node, angleFromXAxis, coordAtDist} from "./graphics.js";
 import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
-import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info/*,get_src_dst_node_map,get_ir_node_map*/,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc} from "./tfg.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info/*,get_src_dst_node_map,get_ir_node_map*/,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc,} from "./tfg.js";
 
 const vscode = acquireVsCodeApi();
 
@@ -82,16 +82,25 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
   //const [entryX, entryY, exitX, exitY] = [1, subprogram_info.scope_line, 1, canvas.height / deltaY];
 
   if (pc === 'L0%0%d' && codetype != "ir") {
-    const entryY = subprogram_info === undefined ? undefined : subprogram_info.scope_line;
-
+    var entryY = subprogram_info === undefined ? undefined : subprogram_info.scope_line;
+    if(curSyntaxType==="asm"){
+      entryY = parseInt(entryY)+1;
+      entryY = entryY.toString();
+    }
     return { type: "entry", pc: pc, y: entryY, x: entryNodeX };
   } else if (pc.charAt(0) === 'L') {
     if (nodeMap[pc] === undefined) {
       console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
       console.log(`pc = ${pc}`);
     }
-    const linename = nodeMap[pc].linename;
+    
+    var linename = nodeMap[pc].linename;
     const columnname = nodeMap[pc].columnname;
+    if(curSyntaxType==="asm"){
+      linename = parseInt(linename)+1;
+      linename=linename.toString();
+    }
+    //console.log(linename);
     return { type: "L", pc: pc, x: columnname, y: linename, unroll: pc_unroll.unroll };
   } else {
     return { type: "exit", pc: pc };
@@ -233,6 +242,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
     [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
   }
 
+
   var is_source_code = false;
   if (tfg_llvm !== undefined && codetype != "ir") {
     is_source_code = true;
@@ -247,7 +257,6 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   //console.log(`highlightPathInCode: nodeMap=\n${JSON.stringify(nodeMap)}`);
 
   const graph_ec = getNodesEdgesFromPath(path.graph_ec_constituent_edge_list, codetype, subprogram_info, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
-  console.log("graph_ec = \n"+JSON.stringify(graph_ec));
 
   add_to_nodeMap(graph_ec.nodeMap, codetype, path.from_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
 
@@ -255,9 +264,9 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   const NODES = graph_ec.nodes;
   const nodeMap = graph_ec.nodeMap;
   const is_epsilon = graph_ec.is_epsilon;
-
+  //console.log(`nodeMap =${JSON.stringify(nodeMap)}`);
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap, codetype);
-
+  //console.log("from_pc_xy = \n"+JSON.stringify(from_pc_xy));
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
 
   //let scrollHeight = window.scrollHeight;
@@ -757,6 +766,7 @@ function viewIR(evt) {
   console.log('viewIR called');
   hideRightClickMenu();
   current_codetype = "ir";
+  vscode.postMessage({command:"switch_codetype",codetype:"ir"});
   redraw();
 };
 
@@ -764,7 +774,9 @@ function viewSourceCode(evt) {
   console.log('viewSourceCode called');
   hideRightClickMenu();
   current_codetype = "src";
+  vscode.postMessage({command:"switch_codetype",codetype:"code"});
   redraw();
+
 };
 
 

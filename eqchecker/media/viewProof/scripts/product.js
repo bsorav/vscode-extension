@@ -4,7 +4,7 @@
 */
 
 import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
-import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc} from "./tfg.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc} from "./tfg.js";
 // import { graphviz } from 'd3-graphviz';
 // import * as d3 from 'd3';
 
@@ -17,7 +17,11 @@ var g_edgeMap = null;
 var g_src_tfg = null;
 var g_dst_tfg = null;
 var selected_edge = null;
+var selected_node = null;
 var g_eqcheck_info = null;
+
+var src_codetype="code";
+var dst_codetype="code";
 
 
 window.addEventListener('message', async event => {
@@ -36,6 +40,14 @@ window.addEventListener('message', async event => {
       case "load":
         vscode.postMessage({command:"loaded"});
         break;
+      case "switch_codetype":
+        if(message.srcdst==="src"){
+          src_codetype = message.codetype;
+        }
+        else if(message.srcdst==="dst"){
+          dst_codetype === message.codetype;
+        }
+        refreshPanel();
     }
 });
 
@@ -126,15 +138,18 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     const dst_pc = element.split('_')[1];
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
-    //const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
+    const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc);
+    
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
     var dst_ir_linename, dst_ir_columnname, dst_insn_pc;
     if (dst_tfg_llvm === undefined) {
       [dst_insn_pc, dst_linename, dst_columnname, dst_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+      dst_linename = parseInt(dst_linename)+1;
+      dst_linename=dst_linename.toString();
     } else {
       [dst_linename, dst_columnname, dst_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
-      //[dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_ir_line_and_column_names_for_pc(dst_tfg_llvm, dst_pc);
+      [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(dst_tfg_llvm, dst_pc);
       dst_insn_pc = "dst.l" + dst_linename;
     }
     //console.log(`element.pc = ${element}, src_pc = ${src_pc}, dst_pc = ${dst_pc}, src_linename = ${src_linename}, src_columnname = ${src_columnname}, src_line_and_column_names = ${src_line_and_column_names}, dst_linename = ${dst_linename}, dst_columnname = ${dst_columnname}, dst_line_and_column_names = ${dst_line_and_column_names}\n`);
@@ -143,8 +158,8 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     //const label = "dst.l" + dst_linename;
     const label = dst_insn_pc;
 
-    const src_entry = {pc: src_pc, linename: src_linename/*, ir_linename: src_ir_linename*/, columnname: src_columnname/*, ir_columnname: src_ir_columnname*/, line_and_column_names: src_line_and_column_names};
-    const dst_entry = {pc: dst_pc, linename: dst_linename/*, ir_linename: dst_ir_linename*/, columnname: dst_columnname/*, ir_columnname: dst_ir_columnname*/, line_and_column_names: dst_line_and_column_names};
+    const src_entry = {pc: src_pc, linename: src_linename, ir_linename: src_ir_linename, columnname: src_columnname, ir_columnname: src_ir_columnname!==undefined?src_ir_columnname.toString():undefined, line_and_column_names: src_line_and_column_names};
+    const dst_entry = {pc: dst_pc, linename: dst_linename, ir_linename: dst_ir_linename, columnname: dst_columnname, ir_columnname: dst_ir_columnname!==undefined?dst_ir_columnname.toString():undefined, line_and_column_names: dst_line_and_column_names};
 
     const entry = {idx: idx, pc: element, src_node: src_entry,  dst_node: dst_entry, label: label, level: idx};
 
@@ -220,178 +235,178 @@ function get_lsprels(lsprels, locals_map)
   return ret;
 }
 
-function drawNetwork_old(correl_entry) {
-    // d3.select("#graph").graphviz()
-    // .renderDot('digraph  {a -> b}');
+// function drawNetwork_old(correl_entry) {
+//     // d3.select("#graph").graphviz()
+//     // .renderDot('digraph  {a -> b}');
 
-    const cg_ec = correl_entry["cg_ec"];
+//     const cg_ec = correl_entry["cg_ec"];
 
-    const graph_hierarchy = correl_entry["cg"];
-    const graph = graph_hierarchy["graph"];
-    const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
+//     const graph_hierarchy = correl_entry["cg"];
+//     const graph = graph_hierarchy["graph"];
+//     const graph_with_predicates = graph_hierarchy["graph_with_predicates"];
 
-    const corr_graph = graph_hierarchy["corr_graph"];
-    const cg_collapsed_nodes_and_edges = corr_graph["collapsed_nodes_and_edges_for_gui"];
-    const src_tfg = corr_graph["src_tfg"];
-    const dst_tfg = corr_graph["dst_tfg"];
-    //const cg_edges_ = graph_with_predicates["edge"];
-    const cg_edges_ = cg_collapsed_nodes_and_edges["collapsed_edge"];
-    const cg_edges = mk_array(cg_edges_);
-    const cg_nodes_ = cg_collapsed_nodes_and_edges["node_pc_after_collapse"];
-    const cg_nodes = mk_array(cg_nodes_);
+//     const corr_graph = graph_hierarchy["corr_graph"];
+//     const cg_collapsed_nodes_and_edges = corr_graph["collapsed_nodes_and_edges_for_gui"];
+//     const src_tfg = corr_graph["src_tfg"];
+//     const dst_tfg = corr_graph["dst_tfg"];
+//     //const cg_edges_ = graph_with_predicates["edge"];
+//     const cg_edges_ = cg_collapsed_nodes_and_edges["collapsed_edge"];
+//     const cg_edges = mk_array(cg_edges_);
+//     const cg_nodes_ = cg_collapsed_nodes_and_edges["node_pc_after_collapse"];
+//     const cg_nodes = mk_array(cg_nodes_);
 
-    const alloc_assumes = corr_graph["alloca_pc_local_sprel_assumes"];
-    const dealloc_assumes = corr_graph["dealloca_pc_local_sprel_assumes"];
+//     const alloc_assumes = corr_graph["alloca_pc_local_sprel_assumes"];
+//     const dealloc_assumes = corr_graph["dealloca_pc_local_sprel_assumes"];
 
-    const src_graph_with_predicates = src_tfg["graph_with_predicates"];
-    const locals_map = src_graph_with_predicates["graph_locals_map"];
+//     const src_graph_with_predicates = src_tfg["graph_with_predicates"];
+//     const locals_map = src_graph_with_predicates["graph_locals_map"];
 
-    const src_nodes = src_tfg["graph"]["nodes"];
-    const dst_nodes = dst_tfg["graph"]["nodes"];
+//     const src_nodes = src_tfg["graph"]["nodes"];
+//     const dst_nodes = dst_tfg["graph"]["nodes"];
 
-    const src_tfg_llvm = src_tfg["tfg_llvm"];
+//     const src_tfg_llvm = src_tfg["tfg_llvm"];
 
-    const dst_tfg_llvm = dst_tfg["tfg_llvm"];
-    const dst_tfg_asm = dst_tfg["tfg_asm"];
+//     const dst_tfg_llvm = dst_tfg["tfg_llvm"];
+//     const dst_tfg_asm = dst_tfg["tfg_asm"];
 
-    const eqcheck_info = corr_graph["eqcheck_info"];
+//     const eqcheck_info = corr_graph["eqcheck_info"];
 
-    g_eqcheck_info = eqcheck_info;
-    g_src_tfg = src_tfg;
-    g_dst_tfg = dst_tfg;
+//     g_eqcheck_info = eqcheck_info;
+//     g_src_tfg = src_tfg;
+//     g_dst_tfg = dst_tfg;
 
-    const [dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, "dst");
+//     const [dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, "dst");
 
-    const cg_ec_edges = getEdgesFromEC_recursive(cg_ec);
+//     const cg_ec_edges = getEdgesFromEC_recursive(cg_ec);
 
-    var nodeMap;
-    [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+//     var nodeMap;
+//     [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
-    var nodes = new vis.DataSet(cg_nodes.map(function(node) {
-      const label_orig = nodeMap[node].label;
-      //console.log(`label_orig = ${label_orig}`);
-      var label = label_orig;
-      const level = nodeMap[node].level;
-      //var x = ((level % 2) * 2 - 1) * 500;
-      //console.log(`node = ${node}, level = ${level}, x = ${x}`);
-      if (node === 'L0%0%d_L0%0%d') {
-        label = "entry";
-      } else if (node.charAt(0) !== 'L') {
-        label = "exit";
-      }
-      return {id:nodeMap[node].idx, label: label, level: level};
-    }));
-    var edges = new vis.DataSet(cg_edges.map(function(edge) {
-      //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
-      //console.log(`edge from_pc ${edge.from_pc} to_pc ${edge.to_pc}`);
-      const from_idx = nodeMap[edge.from_pc].idx;
-      const to_idx = nodeMap[edge.to_pc].idx;
+//     var nodes = new vis.DataSet(cg_nodes.map(function(node) {
+//       const label_orig = nodeMap[node].label;
+//       //console.log(`label_orig = ${label_orig}`);
+//       var label = label_orig;
+//       const level = nodeMap[node].level;
+//       //var x = ((level % 2) * 2 - 1) * 500;
+//       //console.log(`node = ${node}, level = ${level}, x = ${x}`);
+//       if (node === 'L0%0%d_L0%0%d') {
+//         label = "entry";
+//       } else if (node.charAt(0) !== 'L') {
+//         label = "exit";
+//       }
+//       return {id:nodeMap[node].idx, label: label, level: level};
+//     }));
+//     var edges = new vis.DataSet(cg_edges.map(function(edge) {
+//       //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
+//       //console.log(`edge from_pc ${edge.from_pc} to_pc ${edge.to_pc}`);
+//       const from_idx = nodeMap[edge.from_pc].idx;
+//       const to_idx = nodeMap[edge.to_pc].idx;
 
-      const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
-      const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
+//       const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
+//       const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
 
-      const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
+//       const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
 
-      //console.log(`g_edgeMap[edgeId] = ${JSON.stringify(g_edgeMap[edgeId])}`);
+//       //console.log(`g_edgeMap[edgeId] = ${JSON.stringify(g_edgeMap[edgeId])}`);
 
-      const allocs_at_to_pc = g_edgeMap[edgeId].allocs;
-      const deallocs_at_to_pc = g_edgeMap[edgeId].deallocs;
+//       const allocs_at_to_pc = g_edgeMap[edgeId].allocs;
+//       const deallocs_at_to_pc = g_edgeMap[edgeId].deallocs;
 
-      const allocs = get_lsprels(allocs_at_to_pc, locals_map);
-      const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
+//       const allocs = get_lsprels(allocs_at_to_pc, locals_map);
+//       const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
 
-      var label = "";
+//       var label = "";
 
-      //console.log(`allocs = ${JSON.stringify(allocs)}`);
-      for (const l of allocs) {
-        //const sprel = allocs_at_to_pc[local_name];
-        //label = `${label}alloc ${local_name}->${sprel}; `;
-        label = `${label}a ${l}; `;
-      }
+//       //console.log(`allocs = ${JSON.stringify(allocs)}`);
+//       for (const l of allocs) {
+//         //const sprel = allocs_at_to_pc[local_name];
+//         //label = `${label}alloc ${local_name}->${sprel}; `;
+//         label = `${label}a ${l}; `;
+//       }
 
-      for (const l of deallocs) {
-        //const sprel = allocs_at_to_pc[local_name];
-        //label = `${label}dealloc ${local_name}->${sprel}; `;
-        label = `${label}d ${l}; `;
-      }
+//       for (const l of deallocs) {
+//         //const sprel = allocs_at_to_pc[local_name];
+//         //label = `${label}dealloc ${local_name}->${sprel}; `;
+//         label = `${label}d ${l}; `;
+//       }
 
-      var color;
+//       var color;
 
-      if (cg_edge_belongs(cg_ec_edges, edge)) {
-        //console.log(`choosing green`);
-        color = { color: "green" }; //can use "red"
-      } else {
-        //console.log(`choosing blue`);
-        color = { color: "blue" };
-      }
+//       if (cg_edge_belongs(cg_ec_edges, edge)) {
+//         //console.log(`choosing green`);
+//         color = { color: "green" }; //can use "red"
+//       } else {
+//         //console.log(`choosing blue`);
+//         color = { color: "blue" };
+//       }
 
-      //const label = `${from_label} -> ${to_label}`;
+//       //const label = `${from_label} -> ${to_label}`;
 
-      //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
-      return {from: from_idx, to: to_idx, color: color, label: label};
-    }));
-    // [VIRAJ] This is where the plotting is happenning 
-    var network = new vis.Network(document.getElementById('cfg'), {
-        nodes: nodes,
-        edges: edges
-    }, {
-        nodes: {
-            shape: 'ellipse',
-            scaling: {
-                label: {
-                    enabled: true
-                }
-            }
-        },
-        edges: {
-            arrows: {
-                to: {
-                    enabled: true,
-                },
-            },
-            smooth: {
-                enabled: true,
-                type: "continuous",
-                roundness: 0.5,
-                //forceDirection: "vertical"
-            },
-            font: {
-                align: 'horizontal',
-                color: '#000000',
-                background: '#ffffff',
-                size: 16
-            },
-            chosen: {
-                edge:   function(values, id, selected, hovering) {
-                    if(selected){
-                        values.color = 'rgb(255, 0, 0)';
-                    }
-                  }
-            },
-            width: 6,
-            widthConstraint: {
-                maximum: 300,
-            }
-        },
-        layout: {
-            hierarchical: {
-                direction: "UD",
-                sortMethod: "directed",
-                //enabled: true,
-                levelSeparation: 100,
-                nodeSpacing: 100,
-                treeSpacing: 400
-                // shakeTowards: "leaves"
-            }
-        },
-        physics: {
-            enabled: true,
-            // solver: "hierarchicalRepulsion"
-        }
-    });
+//       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
+//       return {from: from_idx, to: to_idx, color: color, label: label};
+//     }));
+//     // [VIRAJ] This is where the plotting is happenning 
+//     var network = new vis.Network(document.getElementById('cfg'), {
+//         nodes: nodes,
+//         edges: edges
+//     }, {
+//         nodes: {
+//             shape: 'ellipse',
+//             scaling: {
+//                 label: {
+//                     enabled: true
+//                 }
+//             }
+//         },
+//         edges: {
+//             arrows: {
+//                 to: {
+//                     enabled: true,
+//                 },
+//             },
+//             smooth: {
+//                 enabled: true,
+//                 type: "continuous",
+//                 roundness: 0.5,
+//                 //forceDirection: "vertical"
+//             },
+//             font: {
+//                 align: 'horizontal',
+//                 color: '#000000',
+//                 background: '#ffffff',
+//                 size: 16
+//             },
+//             chosen: {
+//                 edge:   function(values, id, selected, hovering) {
+//                     if(selected){
+//                         values.color = 'rgb(255, 0, 0)';
+//                     }
+//                   }
+//             },
+//             width: 6,
+//             widthConstraint: {
+//                 maximum: 300,
+//             }
+//         },
+//         layout: {
+//             hierarchical: {
+//                 direction: "UD",
+//                 sortMethod: "directed",
+//                 //enabled: true,
+//                 levelSeparation: 100,
+//                 nodeSpacing: 100,
+//                 treeSpacing: 400
+//                 // shakeTowards: "leaves"
+//             }
+//         },
+//         physics: {
+//             enabled: true,
+//             // solver: "hierarchicalRepulsion"
+//         }
+//     });
 
-    return network; //nodeMap:nodeMap
-}
+//     return network; //nodeMap:nodeMap
+// }
 
 // This function takes in the nodes and edges of the graph
 // And returns the dotsource for generating it
@@ -404,7 +419,7 @@ function generateDot(graph_nodes, graph_edges) {
   for (const node of graph_nodes) {
     var id = node.id;
     var lab = node.label;
-    dot_src += `${id} [id=\"${id}\" label=\"${lab}\"]\n`;
+    dot_src += `${id} [id=\"${id}\" label=${lab}]\n`;
   }
 
   // Add declarations for the edges
@@ -417,6 +432,81 @@ function generateDot(graph_nodes, graph_edges) {
   dot_src += '}';
 
   return dot_src;
+}
+
+
+function add_exit_lines(edges,nodeMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map){
+  var exit_edge;
+  //console.log("Edges= "+JSON.stringify(edges));
+  for(let i=0;i<edges.length;i++){
+    var edge = edges[i];
+    if(edge["to_pc"]==="E0%0%d_E0%0%d"){
+      exit_edge = edge;
+      break;
+    }
+  }
+  
+  var preceding_src_pc,preceding_dst_pc;
+  if(exit_edge!==undefined){
+    for(var i=0; i<exit_edge["dst_edge"]["graph_ec_constituent_edge_list"]["edge_id"].length;i++){
+      const edge=exit_edge["dst_edge"]["graph_ec_constituent_edge_list"]["edge_id"][i];
+      if(edge["to_pc"]=== "E0%0%d"){
+        preceding_dst_pc = edge["from_pc"];
+      }
+    }
+
+    for(var i=0; i<exit_edge["src_edge"]["graph_ec_constituent_edge_list"]["edge_id"].length;i++){
+      const edge=exit_edge["src_edge"]["graph_ec_constituent_edge_list"]["edge_id"][i];
+      if(edge["to_pc"]=== "E0%0%d"){
+        preceding_src_pc = edge["from_pc"];
+      }
+    }
+  }
+
+  if(preceding_src_pc !==undefined){
+    var src_ir_linename,src_ir_columnname;
+    [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, preceding_src_pc);
+
+    var src_code_linename,src_code_columnname,src_code_line_and_column_names
+    [src_code_linename, src_code_columnname, src_code_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, preceding_src_pc);
+    //console.log("src_code_linename= "+src_code_linename+" src_code_columnname= "+src_code_columnname+" src_ir_linename= "+src_ir_linename+" src_ir_columnname= "+src_ir_columnname);
+    nodeMap["E0%0%d_E0%0%d"]["src_node"]["linename"]= src_code_linename;
+    nodeMap["E0%0%d_E0%0%d"]["src_node"]["columnname"]= "3";
+    nodeMap["E0%0%d_E0%0%d"]["src_node"]["ir_linename"] = src_ir_linename;
+    nodeMap["E0%0%d_E0%0%d"]["src_node"]["ir_columnname"] = src_ir_columnname.toString();
+    nodeMap["E0%0%d_E0%0%d"]["src_node"]["line_and_column_names"]="(line "+src_code_linename+" at column 3)";
+  }
+
+  if(preceding_dst_pc !== undefined){
+
+    var dst_ir_linename,dst_ir_columnname,dst_code_linename,dst_code_columnname,dst_insn_pc,dst_code_line_and_column_names;
+    if (dst_tfg_llvm === undefined) {
+
+      [dst_insn_pc, dst_code_linename, dst_code_columnname, dst_code_line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, preceding_dst_pc, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+      dst_code_linename = parseInt(dst_code_linename)+1;
+      dst_code_linename=dst_code_linename.toString();
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["linename"] = dst_code_linename;
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["columnname"]= dst_code_columnname;
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["line_and_column_names"]=dst_code_linename+dst_code_columnname;
+    }
+
+    else {
+
+      [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(dst_tfg_llvm, preceding_dst_pc);
+      
+      [dst_code_linename, dst_code_columnname, dst_code_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, preceding_dst_pc);
+
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["linename"]= dst_code_linename;
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["columnname"]= "3";
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["ir_linename"] = dst_ir_linename;
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["ir_columnname"] = dst_ir_columnname.toString();
+      nodeMap["E0%0%d_E0%0%d"]["dst_node"]["line_and_column_names"]="(line "+dst_code_linename+" at column 3)";
+      
+    }
+  
+
+  }
+  
 }
 
 function drawNetwork(correl_entry) {
@@ -460,24 +550,76 @@ function drawNetwork(correl_entry) {
 
   const [dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, "dst");
 
+  var src_code_subprogram_info, src_ir_subprogram_info;
+  if(src_tfg_llvm !== undefined){
+    [src_code_subprogram_info, src_ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(src_tfg_llvm);
+  }
+
+  var dst_code_subprogram_info, dst_ir_subprogram_info;
+  if (dst_tfg_llvm === undefined) {
+    dst_code_subprogram_info = tfg_asm_obtain_subprogram_info(dst_tfg_asm, dst_assembly);
+    dst_code_subprogram_info["line"] = parseInt(dst_code_subprogram_info["line"])+1;
+    dst_code_subprogram_info["line"]=dst_code_subprogram_info["line"].toString();
+    dst_code_subprogram_info["scope_line"] = parseInt(dst_code_subprogram_info["scope_line"])+1;
+    dst_code_subprogram_info["scope_line"]=dst_code_subprogram_info["scope_line"].toString();
+  } else {
+    [dst_code_subprogram_info, dst_ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(dst_tfg_llvm);
+  }
+
+
   var nodeMap;
   [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+  nodeMap['L0%0%d_L0%0%d']["src_node"]["linename"] = src_code_subprogram_info.scope_line;
+  nodeMap['L0%0%d_L0%0%d']["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  g_nodeIdMap["0"]["src_node"]["linename"] = src_code_subprogram_info.scope_line;
+  g_nodeIdMap["0"]["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  //console.log("Edges= "+JSON.stringify(cg_edges));
+  add_exit_lines(cg_edges,nodeMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+
 
   const cg_ec_edges = getEdgesFromEC_recursive(cg_ec);
 
   // // Array of the nodes of the graph
   var nodes = cg_nodes.map(function(node) {
-    const label_orig = nodeMap[node].label;
+    var label_orig = nodeMap[node].label;
     //console.log(`label_orig = ${label_orig}`);
-    var label = label_orig;
     const level = nodeMap[node].level;
     //var x = ((level % 2) * 2 - 1) * 500;
     //console.log(`node = ${node}, level = ${level}, x = ${x}`);
     if (node === 'L0%0%d_L0%0%d') {
-      label = "entry";
+      label_orig = "entry";
     } else if (node.charAt(0) !== 'L') {
-      label = "exit";
+      label_orig = "exit";
     }
+
+    var label=`<<table border="0" cellpadding="0" cellspacing="0">
+    <tr>
+      <td><font point-size="14">${label_orig}</font></td>
+    </tr>
+    <tr>
+      <td><font point-size="10">`;
+
+
+    if(src_codetype==="code"){
+      label=label+"src_line= "+ nodeMap[node]["src_node"]["linename"];
+    }
+    else{
+      label=label+"src_line= "+ nodeMap[node]["src_node"]["ir_linename"];
+    }
+    label+=`</font></td>
+    </tr>\n`;
+    label+=`<tr>
+    <td><font point-size="10">`;
+
+    if(dst_codetype==="code"){
+      label=label+"\n dst_line= "+ nodeMap[node]["dst_node"]["linename"];
+    }
+    else{
+      label=label+"\n dst_line= "+ nodeMap[node]["dst_node"]["ir_linename"];
+    }
+    label+=`</font></td>
+    </tr>
+  </table>>`
     return {id:nodeMap[node].idx, label: label, level: level};
   });
 
@@ -536,6 +678,7 @@ function drawNetwork(correl_entry) {
 
   // Get the dot file from nodes and edges
   var dotSrc = generateDot(nodes, edges);
+  //console.log(dotSrc);
 
   // This renders the graph
   d3.select("#graph").graphviz()
@@ -565,11 +708,12 @@ function refreshPanel()
   });
 
   document.getElementById("graph").addEventListener('click', function(event) {
-    if (event.target.closest('.edge')) {
+    if (event.target.closest('.edge') || event.target.closest('.node')) {
       // console.log("an edge was clicked!");
       return;
     } else {
       selected_edge = null;
+      selected_node = null;
       vscode.postMessage({
           command:"clear"
       });
@@ -601,6 +745,7 @@ function refreshPanel()
     if (selected_edge == edgeId) {
       // Edge is already selected, deselect
       selected_edge = null;
+      selected_node = null;
       vscode.postMessage({
           command:"clear"
       });
@@ -608,6 +753,7 @@ function refreshPanel()
     } else {
       // Select the new edge
       selected_edge = edgeId;
+      selected_node = null;
       const edge = g_edgeMap[edgeId];
       vscode.postMessage({
         command:"highlight",
@@ -621,6 +767,16 @@ function refreshPanel()
       drawNetwork(g_prodCfg);
     }
 
-  })
+  });
+
+  d3.select("#graph")
+  .selectAll('.node')
+  .on("click",function(){
+    console.log("node = "+JSON.stringify(d3.select(this).attr('id')));
+    
+  }
+
+  );
+
 
 }

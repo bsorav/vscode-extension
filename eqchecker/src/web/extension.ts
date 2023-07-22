@@ -1601,46 +1601,55 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               //vscode.window.showErrorMessage(message.text);
               break;
             case "highlight":
-              this.panel_post_message(panel_src_code, {
-                command: "highlight",
-                path: message.edge.src_edge,
-                tfg: message.src_tfg,
-                eqcheck_info: message.eqcheck_info,
-                srcdst: "src",
-                codetype: "code"
-                //subprogram_info: message.src_subprogram_info,
-                //nodeMap: message.src_nodeMap
-              });
-              // this.panel_post_message(panel_src_ir, {
-              //   command: "highlight",
-              //   path: message.edge.src_edge,
-              //   tfg: message.src_tfg,
-              //   eqcheck_info: message.eqcheck_info,
-              //   srcdst: "src",
-              //   codetype: "ir"
-              //   //subprogram_info: message.src_ir_subprogram_info,
-              //   //nodeMap: message.src_ir_nodeMap
-              // });
-              this.panel_post_message(panel_dst_code, {
-                command: "highlight",
-                path: message.edge.dst_edge,
-                tfg: message.dst_tfg,
-                eqcheck_info: message.eqcheck_info,
-                srcdst: "dst",
-                codetype: "code"
-                //subprogram_info: message.dst_subprogram_info,
-                //nodeMap: message.dst_nodeMap
-              });
-              // this.panel_post_message(panel_dst_ir, {
-              //     command: "highlight",
-              //     path: message.edge.dst_edge,
-              //     tfg: message.dst_tfg,
-              //     eqcheck_info: message.eqcheck_info,
-              //     srcdst: "dst",
-              //     codetype: "ir"
-              //     //subprogram_info: message.dst_ir_subprogram_info,
-              //     //nodeMap: message.dst_ir_nodeMap
-              // });
+              if(message.node_edge=="edge"){
+                this.panel_post_message(panel_src_code, {
+                  command: "highlight",
+                  node_edge: "edge",
+                  path: message.edge.src_edge,
+                  tfg: message.src_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "src"
+                  //subprogram_info: message.src_subprogram_info,
+                  //nodeMap: message.src_nodeMap
+                });
+
+                this.panel_post_message(panel_dst_code, {
+                  command: "highlight",
+                  node_edge: "edge",
+                  path: message.edge.dst_edge,
+                  tfg: message.dst_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "dst"
+                  //subprogram_info: message.dst_subprogram_info,
+                  //nodeMap: message.dst_nodeMap
+                });
+
+              }
+              else{
+                this.panel_post_message(panel_src_code, {
+                  command: "highlight",
+                  node_edge: "node",
+                  node: message.node["src_node"],
+                  tfg: message.src_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "src"
+                  //subprogram_info: message.src_subprogram_info,
+                  //nodeMap: message.src_nodeMap
+                });
+
+                this.panel_post_message(panel_dst_code, {
+                  command: "highlight",
+                  node_edge: "node",
+                  node: message.node["dst_node"],
+                  tfg: message.dst_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "dst"
+                  //subprogram_info: message.dst_subprogram_info,
+                  //nodeMap: message.dst_nodeMap
+                });
+
+              }
+              
               break;
             case "clear":
               this.panel_post_message(panel_src_code, {

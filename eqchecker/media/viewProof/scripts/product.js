@@ -20,8 +20,8 @@ var selected_edge = null;
 var selected_node = null;
 var g_eqcheck_info = null;
 
-var src_codetype="code";
-var dst_codetype="code";
+var src_codetype="src";
+var dst_codetype="src";
 
 
 window.addEventListener('message', async event => {
@@ -413,19 +413,20 @@ function get_lsprels(lsprels, locals_map)
 
 function generateDot(graph_nodes, graph_edges) {
   var dot_src = 'digraph {\n';
-  dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2 color="#cfe2f3" ]\n`;
+  dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2]\n`;
 
   // Add declarations for the nodes
   for (const node of graph_nodes) {
     var id = node.id;
     var lab = node.label;
-    dot_src += `${id} [id=\"${id}\" label=${lab}]\n`;
+    var color = node.color;
+    dot_src += `${id} [id=\"${id}\" label=${lab} color=\"${color}\"] \n`;
   }
 
   // Add declarations for the edges
   // Note: Change penwidth if you want to change thickness of the edges  
   for (const edge of graph_edges) {
-    dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=3]\n`;
+    dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=3 fontsize="10pt"]\n`;
     // dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.label}\" label=\"${edge.label}\" color=\"\"]\n`;
   }
 
@@ -435,9 +436,10 @@ function generateDot(graph_nodes, graph_edges) {
 }
 
 
-function add_exit_lines(edges,nodeMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map){
+function add_exit_lines(edges,nodeMap,nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map){
   var exit_edge;
   //console.log("Edges= "+JSON.stringify(edges));
+  var exit_node_index=(Object.keys(nodeIdMap).length-1).toString();
   for(let i=0;i<edges.length;i++){
     var edge = edges[i];
     if(edge["to_pc"]==="E0%0%d_E0%0%d"){
@@ -471,10 +473,17 @@ function add_exit_lines(edges,nodeMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_
     [src_code_linename, src_code_columnname, src_code_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, preceding_src_pc);
     //console.log("src_code_linename= "+src_code_linename+" src_code_columnname= "+src_code_columnname+" src_ir_linename= "+src_ir_linename+" src_ir_columnname= "+src_ir_columnname);
     nodeMap["E0%0%d_E0%0%d"]["src_node"]["linename"]= src_code_linename;
-    nodeMap["E0%0%d_E0%0%d"]["src_node"]["columnname"]= "3";
+    nodeMap["E0%0%d_E0%0%d"]["src_node"]["columnname"]= src_code_columnname;
     nodeMap["E0%0%d_E0%0%d"]["src_node"]["ir_linename"] = src_ir_linename;
     nodeMap["E0%0%d_E0%0%d"]["src_node"]["ir_columnname"] = src_ir_columnname.toString();
     nodeMap["E0%0%d_E0%0%d"]["src_node"]["line_and_column_names"]="(line "+src_code_linename+" at column 3)";
+
+    nodeIdMap[exit_node_index]["src_node"]["linename"]= src_code_linename;
+    nodeIdMap[exit_node_index]["src_node"]["columnname"]= src_code_columnname;
+    nodeIdMap[exit_node_index]["src_node"]["ir_linename"] = src_ir_linename;
+    nodeIdMap[exit_node_index]["src_node"]["ir_columnname"] = src_ir_columnname.toString();
+    nodeIdMap[exit_node_index]["src_node"]["line_and_column_names"]="(line "+src_code_linename+" at column 3)";
+
   }
 
   if(preceding_dst_pc !== undefined){
@@ -488,6 +497,10 @@ function add_exit_lines(edges,nodeMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["linename"] = dst_code_linename;
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["columnname"]= dst_code_columnname;
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["line_and_column_names"]=dst_code_linename+dst_code_columnname;
+
+      nodeIdMap[exit_node_index]["dst_node"]["linename"] = dst_code_linename;
+      nodeIdMap[exit_node_index]["dst_node"]["columnname"]= dst_code_columnname;
+      nodeIdMap[exit_node_index]["dst_node"]["line_and_column_names"]=dst_code_linename+dst_code_columnname;
     }
 
     else {
@@ -501,12 +514,32 @@ function add_exit_lines(edges,nodeMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["ir_linename"] = dst_ir_linename;
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["ir_columnname"] = dst_ir_columnname.toString();
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["line_and_column_names"]="(line "+dst_code_linename+" at column 3)";
+
+      nodeIdMap[exit_node_index]["dst_node"]["linename"]= dst_code_linename;
+      nodeIdMap[exit_node_index]["dst_node"]["columnname"]= "3";
+      nodeIdMap[exit_node_index]["dst_node"]["ir_linename"] = dst_ir_linename;
+      nodeIdMap[exit_node_index]["dst_node"]["ir_columnname"] = dst_ir_columnname.toString();
+      nodeIdMap[exit_node_index]["dst_node"]["line_and_column_names"]="(line "+dst_code_linename+" at column 3)";
+      
       
     }
   
 
   }
   
+}
+
+function getUnroll(edge){
+    var unroll = 1;
+    var unroll_is_only_mu = false;
+    if(edge.unroll_factor_mu!==edge.unroll_factor_delta.unroll){
+      unroll_is_only_mu = true;
+      unroll = edge.unroll_factor_mu;
+    }
+    else{
+      unroll = edge.unroll_factor_delta.unroll;
+    }
+    return [unroll,unroll_is_only_mu];
 }
 
 function drawNetwork(correl_entry) {
@@ -571,11 +604,14 @@ function drawNetwork(correl_entry) {
   [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
   nodeMap['L0%0%d_L0%0%d']["src_node"]["linename"] = src_code_subprogram_info.scope_line;
   nodeMap['L0%0%d_L0%0%d']["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  nodeMap['L0%0%d_L0%0%d']["src_node"]["columnname"] = "1";
+  nodeMap['L0%0%d_L0%0%d']["dst_node"]["columnname"] = "1";
   g_nodeIdMap["0"]["src_node"]["linename"] = src_code_subprogram_info.scope_line;
   g_nodeIdMap["0"]["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  g_nodeIdMap["0"]["src_node"]["columnname"] = "1";
+  g_nodeIdMap["0"]["dst_node"]["columnname"] = "1";
   //console.log("Edges= "+JSON.stringify(cg_edges));
-  add_exit_lines(cg_edges,nodeMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
-
+  add_exit_lines(cg_edges,nodeMap,g_nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
   const cg_ec_edges = getEdgesFromEC_recursive(cg_ec);
 
@@ -584,12 +620,18 @@ function drawNetwork(correl_entry) {
     var label_orig = nodeMap[node].label;
     //console.log(`label_orig = ${label_orig}`);
     const level = nodeMap[node].level;
+
+    var color = "#cfe2f3";
     //var x = ((level % 2) * 2 - 1) * 500;
     //console.log(`node = ${node}, level = ${level}, x = ${x}`);
     if (node === 'L0%0%d_L0%0%d') {
       label_orig = "entry";
     } else if (node.charAt(0) !== 'L') {
       label_orig = "exit";
+    }
+
+    if(nodeMap[node].idx==selected_node){
+      color = "#ffbaba";
     }
 
     var label=`<<table border="0" cellpadding="0" cellspacing="0">
@@ -600,27 +642,27 @@ function drawNetwork(correl_entry) {
       <td><font point-size="10">`;
 
 
-    if(src_codetype==="code"){
-      label=label+"src_line= "+ nodeMap[node]["src_node"]["linename"];
+    if(src_codetype==="src"){
+      label=label+"Src Code Line= "+ nodeMap[node]["src_node"]["linename"];
     }
     else{
-      label=label+"src_line= "+ nodeMap[node]["src_node"]["ir_linename"];
+      label=label+"Src IR line= "+ nodeMap[node]["src_node"]["ir_linename"];
     }
     label+=`</font></td>
     </tr>\n`;
     label+=`<tr>
     <td><font point-size="10">`;
 
-    if(dst_codetype==="code"){
-      label=label+"\n dst_line= "+ nodeMap[node]["dst_node"]["linename"];
+    if(dst_codetype==="src"){
+      label=label+"\n Dst Code Line= "+ nodeMap[node]["dst_node"]["linename"];
     }
     else{
-      label=label+"\n dst_line= "+ nodeMap[node]["dst_node"]["ir_linename"];
+      label=label+"\n Dst IR Line= "+ nodeMap[node]["dst_node"]["ir_linename"];
     }
     label+=`</font></td>
     </tr>
   </table>>`
-    return {id:nodeMap[node].idx, label: label, level: level};
+    return {id:nodeMap[node].idx, label: label, level: level,color: color};
   });
 
   // Array of the edges of the graph
@@ -643,7 +685,7 @@ function drawNetwork(correl_entry) {
     const allocs = get_lsprels(allocs_at_to_pc, locals_map);
     const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
 
-    var label = "";
+    var label="";
 
     //console.log(`allocs = ${JSON.stringify(allocs)}`);
     for (const l of allocs) {
@@ -657,6 +699,25 @@ function drawNetwork(correl_entry) {
       //label = `${label}dealloc ${local_name}->${sprel}; `;
       label = `${label}d ${l}; `;
     }
+
+    var [unroll, unroll_is_only_mu] = getUnroll(edge["src_edge"]);
+    if(unroll>1){
+      label+=`\n src unroll = '`;
+      if(unroll_is_only_mu){
+        label += "<="
+      }
+      label+=unroll.toString()+`'`;
+    }
+
+    [unroll, unroll_is_only_mu] = getUnroll(edge["dst_edge"]);
+    if(unroll>1){
+      label+=`\n dst unroll = '`;
+      if(unroll_is_only_mu){
+        label += `<=`
+      }
+      label+=unroll.toString()+`'`;
+    }
+
 
     var color;
     // console.log("CG EC EDGES" + JSON.stringify(cg_ec_edges));
@@ -757,6 +818,7 @@ function refreshPanel()
       const edge = g_edgeMap[edgeId];
       vscode.postMessage({
         command:"highlight",
+        node_edge:"edge",
         from: from,
         to: to,
         edge: edge,
@@ -772,7 +834,31 @@ function refreshPanel()
   d3.select("#graph")
   .selectAll('.node')
   .on("click",function(){
-    console.log("node = "+JSON.stringify(d3.select(this).attr('id')));
+    var nodeId=d3.select(this).attr('id');
+    
+    if (selected_node == nodeId) {
+      // Edge is already selected, deselect
+      selected_edge = null;
+      selected_node = null;
+      vscode.postMessage({
+          command:"clear"
+      });
+      drawNetwork(g_prodCfg);
+    } else {
+      // Select the new edge
+      selected_edge = null;
+      selected_node = nodeId;
+      const node = g_nodeIdMap[nodeId];
+      vscode.postMessage({
+        command:"highlight",
+        node_edge:"node",
+        node: node,
+        eqcheck_info: g_eqcheck_info,
+        src_tfg: g_src_tfg,
+        dst_tfg: g_dst_tfg
+      });
+      drawNetwork(g_prodCfg);
+    }
     
   }
 

@@ -305,6 +305,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
     canvas.style.top = curCanvasTop + "px";
   }
 
+
   if (is_epsilon) {
     drawPointOnNode(canvas, ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
     return;
@@ -648,6 +649,67 @@ function drawEdgeBetweenPoints(canvas, ctx, node1, node2, is_fallthrough, is_sou
     }
 }
 
+function highlightNodeInCode(canvas, ctx, codeEl, node, eqcheck_info, tfg, srcdst, codetype){
+  if (node === undefined) {
+    return;
+  }
+  scroll(0, 0);
+
+  const styles = window.getComputedStyle(codeEl);
+  const deltaY = parseInt(styles.getPropertyValue("line-height"));
+
+  codeEl = document.getElementById("code");;
+  let rect = codeEl.getBoundingClientRect();
+
+  let topNode = rect.height*1;
+
+  var ypx;
+  if(codetype=="src"){
+    ypx = Math.max(0, (node.linename * 1 - 5) * deltaY);
+  }
+  else{
+    ypx = ypx = Math.max(0, (node.ir_linename * 1 - 5) * deltaY);
+  }
+  topNode = Math.max(0,ypx);
+
+  const newCanvasHeight = 2*deltaY + 2*canvasMarginY*deltaY;
+  const newCanvasTop = Math.max(minCanvasTop, topNode - canvasMarginY*deltaY);
+  
+  if (!isNaN(newCanvasHeight) && !isNaN(newCanvasTop)) {
+    canvas.height = newCanvasHeight;
+    curCanvasTop = newCanvasTop;
+    canvas.style.top = curCanvasTop + "px";
+  }
+
+  var node_xy = {pc: node.pc}
+  if(codetype=="src"){
+    node_xy.y = node.linename;
+    node_xy.x = node.columnname;
+  }
+  else{
+    node_xy.y=node.ir_linename;
+    node_xy.x = node.ir_columnname;
+  }
+  if(node.pc==="L0%0%d"){
+    node_xy.type="entry";
+    drawPointOnNode(canvas, ctx, node_xy, "ENTRY", undefined, undefined, true, false);
+  }
+  else if(node.pc.charAt(0)=='L'){
+    node_xy.type == "L";
+    drawPointOnNode(canvas, ctx, node_xy, undefined, undefined, undefined, false, false);
+  }
+  else{
+    node_xy.type="exit";
+    drawPointOnNode(canvas, ctx, node_xy, "EXIT", undefined, undefined, false, true);
+  }
+  
+  var content = document.getElementById("content");
+  var currentZoom = parseFloat(content.style.zoom) || 1;
+  scroll(0, topNode*currentZoom);
+
+
+}
+
 function redraw()
 {
   var canvas = document.getElementById("canvas");
@@ -673,7 +735,6 @@ function redraw()
 
   // Clear old contents
   codeEl.innerHTML = codeDisplay;
-  //updateLineNumbers();
   Prism.highlightAll();
 
   //await new Promise(r => setTimeout(r, 100));
@@ -681,7 +742,14 @@ function redraw()
 
   //console.log(`message.path = ${JSON.stringify(message.path)}`);
   if (current_highlight_message !== null) {
-    highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+    if(current_highlight_message.path!==undefined){
+      highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+    }
+    else{
+      highlightNodeInCode(canvas, ctx, codeEl, current_highlight_message.node, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+      //console.log("node recieved="+JSON.stringify(current_highlight_message));
+    }
+    
   }
 }
 
@@ -697,7 +765,12 @@ window.addEventListener('message', async event => {
     switch (message.command) {
         case "highlight": {
             //console.log(`highlight called on path ${JSON.stringify(message.path)}\n`);
-            current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            if(message.node_edge==="edge"){
+              current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            }
+            else{
+              current_highlight_message = { node: message.node, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            }
             break;
         }
         case "clear": {
@@ -774,7 +847,7 @@ function viewSourceCode(evt) {
   console.log('viewSourceCode called');
   hideRightClickMenu();
   current_codetype = "src";
-  vscode.postMessage({command:"switch_codetype",codetype:"code"});
+  vscode.postMessage({command:"switch_codetype",codetype:"src"});
   redraw();
 
 };

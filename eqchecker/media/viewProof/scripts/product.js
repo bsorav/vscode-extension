@@ -13,6 +13,7 @@ const vscode = acquireVsCodeApi();
 var g_prodCfg = null;
 //var g_nodeMap = null;
 var g_nodeIdMap = null;
+var g_nodePCMap = null;
 var g_edgeMap = null;
 var g_src_tfg = null;
 var g_dst_tfg = null;
@@ -48,6 +49,30 @@ window.addEventListener('message', async event => {
           dst_codetype === message.codetype;
         }
         refreshPanel();
+        break;
+      case "show_line":
+        var edgeId= message.edge;
+        const [from_pc,to_pc] = edgeId.split(" -> ");
+        const from_id = toString(g_nodePCMap[from_pc].idx);
+        const to_id = toString(g_nodePCMap[to_pc].idx);
+        const from = g_nodeIdMap[from_id];
+        const to = g_nodeIdMap[to_id];
+
+        selected_edge = edgeId;
+        selected_node = null;
+        const edge = g_edgeMap[edgeId];
+        vscode.postMessage({
+          command:"highlight",
+          node_edge:"edge",
+          from: from,
+          to: to,
+          edge: edge,
+          eqcheck_info: g_eqcheck_info,
+          src_tfg: g_src_tfg,
+          dst_tfg: g_dst_tfg
+        });
+        drawNetwork(g_prodCfg);
+        break;
     }
 });
 
@@ -615,6 +640,8 @@ function drawNetwork(correl_entry) {
 
   const cg_ec_edges = getEdgesFromEC_recursive(cg_ec);
 
+  g_nodePCMap = nodeMap;
+
   // // Array of the nodes of the graph
   var nodes = cg_nodes.map(function(node) {
     var label_orig = nodeMap[node].label;
@@ -702,7 +729,8 @@ function drawNetwork(correl_entry) {
 
     var [unroll, unroll_is_only_mu] = getUnroll(edge["src_edge"]);
     if(unroll>1){
-      label+=`\n src unroll = '`;
+      if(label!=="") label+=`\n`;
+      label+=` src unroll = '`;
       if(unroll_is_only_mu){
         label += "<="
       }
@@ -711,7 +739,8 @@ function drawNetwork(correl_entry) {
 
     [unroll, unroll_is_only_mu] = getUnroll(edge["dst_edge"]);
     if(unroll>1){
-      label+=`\n dst unroll = '`;
+      if(label!=="") label+=`\n`;
+      label+=` dst unroll = '`;
       if(unroll_is_only_mu){
         label += `<=`
       }
@@ -798,6 +827,7 @@ function refreshPanel()
   .on("click", function () {
     // debug_str = d3.select(this).attr('id');
     var e_ids = d3.select(this).attr('id').split("#");
+    console.log(e_ids);
     const from = g_nodeIdMap[e_ids[0]];
     const to = g_nodeIdMap[e_ids[1]];
 

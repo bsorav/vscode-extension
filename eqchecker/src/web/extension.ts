@@ -204,6 +204,20 @@ function matchEqCheckMenuEntries(e1 : eqcheckMenuEntry , e2 :eqcheckMenuEntry){
       return false;
 }
 
+async function writeToFile(path,content){
+  try {
+    if(content.charAt(content.length-1)==='.'){
+      content = content.substr(0,content.length-1);
+    }
+    const uri = vscode.Uri.file(path);
+    const bytes = new TextEncoder().encode(content);
+    await vscode.workspace.fs.writeFile(uri, bytes);
+    //console.log('Content written to the file successfully!');
+  } catch (error) {
+    //console.error('Error writing to file:', error);
+  }
+}
+
 class SearchTreeNode {
   searchKey: string[];
   isStable: boolean;
@@ -1515,10 +1529,85 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir];
   }
 
+  getCurrentFolderPath(){
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    // Get the first workspace folder (you can handle multiple folders if needed)
+    const currentFolder = workspaceFolders[0];
+    return currentFolder.uri.fsPath;
+  }
+  return "";
+  }
+
+  async showSaveDialog(type,content){
+    var currentDirectory = this.getCurrentFolderPath();
+    
+    var options: vscode.SaveDialogOptions = {
+      defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+      saveLabel: 'Save', // The label for the save button
+      filters: { 'C files': ['c'], 'All files': ['*'] },
+    };
+
+    if(type=="asm"){
+      options = {
+        defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+        saveLabel: 'Save', // The label for the save button
+        filters: { 'Assembly files': ['s'], 'All files': ['*'] }, // Set default file extension to .s
+      };
+    }
+    else if(type ==="llvmIr"){
+      options = {
+        defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+        saveLabel: 'Save', // The label for the save button
+        filters: { 'IR files': ['ir'], 'All files': ['*'] }, // Set default file extension to .ir
+      };
+    }
+    const result = await vscode.window.showSaveDialog(options);
+  
+    if (result) {
+      const path = result.fsPath;
+      await writeToFile(path,content);
+      return path; // Return the selected file path
+    }
+    return undefined; // User canceled the dialog
+  }
+
+  getEdgeId(from_pc, to_pc)
+{
+  return `${from_pc} -> ${to_pc}`;
+}
+
+  getEdges(cg_edges){
+    var src_edgeMap = {};
+    var dst_edgeMap = {};
+    cg_edges.forEach(element => {
+      const from_pc = element.from_pc;
+      const to_pc = element.to_pc;
+  
+      const edgeId = this.getEdgeId(from_pc, to_pc);
+      //const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
+      const src_entry = { from_pc: from_pc, to_pc: to_pc, edge: element.src_edge, allocs: element.allocs, deallocs: element.deallocs };
+      src_edgeMap[edgeId] = src_entry;
+
+      const dst_entry = { from_pc: from_pc, to_pc: to_pc, edge: element.dst_edge, allocs: element.allocs, deallocs: element.deallocs };
+      dst_edgeMap[edgeId] = dst_entry;
+      //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
+    });
+
+    return [src_edgeMap,dst_edgeMap];
+  }
+
+  mk_array(x) {
+    if (x === undefined) return [];
+    else if (Array.isArray(x)) return x;
+    else return [x];
+  }
+
   async viewProductCFG(webview: vscode.Webview, dirPath: string, correl_entry_filename: string)
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath, correl_entry_filename);
+    console.log("proof_response="+JSON.stringify(proof_response));
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
@@ -1531,6 +1620,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
     const graph_hierarchy = correl_entry["cg"];
     const corr_graph = graph_hierarchy["corr_graph"];
+    const cg_collapsed_nodes_and_edges = corr_graph["collapsed_nodes_and_edges_for_gui"];
+    const cg_edges_ = cg_collapsed_nodes_and_edges["collapsed_edge"];
+    const cg_edges = this.mk_array(cg_edges_);
+
     const src_tfg = corr_graph["src_tfg"];
     const dst_tfg = corr_graph["dst_tfg"];
 
@@ -1590,6 +1683,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //let panel_src_ir_loaded = (panel_src_ir === undefined);
     //let panel_dst_ir_loaded = (panel_dst_ir === undefined);
 
+    
     // Handle messages from the webview
     if (panel_prd !== undefined) {
       panel_prd.webview.onDidReceiveMessage(
@@ -1626,10 +1720,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
               }
               else{
+                var src_node = message.node["src_node"];
+                src_node.label = message.node.label;
                 this.panel_post_message(panel_src_code, {
                   command: "highlight",
                   node_edge: "node",
-                  node: message.node["src_node"],
+                  node: src_node,
                   tfg: message.src_tfg,
                   eqcheck_info: message.eqcheck_info,
                   srcdst: "src"
@@ -1637,10 +1733,12 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                   //nodeMap: message.src_nodeMap
                 });
 
+                var dst_node = message.node["dst_node"];
+                dst_node.label = message.node.label;
                 this.panel_post_message(panel_dst_code, {
                   command: "highlight",
                   node_edge: "node",
-                  node: message.node["dst_node"],
+                  node: dst_node,
                   tfg: message.dst_tfg,
                   eqcheck_info: message.eqcheck_info,
                   srcdst: "dst"
@@ -1648,8 +1746,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                   //nodeMap: message.dst_nodeMap
                 });
 
+                //console.log("node= "+JSON.stringify(message.node));
+
               }
-              
               break;
             case "clear":
               this.panel_post_message(panel_src_code, {
@@ -1700,11 +1799,21 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               panel_src_code_loaded = true;
               //vscode.window.showErrorMessage(message.text);
               break;
+            case 'download':
+              this.showSaveDialog(message.type,message.content);
+              break;
             case 'switch_codetype':
               this.panel_post_message(panel_prd, {
                 command: "switch_codetype",
                 srcdst: "src",
                 codetype: message.codetype
+              });
+              break;
+            case 'show_line':
+              console.log("Edge recieved = "+message.edge);
+              this.panel_post_message(panel_prd, {
+                command: "show_line",
+                edge: message.edge
               });
               break;
           }
@@ -1730,7 +1839,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //}
 
     if (panel_dst_code !== undefined) {
-      panel_dst_code.webview.onDidReceiveMessage(
+       panel_dst_code.webview.onDidReceiveMessage(
         message => {
           switch (message.command) {
             case 'loaded':
@@ -1738,11 +1847,20 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               panel_dst_code_loaded = true;
               //vscode.window.showErrorMessage(message.text);
               break;
+            case 'download':
+              this.showSaveDialog(message.type,message.content);
+              break;
             case 'switch_codetype':
               this.panel_post_message(panel_prd, {
                 command: "switch_codetype",
                 srcdst: "dst",
                 codetype: message.codetype
+              });
+              break;
+            case 'show_line':
+              this.panel_post_message(panel_prd, {
+                command: "show_line",
+                edge: message.edge
               });
               break;
           }
@@ -1772,20 +1890,27 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
     //console.log("Posted proof to panel_prd\n");
 
+    this.panel_post_message(panel_prd,{command: 'getEdges'});
+
+    
     const src_ec = correl_entry["src_ec"];
     const dst_ec = correl_entry["dst_ec"];
 
+    let src_edges,dst_edges; 
+    [src_edges,dst_edges]=this.getEdges(cg_edges);
+
+
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src",edges:src_edges/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst"/*, codetype: "code"*/});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges/*, codetype: "code"*/});
       //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges ,codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);

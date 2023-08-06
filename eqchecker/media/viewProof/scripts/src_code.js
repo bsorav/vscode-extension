@@ -1077,19 +1077,24 @@ function onRightClick(event) {
 
 function onLeftClick(event){
   console.log("left-clicked");
+
   codeEl = document.getElementById("code");
   var lineHeight = window.getComputedStyle(codeEl).getPropertyValue('line-height');
   lineHeight=lineHeight.replace('px', '');
   lineHeight = parseInt(lineHeight);
   lineHeight = parseFloat(lineHeight).toFixed(2);
+
+  var scrollY = window.scrollY-23; // -23 to adjust the padding at top
   const { clientX: mouseX, clientY: mouseY } = event;
-  var lineNumber = Math.ceil(mouseY / lineHeight);
+  var lineNumber = Math.ceil((mouseY+scrollY) / lineHeight);
   lineNumber = lineNumber.toString();
-  console.log("Line number="+lineNumber);
+
+
+
   if(current_codetype==="src"){
     console.log("edge is= "+JSON.stringify(code_line_edge_map[lineNumber]));
     if(code_line_edge_map[lineNumber]===undefined){
-      
+        vscode.postMessage({command:"show_line",edge:undefined});
     }
     else{
       var index=code_line_edge_map[lineNumber].index
@@ -1104,7 +1109,7 @@ function onLeftClick(event){
   }
   else if(current_codetype==="ir"){
     if(ir_line_edge_map[lineNumber]===undefined){
-
+      vscode.postMessage({command:"show_line",edge:undefined});
     }
     else{
       var index=ir_line_edge_map[lineNumber].index

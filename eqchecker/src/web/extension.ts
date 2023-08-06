@@ -1810,11 +1810,15 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               });
               break;
             case 'show_line':
-              console.log("Edge recieved = "+message.edge);
-              this.panel_post_message(panel_prd, {
-                command: "show_line",
-                edge: message.edge
-              });
+              if(message.edge===undefined){
+                vscode.window.showInformationMessage("Edge Corresponding to line not found.");
+              }
+              else{
+                this.panel_post_message(panel_prd, {
+                  command: "show_line",
+                  edge: message.edge
+                });
+              }
               break;
           }
         },
@@ -1858,10 +1862,15 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               });
               break;
             case 'show_line':
-              this.panel_post_message(panel_prd, {
-                command: "show_line",
-                edge: message.edge
-              });
+              if(message.edge===undefined){
+                vscode.window.showInformationMessage("Edge Corresponding to line not found.");
+              }
+              else{
+                this.panel_post_message(panel_prd, {
+                  command: "show_line",
+                  edge: message.edge
+                });
+              }
               break;
           }
         },

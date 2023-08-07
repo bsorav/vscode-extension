@@ -1017,6 +1017,11 @@ function showRightClickMenu(mouseX, mouseY) {
 
   rightClickMenu.style.display = "inline";
 
+  items[0].style.display ="block";
+  items[1].style.display ="block";
+  items[2].style.display ="block";
+  items[3].style.display ="block";
+
   var i = 0;
 
   if (curSyntaxType != "asm") {
@@ -1047,6 +1052,10 @@ function showRightClickMenu(mouseX, mouseY) {
       items[i].addEventListener('click', downloadLLVMIRListener);
       i++;
     }
+  }
+  while(i<4){
+    items[i].style.display = "none";
+    i++;
   }
 
   rightClickMenu.classList.add("visible");

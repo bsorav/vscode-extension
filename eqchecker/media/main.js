@@ -538,8 +538,8 @@ let currentlyShowingProofOfEqCheck;
       //boxWidth set in main.css
       var boxWidth= 100;
       startButtonRightClickMenu.style.top = `${mouseY}px`;
-      console.log(mouseX+ " "+ mouseY);
-        console.log("Visible Width= "+window.innerWidth+" Visible Height="+window.innerHeight);
+      // console.log(mouseX+ " "+ mouseY);
+      // console.log("Visible Width= "+window.innerWidth+" Visible Height="+window.innerHeight);
 
       if(width<=boxWidth+70){
         //For case when the user makes startButton Width less than boxWidth+70. 
@@ -568,6 +568,12 @@ let currentlyShowingProofOfEqCheck;
         item.removeEventListener('click', saveSessionListener);
         item.removeEventListener('click', loadSessionListener);
       }
+
+      items[0].style.display = "block";
+      items[1].style.display = "block";
+      items[2].style.display = "block";
+      items[3].style.display = "block";
+      items[4].style.display = "block";
 
       if (anyEqcheckInViewStateViewProof()) {
         items[0].innerHTML = 'Hide Proof';
@@ -706,6 +712,12 @@ let currentlyShowingProofOfEqCheck;
         items[2].innerHTML = '';
         items[3].innerHTML = '';
         items[4].innerHTML = '';
+        
+        items[0].style.display = "block";
+        items[1].style.display = "block";
+        items[2].style.display = "block";
+        items[3].style.display = "block";
+        items[4].style.display = "block";
 
         eqcheckRightClickMenu.style.display = "inline";
 

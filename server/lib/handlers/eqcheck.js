@@ -51,7 +51,8 @@ const prepareSuffix = "/prepare";
 const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
 const rewritten_prefix = "rewritten.";
-const defaultQuotaForNewUser = 10;
+
+var defaultQuotaForNewUser = 10;
 
 function def(a) {
   return (a === undefined) ? "undef" : "def";
@@ -98,11 +99,14 @@ function initialise(/*compilerEnv*/) {
 }
 
 class EqcheckHandler {
-    constructor(hostname, port, superoptInstall/*, codeAnalysisURL*/) {
+    constructor(hostname, port, superoptInstall, defaultEqcheckQuota) {
         this.compilersById = {};
         this.hostname = hostname;
         this.port = port;
         this.superoptInstall = superoptInstall;
+        if (defaultEqcheckQuota !== undefined) {
+          defaultQuotaForNewUser = defaultEqcheckQuota;
+        }
         //this.codeAnalysisURL = codeAnalysisURL;
         //this.compilerEnv = compilationEnvironment;
         this.factories = {};
@@ -584,7 +588,7 @@ class EqcheckHandler {
             }
 
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
-            const unroll = ['-unroll-factor', unrollFactor];
+            const unroll = ['-unroll-factor', 16];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
             var dryRunArg = [];
             if (commandIn === commandPrepareEqcheck) {
@@ -1197,9 +1201,10 @@ class EqcheckHandler {
         const basename = path.basename(filename);
         const untar_dirname = basename.substr(0, basename.length - tarSuffix.length);
         //fs.writeFileSync(pathname, contents);
-        await tar.x({ file: tarFilename, sync: true, cwd: dirName  });
-
-        return dirName + "/" + untar_dirname;
+        if (fs.existsSync(tarFilename)) {
+          await tar.x({ file: tarFilename, sync: true, cwd: dirName  });
+          return dirName + "/" + untar_dirname;
+        }
       }
       return undefined;
     }
@@ -1418,14 +1423,27 @@ class EqcheckHandler {
         const src_files = await this.getSrcFiles(dirPathIn);
         const dst_files = await this.getDstFiles(dirPathIn);
 
+        const runStatus = await this.getRunningStatus(dirPathIn);
+        const src_code_filename = runStatus.running_status.src_filename;
+        const src_ir_filename = runStatus.running_status.src_ir_filename;
+        var dst_code_filename = runStatus.running_status.dst_filename;
+        const dst_ir_filename = runStatus.running_status.dst_ir_filename;
+
+        var dst_code;
         const src_code = (src_files.src === undefined) ? undefined : (await this.readBuffer(src_files.src)).toString();
         const src_ir = (src_files.ir === undefined) ? undefined : (await this.readBuffer(src_files.ir)).toString();
-        const dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
+        if(dst_files.dst!==undefined){
+            if(dst_files.dst.endsWith('.s')){
+              dst_files.dst+='.o';
+              dst_code_filename[0]+='.o';
+            }
+        }
+        dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
         const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
@@ -1535,11 +1553,13 @@ class EqcheckHandler {
         const ssdir = await this.savedSessionsDir();
         const sessionFile = path.join(ssdir, sessionName);
         var response = fs.readFile(sessionFile, 'utf8', function(err, data) {
+          var eqchecks = [];
           if (err) {
             console.log(`Could not load from ${sessionFile}: ${err}`);
-          }
+          } else {
           //console.log(`data = ${data}`);
-          const eqchecks = JSON.parse(data);
+            eqchecks = JSON.parse(data);
+          }
           console.log(`Number of eqchecks = ${eqchecks.length}`);
           const chunkStr = JSON.stringify({eqchecks: eqchecks});
           res.end(chunkStr);

@@ -7,6 +7,10 @@ const vscode = acquireVsCodeApi();
 
 var code = null;
 var ir = null;
+var obj = null;
+var code_filename;
+var ir_filename;
+var obj_filename;
 var current_codetype = "src";
 var curSyntaxType = null;
 var current_highlight_message = null;
@@ -913,11 +917,15 @@ window.addEventListener('message', async event => {
         case "data": {
             code = message.code + "\n.";
             ir = message.ir;
+            obj = message.obj;
+            code_filename = message.code_filename;
+            ir_filename = message.ir_filename;
+            obj_filename = message.obj_filename;
             curSyntaxType = message.syntax_type;
             current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
             [code_line_edge_map,ir_line_edge_map]=constructEdgeLineMap(message.edges,message.eqcheck_info,message.tfg,message.srcdst);
-            console.log("codeLinesEdgeMap = "+ JSON.stringify(code_line_edge_map));
-            console.log("irLinesEdgeMap = "+ JSON.stringify(ir_line_edge_map));
+            // console.log("codeLinesEdgeMap = "+ JSON.stringify(code_line_edge_map));
+            // console.log("irLinesEdgeMap = "+ JSON.stringify(ir_line_edge_map));
             break;
         }
         case "load": {
@@ -935,31 +943,20 @@ window.addEventListener('message', async event => {
 
 vscode.postMessage({command:"loaded"});
 
-function download(filename, text) {
-  var element = document.createElement('a');
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-  element.setAttribute('download', filename);
-
-  element.style.display = 'none';
-  document.body.appendChild(element);
-
-  console.log(`clicking element`);
-  element.click();
-  console.log(`clicked element`);
-
-  document.body.removeChild(element);
-}
 
 function downloadObjectListener(evt) {
   console.log('downloadObjectListener called');
+  if(obj !==undefined){
+    vscode.postMessage({command:"download",type:"obj",content:obj,filename: obj_filename});
+  }
   hideRightClickMenu();
-  download("object", "data");
+  
 };
 
 function downloadAssemblyListener(evt) {
   console.log('downloadAssemblyListener called');
   if(code !==undefined){
-    vscode.postMessage({command:"download",type:"asm",content:code});
+    vscode.postMessage({command:"download",type:"asm",content:code,filename: code_filename});
   }
   hideRightClickMenu();
 };
@@ -968,7 +965,7 @@ function downloadAssemblyListener(evt) {
 async function downloadSourceListener(evt) {
   console.log('downloadSourceListener called');
   if(code !==undefined){
-    vscode.postMessage({command:"download",type:"source",content:code});
+    vscode.postMessage({command:"download",type:"source",content:code, filename: code_filename});
   }
   hideRightClickMenu();
 };
@@ -976,7 +973,7 @@ async function downloadSourceListener(evt) {
 function downloadLLVMIRListener(evt) {
   console.log('downloadLLVMIRListener called');
   if(ir!==undefined){
-    vscode.postMessage({command:"download",type:"llvmIr",content: ir});
+    vscode.postMessage({command:"download",type:"llvmIr",content: ir,filename: ir_filename});
   }
   hideRightClickMenu();
 };
@@ -1092,7 +1089,6 @@ function onLeftClick(event){
 
 
   if(current_codetype==="src"){
-    console.log("edge is= "+JSON.stringify(code_line_edge_map[lineNumber]));
     if(code_line_edge_map[lineNumber]===undefined){
         vscode.postMessage({command:"show_line",edge:undefined});
     }

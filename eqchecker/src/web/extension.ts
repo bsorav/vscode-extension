@@ -1539,8 +1539,11 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   return "";
   }
 
-  async showSaveDialog(type,content){
+  async showSaveDialog(type,content,filename){
     var currentDirectory = this.getCurrentFolderPath();
+    if(filename!==undefined){
+      currentDirectory+="/"+filename;
+    }
     
     var options: vscode.SaveDialogOptions = {
       defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
@@ -1548,11 +1551,18 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       filters: { 'C files': ['c'], 'All files': ['*'] },
     };
 
-    if(type=="asm"){
+    if(type==="asm"){
       options = {
         defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
         saveLabel: 'Save', // The label for the save button
         filters: { 'Assembly files': ['s'], 'All files': ['*'] }, // Set default file extension to .s
+      };
+    }
+    else if(type==="obj"){
+      options = {
+        defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+        saveLabel: 'Save', // The label for the save button
+        filters: { 'Object files': ['o'], 'All files': ['*'] }, // Set default file extension to .s
       };
     }
     else if(type ==="llvmIr"){
@@ -1613,8 +1623,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const src_code = proof_response.src_code;
     //console.log(`src_code = ${src_code}\n`);
     const dst_code = proof_response.dst_code;
+
+    const src_code_filename = proof_response.src_code_filename[0].split("/")[1];
+    const dst_code_filename = proof_response.dst_code_filename[0].split("/")[1];
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
+
+    const src_ir_filename = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir_filename[0].split("/")[1];
+    const dst_ir_filename = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir_filename[0].split("/")[1];
+
+    
+
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
@@ -1800,7 +1819,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               //vscode.window.showErrorMessage(message.text);
               break;
             case 'download':
-              this.showSaveDialog(message.type,message.content);
+              this.showSaveDialog(message.type,message.content,message.filename);
               break;
             case 'switch_codetype':
               this.panel_post_message(panel_prd, {
@@ -1852,7 +1871,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               //vscode.window.showErrorMessage(message.text);
               break;
             case 'download':
-              this.showSaveDialog(message.type,message.content);
+              this.showSaveDialog(message.type,message.content,message.filename);
               break;
             case 'switch_codetype':
               this.panel_post_message(panel_prd, {
@@ -1910,16 +1929,16 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
 
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src",edges:src_edges/*, codetype: "code"*/});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, code_filename:src_code_filename, ir: src_ir,ir_filename: src_ir_filename,syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src",edges:src_edges/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges/*, codetype: "code"*/});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code,code_filename : dst_code_filename ,ir: dst_ir,ir_filename: dst_ir_filename,syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges/*, codetype: "code"*/});
       //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges ,codetype: "code"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly,obj: dst_code, obj_filename: dst_code_filename ,syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges ,codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);

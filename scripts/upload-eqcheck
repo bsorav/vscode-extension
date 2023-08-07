@@ -13,8 +13,9 @@ const { resolve } = require('path');
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
-const defaultProtocol = 'http';  //https
-const defaultServer = 'localhost'; //vayu.cse.iitd.ac.in
+const defaultProtocol = 'https';  //http
+const defaultServer = 'vayu.cse.iitd.ac.in'; //zazu.cse.iitd.ac.in
+const defaultDirOnServer = '/nfs/sbansal'; //'/tmp'
 const defaultPort = '80';
 const commandSaveSession = 'saveSession';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';
@@ -201,11 +202,11 @@ async function cleanAndBundleDir(dir, passingOnly)
 
 async function uploadFile(filenameOnClient)
 {
-  const dirOnServer = "/tmp";
+  const dirOnServer = defaultDirOnServer;
   console.log(`filenameOnClient = ${filenameOnClient}`);
   console.log(`server = ${server}`);
   console.log(`dirOnServer = ${dirOnServer}`);
-  var executor = child_process.spawnSync("/usr/bin/scp", [filenameOnClient, `eqcheck@${server}:${dirOnServer}`]);
+  var executor = child_process.spawnSync("/usr/bin/scp", [filenameOnClient, `sbansal@${server}:${dirOnServer}`]);
   console.log(`executed scp command`);
   //console.log(`executor = ${JSON.stringify(executor)}`);
   /*executor.stdout.on('end', function(data) {

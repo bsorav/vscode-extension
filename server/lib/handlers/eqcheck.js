@@ -588,7 +588,7 @@ class EqcheckHandler {
             }
 
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
-            const unroll = ['-unroll-factor', unrollFactor];
+            const unroll = ['-unroll-factor', 16];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
             var dryRunArg = [];
             if (commandIn === commandPrepareEqcheck) {
@@ -1459,9 +1459,22 @@ class EqcheckHandler {
         const src_files = await this.getSrcFiles(dirPathIn);
         const dst_files = await this.getDstFiles(dirPathIn);
 
+        const runStatus = await this.getRunningStatus(dirPathIn);
+        const src_code_filename = runStatus.running_status.src_filename;
+        const src_ir_filename = runStatus.running_status.src_ir_filename;
+        var dst_code_filename = runStatus.running_status.dst_filename;
+        const dst_ir_filename = runStatus.running_status.dst_ir_filename;
+
+        var dst_code;
         const src_code = (src_files.src === undefined) ? undefined : (await this.readBuffer(src_files.src)).toString();
         const src_ir = (src_files.ir === undefined) ? undefined : (await this.readBuffer(src_files.ir)).toString();
-        const dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
+        if(dst_files.dst!==undefined){
+            if(dst_files.dst.endsWith('.s')){
+              dst_files.dst+='.o';
+              dst_code_filename[0]+='.o';
+            }
+        }
+        dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
         const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
         
         const tfg_file = src_files.etfg;
@@ -1475,7 +1488,7 @@ class EqcheckHandler {
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, vir: src_vir});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename, vir: src_vir});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;

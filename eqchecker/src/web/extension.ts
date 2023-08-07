@@ -9,7 +9,7 @@ import * as fs from 'fs'
 //import * as path from 'path';
 
 //const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
-const defaultServerURL = 'http://localhost:80';
+const defaultServerURL = 'http://zazu.cse.iitd.ac.in:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -206,6 +206,20 @@ function matchEqCheckMenuEntries(e1 : eqcheckMenuEntry , e2 :eqcheckMenuEntry){
         return true;
       }
       return false;
+}
+
+async function writeToFile(path,content){
+  try {
+    if(content.charAt(content.length-1)==='.'){
+      content = content.substr(0,content.length-1);
+    }
+    const uri = vscode.Uri.file(path);
+    const bytes = new TextEncoder().encode(content);
+    await vscode.workspace.fs.writeFile(uri, bytes);
+    //console.log('Content written to the file successfully!');
+  } catch (error) {
+    //console.error('Error writing to file:', error);
+  }
 }
 
 class SearchTreeNode {
@@ -844,8 +858,16 @@ class Eqchecker {
         eqcheckPair = await Eqchecker.openSourceFiles();
       }
        else {
+        var index = 0;
         eqcheckPair = eqcheckPairs[result];
-        recentlyUsedEntries.unshift(eqcheckPair);
+        var arr = []
+        for(const e of recentlyUsedEntries){
+          if(!matchEqCheckMenuEntries(e,eqcheckPair)){
+            arr.push(e);
+          }
+        }
+        arr.unshift(eqcheckPair);
+        recentlyUsedEntries =arr;
       }
       console.log(`eqcheckPair = ${JSON.stringify(eqcheckPair)}\n`);
       if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
@@ -1134,6 +1156,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private proof_panels;
   private scanview_panel;
+  private hideProofPressed;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -1223,10 +1246,13 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     <html>
     <head>
       ${style}
-        <script type="module" src=${script}></script>
-        <link rel="stylesheet" href=${index_css}>
-        <script type="module" src=${prism_script}></script>
-        <link rel="stylesheet" href=${prism_css}>
+      <script type="module" src=${script}></script>
+      <link rel="stylesheet" href=${index_css}>
+      <script type="module" src=${prism_script}></script>
+      <link rel="stylesheet" href=${prism_css}>
+      <script type="module" src=${prism_ln_script}></script>
+      <link rel="stylesheet" href=${prism_ln_css}>
+      <script type="module" src=${prism_nasm_script}></script>
         <script>
           function zoomIn() {
             var content = document.getElementById("content");
@@ -1256,7 +1282,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         </div>
         <div id="content">
             <div class="code-container" style="display:block;">
-                <pre id="pre-code" ><code id="code" class="language-clike"></code></pre>
+                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
             <div id="right-click-menu">
@@ -1293,6 +1319,8 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href=${index_css}>
         <script type="module" src=${prism_script}></script>
         <link rel="stylesheet" href=${prism_css}>
+        <script type="module" src=${prism_ln_script}></script>
+        <link rel="stylesheet" href=${prism_ln_css}>
         <script type="module" src=${prism_nasm_script}></script>
         <script>
           function zoomIn() {
@@ -1300,6 +1328,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
             content.style.zoom = currentZoom + 0.25;
+            console.log("zoom is"+content.style.zoom);
             zoom.innerHTML=JSON.stringify((currentZoom+0.25)*100)+"%";
           }
 
@@ -1307,8 +1336,10 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
             var content = document.getElementById("content");
             var zoom = document.getElementById("zoom_percent");
             var currentZoom = parseFloat(content.style.zoom) || 1;
+            console.log("zoomOut called");
             if(Math.abs(currentZoom - 0.25) > 1e-9){
               content.style.zoom = currentZoom - 0.25;
+              console.log("zoom is "+content.style.zoom);
               zoom.innerHTML=JSON.stringify((currentZoom-0.25)*100)+"%";
             }
           }
@@ -1323,9 +1354,15 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         </div>
         <div id="content">
             <div class="code-container" style="display:block;">
-                <pre id="pre-code"><code id="code" class="language-clike"></code></pre>
+                <pre id="pre-code" class="line-numbers"><code id="code" class="language-clike"></code></pre>
             </div>
             <canvas id="canvas" style="position: absolute;"></canvas>
+            <div id="right-click-menu">
+            <div id="RightClickMenuItem1" class="item"></div>
+            <div id="RightClickMenuItem2" class="item"></div>
+            <div id="RightClickMenuItem3" class="item"></div>
+            <div id="RightClickMenuItem4" class="item"></div>
+            </div>
         </div>
     </body>
     </html>`;
@@ -1386,7 +1423,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     if(this.proof_panels === undefined){
       this.sendAllPanelsClosedMessage();
     }
-    else{
+    else if(!this.hideProofPressed){
       this.sendPanelClosedMessage();
     }
   }
@@ -1521,24 +1558,120 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     return [panel_prd, panel_src_code, panel_dst_code, panel_src_ir, panel_dst_ir];
   }
 
+  getCurrentFolderPath(){
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    // Get the first workspace folder (you can handle multiple folders if needed)
+    const currentFolder = workspaceFolders[0];
+    return currentFolder.uri.fsPath;
+  }
+  return "";
+  }
+
+  async showSaveDialog(type,content,filename){
+    var currentDirectory = this.getCurrentFolderPath();
+    if(filename!==undefined){
+      currentDirectory+="/"+filename;
+    }
+    
+    var options: vscode.SaveDialogOptions = {
+      defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+      saveLabel: 'Save', // The label for the save button
+      filters: { 'C files': ['c'], 'All files': ['*'] },
+    };
+
+    if(type==="asm"){
+      options = {
+        defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+        saveLabel: 'Save', // The label for the save button
+        filters: { 'Assembly files': ['s'], 'All files': ['*'] }, // Set default file extension to .s
+      };
+    }
+    else if(type==="obj"){
+      options = {
+        defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+        saveLabel: 'Save', // The label for the save button
+        filters: { 'Object files': ['o'], 'All files': ['*'] }, // Set default file extension to .s
+      };
+    }
+    else if(type ==="llvmIr"){
+      options = {
+        defaultUri: vscode.Uri.file(currentDirectory), // Set the default directory
+        saveLabel: 'Save', // The label for the save button
+        filters: { 'IR files': ['ir'], 'All files': ['*'] }, // Set default file extension to .ir
+      };
+    }
+    const result = await vscode.window.showSaveDialog(options);
+  
+    if (result) {
+      const path = result.fsPath;
+      await writeToFile(path,content);
+      return path; // Return the selected file path
+    }
+    return undefined; // User canceled the dialog
+  }
+
+  getEdgeId(from_pc, to_pc)
+{
+  return `${from_pc} -> ${to_pc}`;
+}
+
+  getEdges(cg_edges){
+    var src_edgeMap = {};
+    var dst_edgeMap = {};
+    cg_edges.forEach(element => {
+      const from_pc = element.from_pc;
+      const to_pc = element.to_pc;
+  
+      const edgeId = this.getEdgeId(from_pc, to_pc);
+      //const entry = { from_pc: from_pc, to_pc: to_pc, dst_edge: dst_entry, src_edge: src_entry };
+      const src_entry = { from_pc: from_pc, to_pc: to_pc, edge: element.src_edge, allocs: element.allocs, deallocs: element.deallocs };
+      src_edgeMap[edgeId] = src_entry;
+
+      const dst_entry = { from_pc: from_pc, to_pc: to_pc, edge: element.dst_edge, allocs: element.allocs, deallocs: element.deallocs };
+      dst_edgeMap[edgeId] = dst_entry;
+      //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
+    });
+
+    return [src_edgeMap,dst_edgeMap];
+  }
+
+  mk_array(x) {
+    if (x === undefined) return [];
+    else if (Array.isArray(x)) return x;
+    else return [x];
+  }
+
   async viewProductCFG(webview: vscode.Webview, dirPath: string, correl_entry_filename: string)
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath, correl_entry_filename);
+    console.log("proof_response="+JSON.stringify(proof_response));
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
     //console.log(`src_code = ${src_code}\n`);
     const dst_code = proof_response.dst_code;
+
+    const src_code_filename = proof_response.src_code_filename[0].split("/")[1];
+    const dst_code_filename = proof_response.dst_code_filename[0].split("/")[1];
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
     const vir = (proof_response.vir === undefined) ? undefined : proof_response.vir;
     //console.log("eqcheckViewProof vir = ", vir);
+
+    const src_ir_filename = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir_filename[0].split("/")[1];
+    const dst_ir_filename = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir_filename[0].split("/")[1];
+
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
     const graph_hierarchy = correl_entry["cg"];
     const corr_graph = graph_hierarchy["corr_graph"];
+    const cg_collapsed_nodes_and_edges = corr_graph["collapsed_nodes_and_edges_for_gui"];
+    const cg_edges_ = cg_collapsed_nodes_and_edges["collapsed_edge"];
+    const cg_edges = this.mk_array(cg_edges_);
+
     const src_tfg = corr_graph["src_tfg"];
     const dst_tfg = corr_graph["dst_tfg"];
 
@@ -1598,6 +1731,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //let panel_src_ir_loaded = (panel_src_ir === undefined);
     //let panel_dst_ir_loaded = (panel_dst_ir === undefined);
 
+    
     // Handle messages from the webview
     if (panel_prd !== undefined) {
       panel_prd.webview.onDidReceiveMessage(
@@ -1609,46 +1743,60 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               //vscode.window.showErrorMessage(message.text);
               break;
             case "highlight":
-              this.panel_post_message(panel_src_code, {
-                command: "highlight",
-                path: message.edge.src_edge,
-                tfg: message.src_tfg,
-                eqcheck_info: message.eqcheck_info,
-                srcdst: "src",
-                codetype: "code"
-                //subprogram_info: message.src_subprogram_info,
-                //nodeMap: message.src_nodeMap
-              });
-              this.panel_post_message(panel_src_ir, {
-                command: "highlight",
-                path: message.edge.src_edge,
-                tfg: message.src_tfg,
-                eqcheck_info: message.eqcheck_info,
-                srcdst: "src",
-                codetype: "ir"
-                //subprogram_info: message.src_ir_subprogram_info,
-                //nodeMap: message.src_ir_nodeMap
-              });
-              this.panel_post_message(panel_dst_code, {
-                command: "highlight",
-                path: message.edge.dst_edge,
-                tfg: message.dst_tfg,
-                eqcheck_info: message.eqcheck_info,
-                srcdst: "dst",
-                codetype: "code"
-                //subprogram_info: message.dst_subprogram_info,
-                //nodeMap: message.dst_nodeMap
-              });
-              this.panel_post_message(panel_dst_ir, {
+              if(message.node_edge=="edge"){
+                this.panel_post_message(panel_src_code, {
                   command: "highlight",
+                  node_edge: "edge",
+                  path: message.edge.src_edge,
+                  tfg: message.src_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "src"
+                  //subprogram_info: message.src_subprogram_info,
+                  //nodeMap: message.src_nodeMap
+                });
+
+                this.panel_post_message(panel_dst_code, {
+                  command: "highlight",
+                  node_edge: "edge",
                   path: message.edge.dst_edge,
                   tfg: message.dst_tfg,
                   eqcheck_info: message.eqcheck_info,
-                  srcdst: "dst",
-                  codetype: "ir"
-                  //subprogram_info: message.dst_ir_subprogram_info,
-                  //nodeMap: message.dst_ir_nodeMap
-              });
+                  srcdst: "dst"
+                  //subprogram_info: message.dst_subprogram_info,
+                  //nodeMap: message.dst_nodeMap
+                });
+
+              }
+              else{
+                var src_node = message.node["src_node"];
+                src_node.label = message.node.label;
+                this.panel_post_message(panel_src_code, {
+                  command: "highlight",
+                  node_edge: "node",
+                  node: src_node,
+                  tfg: message.src_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "src"
+                  //subprogram_info: message.src_subprogram_info,
+                  //nodeMap: message.src_nodeMap
+                });
+
+                var dst_node = message.node["dst_node"];
+                dst_node.label = message.node.label;
+                this.panel_post_message(panel_dst_code, {
+                  command: "highlight",
+                  node_edge: "node",
+                  node: dst_node,
+                  tfg: message.dst_tfg,
+                  eqcheck_info: message.eqcheck_info,
+                  srcdst: "dst"
+                  //subprogram_info: message.dst_subprogram_info,
+                  //nodeMap: message.dst_nodeMap
+                });
+
+                //console.log("node= "+JSON.stringify(message.node));
+
+              }
               break;
             case "clear":
               this.panel_post_message(panel_src_code, {
@@ -1699,6 +1847,27 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               panel_src_code_loaded = true;
               //vscode.window.showErrorMessage(message.text);
               break;
+            case 'download':
+              this.showSaveDialog(message.type,message.content,message.filename);
+              break;
+            case 'switch_codetype':
+              this.panel_post_message(panel_prd, {
+                command: "switch_codetype",
+                srcdst: "src",
+                codetype: message.codetype
+              });
+              break;
+            case 'show_line':
+              if(message.edge===undefined){
+                vscode.window.showInformationMessage("Edge Corresponding to line not found.");
+              }
+              else{
+                this.panel_post_message(panel_prd, {
+                  command: "show_line",
+                  edge: message.edge
+                });
+              }
+              break;
           }
         },
         undefined,
@@ -1722,13 +1891,34 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //}
 
     if (panel_dst_code !== undefined) {
-      panel_dst_code.webview.onDidReceiveMessage(
+       panel_dst_code.webview.onDidReceiveMessage(
         message => {
           switch (message.command) {
             case 'loaded':
               //console.log("dst-code panel loaded.\n");
               panel_dst_code_loaded = true;
               //vscode.window.showErrorMessage(message.text);
+              break;
+            case 'download':
+              this.showSaveDialog(message.type,message.content,message.filename);
+              break;
+            case 'switch_codetype':
+              this.panel_post_message(panel_prd, {
+                command: "switch_codetype",
+                srcdst: "dst",
+                codetype: message.codetype
+              });
+              break;
+            case 'show_line':
+              if(message.edge===undefined){
+                vscode.window.showInformationMessage("Edge Corresponding to line not found.");
+              }
+              else{
+                this.panel_post_message(panel_prd, {
+                  command: "show_line",
+                  edge: message.edge
+                });
+              }
               break;
           }
         },
@@ -1757,20 +1947,27 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
     //console.log("Posted proof to panel_prd\n");
 
+    this.panel_post_message(panel_prd,{command: 'getEdges'});
+
+    
     const src_ec = correl_entry["src_ec"];
     const dst_ec = correl_entry["dst_ec"];
 
+    let src_edges,dst_edges; 
+    [src_edges,dst_edges]=this.getEdges(cg_edges);
+
+
     //console.log("Posting src_code to panel_src_code. src_code = \n" + src_code);
-    this.panel_post_message(panel_src_code, {command: "data", code:src_code, ir: src_ir, vir:vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src"/*, codetype: "code"*/});
+    this.panel_post_message(panel_src_code, {command: "data", code:src_code, code_filename:src_code_filename, ir: src_ir,ir_filename: src_ir_filename, vir: vir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src",edges:src_edges/*, codetype: "code"*/});
 
     //console.log("Posting src_ir to panel_src_ir. src_ir = \n" + src_ir);
     //this.panel_post_message(panel_src_ir, {command: "data", code:src_ir, syntax_type: "c/llvm", path: src_ec, tfg: src_tfg, eqcheck_info: eqcheck_info, srcdst: "src", codetype: "ir"});
 
     if (dst_assembly === "") {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code, ir: dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst"/*, codetype: "code"*/});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_code,code_filename : dst_code_filename ,ir: dst_ir,ir_filename: dst_ir_filename,syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges/*, codetype: "code"*/});
       //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly, syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "code"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly,obj: dst_code, obj_filename: dst_code_filename ,syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst",edges:dst_edges ,codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);
@@ -1973,8 +2170,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           // [HACK] Call viewProductCFG twice to fix click/hover bug
           await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           // [HACK] Call viewProductCFG twice to fix click/hover bug
-          await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
+          //await this.viewProductCFG(webviewView.webview, data.eqcheck.dirPath, undefined);
           //console.log(`new_panels = ${JSON.stringify(new_panels)}\n`);
+          this.hideProofPressed=false;
 
           //this.proof_panels = new_panels;
           //console.log(`ViewProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
@@ -1985,17 +2183,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           //console.log(`HideProof received. data.eqcheck.dirPath = ${data.eqcheck.dirPath}\n`);
           //console.log(`HideProof received. this.panels = ${JSON.stringify(this.panels)}\n`);
           //console.log(`HideProof received. this.panels[data.eqcheck.dirPath].length = ${this.panels[data.eqcheck.dirPath].length}\n`);
+          this.hideProofPressed=true;
           const panel = this.proof_panels;
           if (panel !== undefined) {
+            
             panel.prd.dispose();
             panel.src_code.dispose();
             panel.dst_code.dispose();
-            if (panel.src_ir !== undefined) {
-              panel.src_ir.dispose();
-            }
-            if (panel.dst_ir !== undefined) {
-              panel.dst_ir.dispose();
-            }
+            // if (panel.src_ir !== undefined) {
+            //   panel.src_ir.dispose();
+            // }
+            // if (panel.dst_ir !== undefined) {
+            //   panel.dst_ir.dispose();
+            // }
             this.proof_panels = undefined;
           }
           break;

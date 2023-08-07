@@ -853,8 +853,16 @@ class Eqchecker {
         eqcheckPair = await Eqchecker.openSourceFiles();
       }
        else {
+        var index = 0;
         eqcheckPair = eqcheckPairs[result];
-        recentlyUsedEntries.unshift(eqcheckPair);
+        var arr = []
+        for(const e of recentlyUsedEntries){
+          if(!matchEqCheckMenuEntries(e,eqcheckPair)){
+            arr.push(e);
+          }
+        }
+        arr.unshift(eqcheckPair);
+        recentlyUsedEntries =arr;
       }
       console.log(`eqcheckPair = ${JSON.stringify(eqcheckPair)}\n`);
       if (await Eqchecker.addEqcheck(eqcheckPair) === true) {

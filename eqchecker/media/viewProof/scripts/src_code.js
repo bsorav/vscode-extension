@@ -1,16 +1,22 @@
 //import { highlightPathInCode, clearCanvas} from "./utils.js";
 import {Node, angleFromXAxis, coordAtDist} from "./graphics.js";
 import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
-import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info/*,get_src_dst_node_map,get_ir_node_map*/,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc} from "./tfg.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info/*,get_src_dst_node_map,get_ir_node_map*/,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc,} from "./tfg.js";
 
 const vscode = acquireVsCodeApi();
 
 var code = null;
 var ir = null;
 var vir = null;
+var obj = null;
+var code_filename;
+var ir_filename;
+var obj_filename;
 var current_codetype = "src";
 var curSyntaxType = null;
 var current_highlight_message = null;
+
+var code_line_edge_map , ir_line_edge_map
 
 var codeEl = document.getElementById("code");
 //codeEl.innerHTML = "";
@@ -29,6 +35,7 @@ const minCanvasTop = 20;
 const canvasTopOffset = 4;
 const canvasLeftOffset = 2;
 
+var lastTapTime;
 var curCanvasTop;
 
 function setupCanvas(){
@@ -57,13 +64,17 @@ function setupCanvas(){
       startY = event.clientY;
     };
 
-    canvas.addEventListener('mousedown', function(event) {
-      startX = event.clientX;
-      startY = event.clientY;
+    // canvas.addEventListener('mousedown', function(event) {
+    //   startX = event.clientX;
+    //   startY = event.clientY;
 
-      hideRightClickMenu();
-      document.addEventListener('mousemove', onMouseMove);
-    });
+    //   hideRightClickMenu();
+    //   document.addEventListener('mousemove', onMouseMove);
+    // });
+
+    document.removeEventListener('click',onLeftClick);
+
+    document.addEventListener('click', onLeftClick);
 
     document.addEventListener('mouseup', function(event) {
       document.removeEventListener('mousemove', onMouseMove);
@@ -77,22 +88,29 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
 {
   //let canvas = document.getElementById("canvas");
   let styles = window.getComputedStyle(document.getElementById("code"));
-  let deltaY = styles.lineHeight.replace("px", "") * 1;
-  let deltaX = styles.fontSize.replace("px", "") * 1 * 3/7;
 
   //const [entryX, entryY, exitX, exitY] = [1, subprogram_info.scope_line, 1, canvas.height / deltaY];
 
   if (pc === 'L0%0%d' && codetype != "ir") {
-    const entryY = subprogram_info === undefined ? undefined : subprogram_info.scope_line;
-
+    var entryY = subprogram_info === undefined ? undefined : subprogram_info.scope_line;
+    if(curSyntaxType==="asm"){
+      entryY = parseInt(entryY)+1;
+      entryY = entryY.toString();
+    }
     return { type: "entry", pc: pc, y: entryY, x: entryNodeX };
   } else if (pc.charAt(0) === 'L') {
     if (nodeMap[pc] === undefined) {
       console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
       console.log(`pc = ${pc}`);
     }
-    const linename = nodeMap[pc].linename;
+    
+    var linename = nodeMap[pc].linename;
     const columnname = nodeMap[pc].columnname;
+    if(curSyntaxType==="asm"){
+      linename = parseInt(linename)+1;
+      linename=linename.toString();
+    }
+    //console.log(linename);
     return { type: "L", pc: pc, x: columnname, y: linename, unroll: pc_unroll.unroll };
   } else {
     return { type: "exit", pc: pc };
@@ -149,6 +167,8 @@ function mk_array(x) {
   else return [x];
 }
 
+
+
 function add_to_nodeMap(nodeMap, codetype, pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map)
 {
   if (nodeMap[pc] === undefined) {
@@ -185,7 +205,7 @@ function getNodesEdgesFromPath(path, codetype, subprogram_info, tfg_llvm, tfg_as
     //console.log(`ec =\n${JSON.stringify(ec)}\n`);
     const from_pc = edge_id.from_pc;
     const to_pc = edge_id.to_pc;
-    var linename, columnname, line_and_column_names, insn_pc;
+
     add_to_nodeMap(graph_ec.nodeMap, codetype, from_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
     add_to_nodeMap(graph_ec.nodeMap, codetype, to_pc, tfg_llvm, tfg_asm, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
 
@@ -236,6 +256,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
     [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
   }
 
+
   var is_source_code = false;
   if (tfg_llvm !== undefined && codetype != "ir") {
     is_source_code = true;
@@ -257,7 +278,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   const NODES = graph_ec.nodes;
   const nodeMap = graph_ec.nodeMap;
   const is_epsilon = graph_ec.is_epsilon;
-
+  //console.log(`nodeMap =${JSON.stringify(nodeMap)}`);
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap, codetype);
   NODES.push(from_pc_xy);
 
@@ -301,6 +322,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
     canvas.style.top = curCanvasTop + "px";
   }
 
+
   if (is_epsilon) {
     //console.log(`${curSyntaxType}: is_epsilon: calling drawPointOnNode with from_pc_xy = ${JSON.stringify(from_pc_xy)}`);
     drawPointOnNode(canvas, ctx, from_pc_xy, "stays still", undefined, undefined, true, true);
@@ -330,7 +352,9 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);
 
   //window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
-  scroll(0, topNode);
+  var content = document.getElementById("content");
+  var currentZoom = parseFloat(content.style.zoom) || 1;
+  scroll(0, topNode*currentZoom);
 }
 
 function canvasRelativeY(canvas, abs_y)
@@ -441,7 +465,7 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc)
+function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_start_pc, is_stop_pc,highlight_node=false)
 {
     //node = node.split("_");
     //console.log(`drawPointOnNode: node=${JSON.stringify(node)}, unroll ${unroll}\n`);
@@ -476,6 +500,9 @@ function drawPointOnNode(canvas, ctx, node, text, unroll, unroll_is_only_mu, is_
         drawText(canvas, ctx, x, y, prefix_to_unroll + unroll, 22, textcolor);
     } else {
         color = "rgb(255, 0, 0)";
+        if(highlight_node){
+          color = "rgb(0,255,0)";
+        }
         drawNode(canvas, ctx, x1, y1, 3, color, is_start_pc, is_stop_pc);
     }
     if (text !== undefined) {
@@ -645,6 +672,67 @@ function drawEdgeBetweenPoints(canvas, ctx, node1, node2, is_fallthrough, is_sou
     }
 }
 
+function highlightNodeInCode(canvas, ctx, codeEl, node, eqcheck_info, tfg, srcdst, codetype){
+  if (node === undefined) {
+    return;
+  }
+  scroll(0, 0);
+
+  const styles = window.getComputedStyle(codeEl);
+  const deltaY = parseInt(styles.getPropertyValue("line-height"));
+
+  codeEl = document.getElementById("code");;
+  let rect = codeEl.getBoundingClientRect();
+
+  let topNode = rect.height*1;
+
+  var ypx;
+  if(codetype=="src"){
+    ypx = Math.max(0, (node.linename * 1 - 5) * deltaY);
+  }
+  else{
+    ypx = ypx = Math.max(0, (node.ir_linename * 1 - 5) * deltaY);
+  }
+  topNode = Math.max(0,ypx);
+
+  const newCanvasHeight = 2*deltaY + 2*canvasMarginY*deltaY;
+  const newCanvasTop = Math.max(minCanvasTop, topNode - canvasMarginY*deltaY);
+  
+  if (!isNaN(newCanvasHeight) && !isNaN(newCanvasTop)) {
+    canvas.height = newCanvasHeight;
+    curCanvasTop = newCanvasTop;
+    canvas.style.top = curCanvasTop + "px";
+  }
+
+  var node_xy = {pc: node.pc}
+  if(codetype=="src"){
+    node_xy.y = node.linename;
+    node_xy.x = node.columnname;
+  }
+  else{
+    node_xy.y=node.ir_linename;
+    node_xy.x = node.ir_columnname;
+  }
+  if(node.pc==="L0%0%d"){
+    node_xy.type="entry";
+    drawPointOnNode(canvas, ctx, node_xy, "ENTRY", undefined, undefined, true, false,true);
+  }
+  else if(node.pc.charAt(0)=='L'){
+    node_xy.type == "L";
+    drawPointOnNode(canvas, ctx, node_xy, node.label, undefined, undefined, false, false,true);
+  }
+  else{
+    node_xy.type="exit";
+    drawPointOnNode(canvas, ctx, node_xy, "EXIT", undefined, undefined, false, true);
+  }
+  
+  var content = document.getElementById("content");
+  var currentZoom = parseFloat(content.style.zoom) || 1;
+  scroll(0, topNode*currentZoom);
+
+
+}
+
 function redraw()
 {
   var canvas = document.getElementById("canvas");
@@ -672,30 +760,147 @@ function redraw()
 
   // Clear old contents
   codeEl.innerHTML = codeDisplay;
-  updateLineNumbers();
+  Prism.highlightAll();
 
   //await new Promise(r => setTimeout(r, 100));
   setupCanvas();
 
   //console.log(`message.path = ${JSON.stringify(message.path)}`);
   if (current_highlight_message !== null) {
-    highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+    if(current_highlight_message.path!==undefined){
+      highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+    }
+    else{
+      highlightNodeInCode(canvas, ctx, codeEl, current_highlight_message.node, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+      //console.log("node recieved="+JSON.stringify(current_highlight_message));
+    }
+    
   }
 }
 
-function updateLineNumbers() {
-  //const codePre = document.querySelector('pre code');
-  //const codeLines = codePre.innerText.split('\n');
+function addToArrayDistinct(arr,value){
+  for(var i=0;i<arr.length;i++){
+    if(arr[i]===value){
+      return;
+    }
+  }
+  arr.push(value);
+}
 
-  //const lineCount = codeLines.length;
+function constructEdgeLineMap(edges,eqcheck_info,tfg,srcdst){
 
-  //// Generate line numbers and modify the code
-  //let codeContent = '';
-  //for (let i = 0; i < lineCount; i++) {
-  //  codeContent += `<span class="line-number">${i + 1}</span>${codeLines[i]}\n`;
-  //}
+  var code_el_map = {},ir_el_map = {};
+  const [assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map] = obtain_insn_arrays_from_eqcheck_info(eqcheck_info, srcdst);
+  const tfg_llvm = tfg["tfg_llvm"];
+  const tfg_asm = tfg["tfg_asm"];
+  var code_subprogram_info, ir_subprogram_info;
+  if (tfg_llvm === undefined) {
+    code_subprogram_info = tfg_asm_obtain_subprogram_info(tfg_asm, assembly);
+  } else {
+    [code_subprogram_info, ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(tfg_llvm);
+  }
 
-  //codePre.innerHTML = codeContent;
+  var nodeMap = {};
+
+  function add_node_to_nodeMap(pc){
+    var code_line,ir_line;
+    if(pc=='L0%0%d'){
+      code_line = code_subprogram_info === undefined ? undefined : code_subprogram_info.scope_line;
+       if(curSyntaxType==="asm"){
+        code_line = parseInt(code_line)+1;
+        code_line = code_line.toString();
+       }
+    }
+    else{
+      if (tfg_llvm === undefined) 
+      {
+        const  [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, pc, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
+        code_line = linename;
+        code_line = parseInt(code_line)+1;
+        code_line = code_line.toString();
+      }
+      else{
+        const [linename, columnname, line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(tfg_llvm, pc);
+        code_line = linename;
+      }
+    }
+    if(tfg_llvm !==undefined){
+      const [linename_ir, columnname_ir] = tfg_llvm_obtain_LL_linenum_for_pc(tfg_llvm, pc);
+      ir_line = linename_ir;
+    }
+    nodeMap[pc] = {code_line: code_line, ir_line : ir_line};
+  }
+
+  function add_edge_to_line_list(pc, key,exit=false){
+    var codeLine = nodeMap[pc].code_line;
+    if(exit){
+      codeLine= parseInt(codeLine)+1;
+      codeLine = codeLine.toString();
+    }
+    if(code_el_map[codeLine]===undefined){
+      code_el_map[codeLine] = {edges:[key],index: 0};
+    }
+    else{
+      addToArrayDistinct(code_el_map[codeLine].edges,key);
+    }
+
+
+    if(tfg_llvm !=undefined){
+      var irLine = nodeMap[pc].ir_line;
+      if(exit){
+        irLine= parseInt(irLine)+1;
+        irLine = irLine.toString();
+      }
+      if(ir_el_map[irLine]===undefined){
+        ir_el_map[irLine] = {edges:[key],index: 0};
+      }
+      else{
+        addToArrayDistinct(ir_el_map[irLine].edges,key);
+      }
+    }
+  }
+
+  for (let key in edges) {
+    const path= edges[key].edge;
+    const edge_ids = mk_array(path.graph_ec_constituent_edge_list.edge_id);
+    if (edge_ids.length === 0) {
+      var pc = path.from_pc;
+      if(nodeMap[pc]===undefined){
+        add_node_to_nodeMap(pc);
+      }
+      add_edge_to_line_list(pc,key);
+      
+    }
+    else{
+      for(var i=0;i<edge_ids.length;i++){
+        var from_pc = edge_ids[i].from_pc;
+        var to_pc = edge_ids[i].to_pc;
+        
+        if(nodeMap[from_pc]===undefined){
+          add_node_to_nodeMap(from_pc,key);
+        }
+        add_edge_to_line_list(from_pc,key);
+
+        if(to_pc.charAt(0)!=='L'){
+          add_edge_to_line_list(from_pc,key,true);
+        }
+        else{
+          if(nodeMap[to_pc]===undefined){
+            add_node_to_nodeMap(to_pc);
+          }
+          add_edge_to_line_list(from_pc,key);
+        }
+      }
+    }
+    
+  }
+
+  if(tfg_llvm!==undefined){
+    return [code_el_map,ir_el_map];
+  }
+  
+  return [code_el_map,undefined];
+
 }
 
 // Event listener for message from product graph webview
@@ -708,7 +913,12 @@ window.addEventListener('message', async event => {
     switch (message.command) {
         case "highlight": {
             //console.log(`highlight called on path ${JSON.stringify(message.path)}\n`);
-            current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            if(message.node_edge==="edge"){
+              current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            }
+            else{
+              current_highlight_message = { node: message.node, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            }
             break;
         }
         case "clear": {
@@ -719,8 +929,15 @@ window.addEventListener('message', async event => {
             code = message.code + "\n.";
             ir = message.ir;
             vir = message.vir;
+            obj = message.obj;
+            code_filename = message.code_filename;
+            ir_filename = message.ir_filename;
+            obj_filename = message.obj_filename;
             curSyntaxType = message.syntax_type;
             current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
+            [code_line_edge_map,ir_line_edge_map]=constructEdgeLineMap(message.edges,message.eqcheck_info,message.tfg,message.srcdst);
+            // console.log("codeLinesEdgeMap = "+ JSON.stringify(code_line_edge_map));
+            // console.log("irLinesEdgeMap = "+ JSON.stringify(ir_line_edge_map));
             break;
         }
         case "load": {
@@ -735,45 +952,41 @@ window.addEventListener('message', async event => {
 
 });
 
-window.addEventListener('DOMContentLoaded', (event) => {
-  updateLineNumbers();
-});
 
 vscode.postMessage({command:"loaded"});
 
-function download(filename, text) {
-  var element = document.createElement('a');
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-  element.setAttribute('download', filename);
-
-  element.style.display = 'none';
-  document.body.appendChild(element);
-
-  console.log(`clicking element`);
-  element.click();
-  console.log(`clicked element`);
-
-  document.body.removeChild(element);
-}
 
 function downloadObjectListener(evt) {
   console.log('downloadObjectListener called');
+  if(obj !==undefined){
+    vscode.postMessage({command:"download",type:"obj",content:obj,filename: obj_filename});
+  }
   hideRightClickMenu();
-  download("object", "data");
+  
 };
 
 function downloadAssemblyListener(evt) {
   console.log('downloadAssemblyListener called');
+  if(code !==undefined){
+    vscode.postMessage({command:"download",type:"asm",content:code,filename: code_filename});
+  }
   hideRightClickMenu();
 };
 
-function downloadSourceListener(evt) {
+
+async function downloadSourceListener(evt) {
   console.log('downloadSourceListener called');
+  if(code !==undefined){
+    vscode.postMessage({command:"download",type:"source",content:code, filename: code_filename});
+  }
   hideRightClickMenu();
 };
 
 function downloadLLVMIRListener(evt) {
   console.log('downloadLLVMIRListener called');
+  if(ir!==undefined){
+    vscode.postMessage({command:"download",type:"llvmIr",content: ir,filename: ir_filename});
+  }
   hideRightClickMenu();
 };
 
@@ -781,6 +994,7 @@ function viewIR(evt) {
   console.log('viewIR called');
   hideRightClickMenu();
   current_codetype = "ir";
+  vscode.postMessage({command:"switch_codetype",codetype:"ir"});
   redraw();
 };
 
@@ -795,7 +1009,9 @@ function viewSourceCode(evt) {
   console.log('viewSourceCode called');
   hideRightClickMenu();
   current_codetype = "src";
+  vscode.postMessage({command:"switch_codetype",codetype:"src"});
   redraw();
+
 };
 
 
@@ -819,6 +1035,11 @@ function showRightClickMenu(mouseX, mouseY) {
   }
 
   rightClickMenu.style.display = "inline";
+
+  items[0].style.display ="block";
+  items[1].style.display ="block";
+  items[2].style.display ="block";
+  items[3].style.display ="block";
 
   var i = 0;
 
@@ -858,6 +1079,10 @@ function showRightClickMenu(mouseX, mouseY) {
       i++;
     }
   }
+  while(i<4){
+    items[i].style.display = "none";
+    i++;
+  }
 
   rightClickMenu.classList.add("visible");
 }
@@ -881,5 +1106,57 @@ function onRightClick(event) {
     hideRightClickMenu();
   }
 }
+
+function onLeftClick(event){
+  console.log("left-clicked");
+
+  codeEl = document.getElementById("code");
+  var lineHeight = window.getComputedStyle(codeEl).getPropertyValue('line-height');
+  lineHeight=lineHeight.replace('px', '');
+  lineHeight = parseInt(lineHeight);
+  lineHeight = parseFloat(lineHeight).toFixed(2);
+
+  var scrollY = window.scrollY-23; // -23 to adjust the padding at top
+  const { clientX: mouseX, clientY: mouseY } = event;
+  var lineNumber = Math.ceil((mouseY+scrollY) / lineHeight);
+  lineNumber = lineNumber.toString();
+
+
+
+  if(current_codetype==="src"){
+    if(code_line_edge_map[lineNumber]===undefined){
+        vscode.postMessage({command:"show_line",edge:undefined});
+    }
+    else{
+      var index=code_line_edge_map[lineNumber].index
+      vscode.postMessage({command:"show_line",edge: code_line_edge_map[lineNumber].edges[index]});
+      if(index === code_line_edge_map[lineNumber].edges.length-1){
+        code_line_edge_map[lineNumber].index =0;
+      }
+      else{
+        code_line_edge_map[lineNumber].index++;
+      }
+    }
+  }
+  else if(current_codetype==="ir"){
+    if(ir_line_edge_map[lineNumber]===undefined){
+      vscode.postMessage({command:"show_line",edge:undefined});
+    }
+    else{
+      var index=ir_line_edge_map[lineNumber].index
+      vscode.postMessage({command:"show_line",edge: ir_line_edge_map[lineNumber].edges[index]});
+      if(index === ir_line_edge_map[lineNumber].edges.length-1){
+        ir_line_edge_map[lineNumber].index =0;
+      }
+      else{
+        ir_line_edge_map[lineNumber].index++;
+      }
+    }
+
+  }
+  
+}
+
+
 
 //window.addEventListener('contextmenu', event => { onRightClick(); });

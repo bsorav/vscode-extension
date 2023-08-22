@@ -17,6 +17,7 @@ const viewStateCancelling = 'cancelling';
 const viewStateViewProof = 'viewProof';
 const viewStateProofPartiallyClosed = 'partialClose';
 const viewStateViewSearchTree = 'viewSearchTree';
+let hideProofClicked;
 
 let currentlyShowingProofOfEqCheck;
 
@@ -108,8 +109,10 @@ let currentlyShowingProofOfEqCheck;
             case 'allPanelsAreclosed':
               {
                 console.log("AllPanelsAreClosed Received at main.js");
-                currentlyShowingProofOfEqCheck.viewState = viewStateBase;
-                currentlyShowingProofOfEqCheck = undefined;
+                if(!hideProofClicked){
+                  currentlyShowingProofOfEqCheck.viewState = viewStateBase;
+                  currentlyShowingProofOfEqCheck = undefined;
+                }
                 break;
               }
         }
@@ -368,6 +371,7 @@ let currentlyShowingProofOfEqCheck;
       eqcheck.viewState = viewStateViewProof;
       eqcheckRightClickMenu.style.display = "none";
       currentlyShowingProofOfEqCheck = eqcheck;
+      hideProofClicked=false;
       vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
     }
 
@@ -406,6 +410,7 @@ let currentlyShowingProofOfEqCheck;
       eqchecks_remove_view_state(viewStateProofPartiallyClosed);
       eqcheckRightClickMenu.style.display = "none";
       startButtonRightClickMenu.style.display = "none";
+      hideProofClicked = true;
       currentlyShowingProofOfEqCheck = undefined;
       vscode.postMessage({ type: 'eqcheckHideProof'/*, eqcheck: eqcheck*/});
     };
@@ -520,10 +525,43 @@ let currentlyShowingProofOfEqCheck;
       return false;
     }
 
+    //sahil
+    function anyEqcheckInRunningState() {
+      for (const eqcheck of eqchecks) {
+        if (eqcheck.runState === runStateStatusPreparing || eqcheck.runState === runStateStatusPointsTo || eqcheck.runState === runStateStatusRunning || eqcheck.runState === runStateStatusSafetyCheckRunning) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function showStartButtonRightClickMenu(mouseX, mouseY) {
       const startButtonRightClickMenu = document.getElementById('start-button-right-click-menu');
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      //boxWidth set in main.css
+      var boxWidth= 100;
       startButtonRightClickMenu.style.top = `${mouseY}px`;
-      startButtonRightClickMenu.style.left = `${mouseX}px`;
+      // console.log(mouseX+ " "+ mouseY);
+      // console.log("Visible Width= "+window.innerWidth+" Visible Height="+window.innerHeight);
+
+      if(width<=boxWidth+70){
+        //For case when the user makes startButton Width less than boxWidth+70. 
+        //above 70 is chosen by hit and trial method.
+        startButtonRightClickMenu.style.left = `25px`;
+      }
+      else if(mouseX>width-boxWidth){
+        // For normal width case. If the user clicks in extreme right.
+        //Then show thw menu in left of click
+        startButtonRightClickMenu.style.left = `${mouseX-boxWidth}px`;
+      }
+      else{
+        //else show menu in right of click
+        startButtonRightClickMenu.style.left = `${mouseX}px`;
+      }
+      //console.log(mouseX + " " + mouseY);
+      //console.log("widht = "+ width + " height= "+ height);
+      var menuEntryCount =0;
 
       var items = startButtonRightClickMenu.querySelectorAll(".item");
 
@@ -535,11 +573,24 @@ let currentlyShowingProofOfEqCheck;
         item.removeEventListener('click', loadSessionListener);
       }
 
+      items[0].style.display = "block";
+      items[1].style.display = "block";
+      items[2].style.display = "block";
+      items[3].style.display = "block";
+      items[4].style.display = "block";
+
       if (anyEqcheckInViewStateViewProof()) {
         items[0].innerHTML = 'Hide Proof';
         items[0].addEventListener('click', hideProofListener);
-        items[1].innerHTML = 'Cancel all eqchecks';
-        items[1].addEventListener('click', cancelAllEqchecksListener);
+        if(anyEqcheckInRunningState()){
+          items[1].innerHTML = 'Cancel all eqchecks';
+          items[1].addEventListener('click', cancelAllEqchecksListener);
+          menuEntryCount =5;
+        }
+        else{
+          items[1].style.display = "none";
+          menuEntryCount =4;
+        }
         items[2].innerHTML = 'Clear all eqchecks';
         items[2].addEventListener('click', clearAllEqchecksListener);
         items[3].innerHTML = 'Save Session';
@@ -547,16 +598,34 @@ let currentlyShowingProofOfEqCheck;
         items[4].innerHTML = 'Load Session';
         items[4].addEventListener('click', loadSessionListener);
       } else {
-        items[0].innerHTML = 'Cancel all eqchecks';
-        items[0].addEventListener('click', cancelAllEqchecksListener);
+        if(anyEqcheckInRunningState()){
+          items[0].innerHTML = 'Cancel all eqchecks';
+          items[0].addEventListener('click', cancelAllEqchecksListener);
+          menuEntryCount =5;
+        }
+        else{
+          items[0].style.display = "none";
+          menuEntryCount =4;
+        }
         items[1].innerHTML = 'Clear all eqchecks';
         items[1].addEventListener('click', clearAllEqchecksListener);
         items[2].innerHTML = 'Save Session';
         items[2].addEventListener('click', saveSessionListener);
         items[3].innerHTML = 'Load Session';
         items[3].addEventListener('click', loadSessionListener);
-        items[4].innerHTML = '';
+        items[4].style.display = "none";
       }
+      if(height<=150){
+        //26 = textSize(10px)+ top Padding(8px) + bottom padding(8px)
+        startButtonRightClickMenu.style.top = `${height-menuEntryCount*26}px`;
+      }
+      else if(mouseY> height - menuEntryCount*26){
+        startButtonRightClickMenu.style.top = `${mouseY-menuEntryCount*26}px`;
+      }
+      else{
+        startButtonRightClickMenu.style.top = `${mouseY}px`;
+      }
+
       startButtonRightClickMenu.style.display = "inline";
       startButtonRightClickMenu.classList.add("visible");
     }
@@ -572,9 +641,34 @@ let currentlyShowingProofOfEqCheck;
      */
     function showEqcheckRightClickMenu(eqcheck, mouseX, mouseY) {
         const eqcheckRightClickMenu = document.getElementById("eqcheck-right-click-menu");
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var boxWidth= 150;
+
         eqcheckRightClickMenu.style.top = `${mouseY}px`;
-        eqcheckRightClickMenu.style.left = `${mouseX}px`;
+
+        if(width<=boxWidth+70){
+          //For case when the user makes startButton Width less than boxWidth+50. 
+          //above 50 is chosen by hit and trial method.
+          eqcheckRightClickMenu.style.left = `25px`;
+        }
+        else if(mouseX>width-boxWidth){
+          // For normal width case. If the user clicks in extreme right.
+          //Then show the menu in left of click
+          eqcheckRightClickMenu.style.left = `${mouseX-boxWidth}px`;
+        }
+        else{
+          //else show menu in right of click
+          eqcheckRightClickMenu.style.left = `${mouseX}px`;
+        }
         eqcheckRightClickMenu.eqcheck = eqcheck;
+
+        var menuEntryCount=0
+
+        console.log(mouseX+" "+mouseY);
+        console.log("top= "+eqcheckRightClickMenu.style.top+" bottom= "+eqcheckRightClickMenu.style.bottom);
+        console.log("Visible Width= "+window.innerWidth+" Visible Height="+window.innerHeight);
+
 
         var items = eqcheckRightClickMenu.querySelectorAll(".item");
 
@@ -622,6 +716,12 @@ let currentlyShowingProofOfEqCheck;
         items[2].innerHTML = '';
         items[3].innerHTML = '';
         items[4].innerHTML = '';
+        
+        items[0].style.display = "block";
+        items[1].style.display = "block";
+        items[2].style.display = "block";
+        items[3].style.display = "block";
+        items[4].style.display = "block";
 
         eqcheckRightClickMenu.style.display = "inline";
 
@@ -652,19 +752,13 @@ let currentlyShowingProofOfEqCheck;
             items[1].addEventListener('click', viewScanReportListener);
             items[2].innerHTML = 'View Search Tree';
             items[2].addEventListener('click', viewSearchTreeListener);
-            items[4].innerHTML = 'Clear';
-            items[4].addEventListener('click', eqcheckClearListener);
-
+            items[3].innerHTML = 'Clear';
+            items[3].addEventListener('click', eqcheckClearListener);
+            items[4].style.display ="none";
           }
-          items[1].innerHTML = 'Code Analysis Report';
-          items[1].addEventListener('click', viewScanReportListener);
-          items[2].innerHTML = 'View Search Tree';
-          items[2].addEventListener('click', viewSearchTreeListener);
-          items[3].innerHTML = 'Cancel';
-          items[3].addEventListener('click', eqcheckCancelListener);
-          items[4].innerHTML = 'Clear';
-          items[4].addEventListener('click', eqcheckClearListener);
-        } else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusSafetyCheckRunning) {
+          menuEntryCount=5;
+        } 
+        else if (eqcheck.runState == runStateStatusRunning || eqcheck.runState == runStateStatusPreparing || eqcheck.runState == runStateStatusPointsTo || eqcheck.runState == runStateStatusSafetyCheckRunning) {
           if (eqcheck.viewState != viewStateCancelling) {
             items[0].innerHTML = 'Cancel';
             items[0].addEventListener('click', eqcheckCancelListener);
@@ -677,32 +771,72 @@ let currentlyShowingProofOfEqCheck;
             items[0].addEventListener('click', eqcheckClearListener);
             items[1].innerHTML = 'ViewSearchTree';
             items[1].addEventListener('click', viewSearchTreeListener);
+            items[2].style.display = "none";
           }
-        } else if (eqcheck.runState == runStateStatusQueued) {
+          items[3].style.display = "none";
+          items[4].style.display = "none";
+          menuEntryCount =3;
+        } 
+        else if (eqcheck.runState == runStateStatusQueued) {
           items[0].innerHTML = 'Clear';
           items[0].addEventListener('click', eqcheckClearListener);
-        } else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
+          items[1].style.display = "none";
+          items[2].style.display = "none";
+          items[3].style.display = "none";
+          items[4].style.display = "none";
+          menuEntryCount =1;
+        } 
+        else if (eqcheck.runState == runStateStatusExhaustedSearchSpace) {
           items[0].innerHTML = 'View Search Tree';
           items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
-        } else if (eqcheck.runState == runStateStatusTimedOut) {
+          items[2].style.display = "none";
+          items[3].style.display = "none";
+          items[4].style.display = "none";
+          menuEntryCount =2;
+        } 
+        else if (eqcheck.runState == runStateStatusTimedOut) {
           items[0].innerHTML = 'View Search Tree';
           items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
-        } else if (eqcheck.runState == runStateStatusTerminated) {
+          items[2].style.display = "none";
+          items[3].style.display = "none";
+          items[4].style.display = "none";
+          menuEntryCount =2;
+        } 
+        else if (eqcheck.runState == runStateStatusTerminated) {
           items[0].innerHTML = 'View Search Tree';
           items[0].addEventListener('click', viewSearchTreeListener);
           items[1].innerHTML = 'Clear';
           items[1].addEventListener('click', eqcheckClearListener);
-        } else {
+          items[2].style.display = "none";
+          items[3].style.display = "none";
+          items[4].style.display = "none";
+          menuEntryCount =2;
+        } 
+        else {
           items[0].innerHTML = 'Clear';
           items[0].addEventListener('click', eqcheckClearListener);
+          items[1].style.display = "none";
+          items[2].style.display = "none";
+          items[3].style.display = "none";
+          items[4].style.display = "none";
+          menuEntryCount =1;
           //items[0].removeEventListener("click". arguments.callee);
         }
         //console.log(`before eqcheckRightClickMenu = ${JSON.stringify(eqcheckRightClickMenu)}`);
-
+        if(height<=150){
+          //26 = textSize(10px)+ top Padding(8px) + bottom padding(8px)
+          eqcheckRightClickMenu.style.top = `${height-menuEntryCount*26}px`;
+        }
+        else if(mouseY> height - menuEntryCount*26){
+          eqcheckRightClickMenu.style.top = `${mouseY-menuEntryCount*26}px`;
+        }
+        else{
+          eqcheckRightClickMenu.style.top = `${mouseY}px`;
+        }
         eqcheckRightClickMenu.classList.add("visible");
     }
 

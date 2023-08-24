@@ -1512,15 +1512,20 @@ class EqcheckHandler {
         
         // const tfg_file = src_files.etfg;
         var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
-        var invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bveq);
+        var bveq_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bveq);
+        var bvineq_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bvineq);
+        var mem_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).mem);
 
-        console.log("INVARIANTS XML:", invariants_xml)
+        console.log("INVARIANTS XML:", bveq_invariants_xml)
 
-        var invars;
-        xml2js.parseString(invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
-            //console.dir(result);
-            invars = result;
-        });
+        var bveq_invars;
+        var bvineq_invars;
+        var mem_invars;
+        
+        xml2js.parseString(bveq_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { bveq_invars = result; });
+        xml2js.parseString(bvineq_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { bvineq_invars = result; });
+        xml2js.parseString(mem_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { mem_invars = result; });
+
 
         // console.log("After parsing XML of invs: ", inv_obj.map.entry[0])
 
@@ -1534,7 +1539,7 @@ class EqcheckHandler {
         // const invars = undefined;
         // const invars = (invariants_file === undefined) ? undefined : (await this.readBuffer(invariants_file)).toString();
 
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, src_vir: src_vir, dst_vir: dst_vir, invars: invars});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, src_vir: src_vir, dst_vir: dst_vir, bveq_invars: bveq_invars, bvineq_invars: bvineq_invars, mem_invars: mem_invars});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;

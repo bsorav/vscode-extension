@@ -748,6 +748,13 @@ class EqcheckHandler {
       return buffer;
     }
 
+    async getInvarXML(inv_filename) {
+      var buffer = await this.readBuffer(inv_filename);
+      if (buffer === undefined) return undefined;
+      return buffer;
+    }
+
+
     absPath(dirPath, srcFilenameJSON) {
       return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
     }
@@ -784,8 +791,11 @@ class EqcheckHandler {
 
     get_invariants_file_for_proof(dirPath) {
       var vir_dir = dirPath;
-      var inv_path = vir_dir + '/' + 'eq.proof.' + 'invariants.txt';
-      return inv_path;
+      var bveq_inv_path = vir_dir + '/' + 'eq.proof.bveq.invariants.xml';
+      var bvineq_inv_path = vir_dir + '/' + 'eq.proof.bvineq.invariants.xml';
+      var mem_inv_path = vir_dir + '/' + 'eq.proof.memaddrs_diff.invariants.xml';
+
+      return {bveq:bveq_inv_path, bvineq:bvineq_inv_path, mem:mem_inv_path};
     }
 
     // Obsolete function (use for VIR GEN)
@@ -1485,7 +1495,7 @@ class EqcheckHandler {
         //console.log('proof_xml =\n', proof_xml);
 
         var proofObj;
-        xml2js.parseString(proof_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
+        xml2js.parseString(proof_xml, function (err, result) {
             //console.dir(result);
             proofObj = result;
         });
@@ -1502,7 +1512,18 @@ class EqcheckHandler {
         
         // const tfg_file = src_files.etfg;
         var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
-        var invariants_file = this.get_invariants_file_for_proof(dirPathIn);
+        var invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bveq);
+
+        console.log("INVARIANTS XML:", invariants_xml)
+
+        var invars;
+        xml2js.parseString(invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
+            //console.dir(result);
+            invars = result;
+        });
+
+        // console.log("After parsing XML of invs: ", inv_obj.map.entry[0])
+
 
         const src_vir_file = vir_file_paths.src_vir;
         const dst_vir_file = vir_file_paths.dst_vir;
@@ -1510,7 +1531,7 @@ class EqcheckHandler {
         const src_vir = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file)).toString();
         const dst_vir = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file)).toString();
 
-        const invars = undefined;
+        // const invars = undefined;
         // const invars = (invariants_file === undefined) ? undefined : (await this.readBuffer(invariants_file)).toString();
 
         const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code, src_ir: src_ir, dst_code: dst_code, dst_ir: dst_ir, src_vir: src_vir, dst_vir: dst_vir, invars: invars});

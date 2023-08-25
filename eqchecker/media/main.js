@@ -309,6 +309,26 @@ let currentlyShowingProofOfEqCheck;
         const ul = document.querySelector('.eqcheck-list');
         ul.textContent = '';
 
+        eqchecks.sort(
+          function(a, b) {
+            //console.log(`a = ${JSON.stringify(a)}`);
+            //console.log(`b = ${JSON.stringify(b)}`);
+            if (a.functionName === undefined) {
+              return a;
+            }
+            if (b.functionName === undefined) {
+              return b;
+            }
+            const aname = String(a.functionName[0]);
+            const bname = String(b.functionName[0]);
+            //console.log(`aname = ${aname}`);
+            //console.log(`bname = ${bname}`);
+            const cmp = aname.localeCompare(bname);
+            //console.log(`cmp = ${cmp}`);
+            return cmp;
+          }
+        );
+
         for (const eqcheck of eqchecks) {
           if (eqcheck.runState != runStateStatusRunning && eqcheck.runState != runStateStatusPointsTo && eqcheck.runState != runStateStatusPreparing) {
             displayEqcheck(eqcheck, ul);

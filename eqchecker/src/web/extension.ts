@@ -421,10 +421,10 @@ class Eqchecker {
         if (runStatus != undefined && runStatus != null && runStatus.running_status != undefined && runStatus.running_status != null){
           if (runStatus.running_status.status_flag == runStateStatusFoundProof){
             // console.log("Proof completed just waiting for VIR101");
-            var vir_status = await Eqchecker.obtainVIRStatusFromServer(dirPath);
-            if (vir_status == '200'){
-              vir_status_flag = true;
-            }
+            // var vir_status = await Eqchecker.obtainVIRStatusFromServer(dirPath);
+            // if (vir_status == '200'){
+            vir_status_flag = true;
+            // }
           }
         }
 
@@ -1228,7 +1228,17 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
           <span id = "zoom_percent">100%</span>
           <button onclick="zoomOut()">-</button>
         </div>
-        <div class="graph" id="graph" style="text-align: center;"></div>
+        <div class="graph" id="graph" style="text-align: center;">
+        </div>
+        <div class="invbar" id="invariants">
+        <div class="invbar_text" id="inv_txt">Dummytext</div>
+        <div class="lr_buttons">
+          <button class="lr_button" id="prev_inv">Prev</button>
+          <button class="lr_button" id="next_inv">Next</button>
+        </div>
+      </div>
+        </div>
+        
       </body>
     </html>`;
 
@@ -1563,7 +1573,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath, correl_entry_filename);
-    //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
+    console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
     const src_code = proof_response.src_code;
     //console.log(`src_code = ${src_code}\n`);
@@ -1572,6 +1582,9 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
     const src_vir = (proof_response.src_vir === undefined) ? undefined : proof_response.src_vir;
     const dst_vir = (proof_response.dst_vir === undefined) ? undefined : proof_response.dst_vir;
+    const bveq_invars = (proof_response.bveq_invars === undefined) ? undefined : proof_response.bveq_invars;
+    const bvineq_invars = (proof_response.bvineq_invars === undefined) ? undefined : proof_response.bvineq_invars;
+    const mem_invars = (proof_response.mem_invars === undefined) ? undefined : proof_response.mem_invars;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
@@ -1794,7 +1807,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     await waitForLoading();
     // Message passing to src and dst webview
     //console.log(`Panels loaded. Posting proof to panel_prd.\n`);
-    this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry});
+    this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry, bveq_invars: bveq_invars, bvineq_invars: bvineq_invars, mem_invars: mem_invars});
     //console.log("Posted proof to panel_prd\n");
 
     const src_ec = correl_entry["src_ec"];

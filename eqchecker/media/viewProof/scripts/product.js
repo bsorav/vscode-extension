@@ -11,15 +11,23 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var g_prodCfg = null;
+var g_bveq_invars = null;
+var g_bvineq_invars = null;
+var g_mem_invars = null;
+var g_inv_idx = 0;
+
 //var g_nodeMap = null;
 var g_nodeIdMap = null;
 var g_edgeMap = null;
 var g_src_tfg = null;
 var g_dst_tfg = null;
 var selected_edge = null;
+var selected_node = null;
 var g_eqcheck_info = null;
 var g_src_edge_map = {};
 var g_dst_edge_map = {};
+
+var selected_invars = null;
 
 window.addEventListener('message', async event => {
     const message = event.data;
@@ -27,6 +35,9 @@ window.addEventListener('message', async event => {
     switch (message.command) {
       case 'showProof':
         g_prodCfg = message.code;
+        g_bveq_invars = message.bveq_invars;
+        g_bvineq_invars = message.bvineq_invars;
+        g_mem_invars = message.mem_invars;
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();
         // var debug_str = String(counter++);
@@ -48,6 +59,20 @@ window.addEventListener('message', async event => {
 //}
 vscode.postMessage({command:"loaded"});
 
+function get_invariants_at_pc(pc){
+  console.log("Searching for PC", pc);
+  var invars = []
+  for (var i = 0; i < g_bveq_invars.map.entry.length; i++){
+    console.log("Currently at", g_bveq_invars.map.entry[i].key);
+    if (g_bveq_invars.map.entry[i].key == pc) {
+      for (var j = 0; j < g_bveq_invars.map.entry[i].value.length; j++){
+        invars.push(g_bveq_invars.map.entry[i].value[j]);
+      }
+      break;
+    }
+  }
+  return invars;
+}
 
 //console.log("Waiting for proof\n");
 //await waitForMessage();
@@ -425,13 +450,14 @@ function drawNetwork_old(correl_entry) {
 
 function generateDot(graph_nodes, graph_edges) {
   var dot_src = 'digraph {\n';
-  dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2 color="#cfe2f3" ]\n`;
+  dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2  ]\n`;
 
-  // Add declarations for the nodes
+  // Add declarations for the nodes\"${lab}\"
   for (const node of graph_nodes) {
     var id = node.id;
     var lab = node.label;
-    dot_src += `${id} [id=\"${id}\" label=\"${lab}\"]\n`;
+    var color = node.color;
+    dot_src += `${id} [id=\"${id}\" label=\"${lab}\" color=\"${color}\"]\n`;
   }
 
   // Add declarations for the edges
@@ -503,6 +529,7 @@ function drawNetwork(correl_entry) {
     const label_orig = nodeMap[node].label;
     //console.log(`label_orig = ${label_orig}`);
     var label = label_orig;
+    var node_color = "#cfe2f3";
     const level = nodeMap[node].level;
     //var x = ((level % 2) * 2 - 1) * 500;
     //console.log(`node = ${node}, level = ${level}, x = ${x}`);
@@ -511,7 +538,11 @@ function drawNetwork(correl_entry) {
     } else if (node.charAt(0) !== 'L') {
       label = "exit";
     }
-    return {id:nodeMap[node].idx, label: label, level: level};
+    console.log(nodeMap[node].idx, selected_node)
+    if (nodeMap[node].idx.toString() === selected_node) {
+      node_color = "#8edeb5";
+    }
+    return {id:nodeMap[node].idx, label: label, level: level, color:node_color};
   });
 
   // Array of the edges of the graph
@@ -598,11 +629,33 @@ function refreshPanel()
     console.log(d3.select("#graph"));
   });
 
+  document.getElementById("next_inv").addEventListener('click', function(event) {
+    if (g_inv_idx < selected_invars.length - 1) {
+      g_inv_idx++;
+      document.getElementById("inv_txt").innerHTML = selected_invars[g_inv_idx];
+    }
+  });
+
+  document.getElementById("prev_inv").addEventListener('click', function(event) {
+    if (g_inv_idx > 0) {
+      g_inv_idx--;
+      document.getElementById("inv_txt").innerHTML = selected_invars[g_inv_idx];
+    }
+  });
+
   document.getElementById("graph").addEventListener('click', function(event) {
     if (event.target.closest('.edge')) {
       // console.log("an edge was clicked!");
+      document.getElementById("invariants").style.visibility = 'hidden';
+      document.getElementById("graph").style.marginTop = '0px';
+      selected_node = null;
       return;
     } else {
+      if (!event.target.closest('.node')) {
+        selected_node = null;
+        document.getElementById("invariants").style.visibility = 'hidden';
+        document.getElementById("graph").style.marginTop = '0px';
+      } 
       selected_edge = null;
       vscode.postMessage({
           command:"clear"
@@ -621,10 +674,34 @@ function refreshPanel()
     d3.select(this).attr("cursor", "default");
   });
 
+  d3.select('#graph').selectAll('.node').on('click', function(){
+    var node_id = d3.select(this).attr('id');
+    // var labl = d3.select(this).attr('label');
+    if (node_id == selected_node){
+      selected_node = null;
+      document.getElementById("invariants").style.visibility = 'hidden';
+      document.getElementById("graph").style.marginTop = '0px';
+    } else {
+      selected_node = node_id;
+      var n_pc = g_nodeIdMap[node_id].pc;
+      selected_invars = get_invariants_at_pc(n_pc);
+      g_inv_idx = 0;
+      if (selected_invars.length > 0) {
+        document.getElementById("inv_txt").innerHTML = selected_invars[g_inv_idx];
+      } else {
+        document.getElementById("inv_txt").innerHTML = "No invariants to display";
+      }
+      document.getElementById("invariants").style.visibility = 'visible';
+      document.getElementById("graph").style.marginTop = '100px';
+    }
+    drawNetwork(g_prodCfg);
+  })
+
   // Selecting an edge on the TFG
   d3.select("#graph")
   .selectAll('.edge')
   .on("click", function () {
+    selected_node = null;
     // debug_str = d3.select(this).attr('id');
     var e_ids = d3.select(this).attr('id').split("#");
     const from = g_nodeIdMap[e_ids[0]];
@@ -639,6 +716,7 @@ function refreshPanel()
           command:"clear"
       });
       drawNetwork(g_prodCfg);
+      
     } else {
       // Select the new edge
       selected_edge = edgeId;

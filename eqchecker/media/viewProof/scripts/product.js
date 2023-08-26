@@ -491,17 +491,21 @@ function generateDot(graph_nodes, graph_edges) {
   var dot_src = 'digraph {\n';
   dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2]\n`;
 
+  //console.log(`dot_src = ${dot_src}`);
   // Add declarations for the nodes\"${lab}\"
   for (const node of graph_nodes) {
+    //console.log(`id = ${id}`);
     var id = node.id;
     var lab = node.label;
     var color = node.color;
     dot_src += `${id} [id=\"${id}\" label=\"${lab}\" color=\"${color}\"]\n`;
   }
+  //console.log(`dot_src = ${dot_src}`);
 
   // Add declarations for the edges
   // Note: Change penwidth if you want to change thickness of the edges  
   for (const edge of graph_edges) {
+    //console.log(`edge.from = ${edge.from}, edge.to = ${edge.to}`);
     dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=3 fontsize="10pt"]\n`;
     // dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.label}\" label=\"${edge.label}\" color=\"\"]\n`;
   }
@@ -699,69 +703,89 @@ function drawNetwork(correl_entry) {
 
   g_nodePCMap = nodeMap;
 
+  //console.log(`making nodes`);
   // // Array of the nodes of the graph
   var nodes = cg_nodes.map(function(node) {
     var label_orig = nodeMap[node].label;
     //console.log(`label_orig = ${label_orig}`);
     //var label = label_orig;
-    var node_color = "#cfe2f3";
+    //var node_color = "#cfe2f3";
     const level = nodeMap[node].level;
 
     var color = "#cfe2f3";
     //var x = ((level % 2) * 2 - 1) * 500;
-    //console.log(`node = ${node}, level = ${level}, x = ${x}`);
+    //console.log(`node = ${node}, level = ${level}`);
+    var label = "";
     if (node === 'L0%0%d_L0%0%d') {
-      label_orig = "entry";
+      label = "entry: ";
     } else if (node.charAt(0) !== 'L') {
-      label_orig = "exit";
+      label = "exit: ";
     }
 
     if(nodeMap[node].idx==selected_node){
       color = "#ffbaba";
     }
+    //<tr>
+    //  <td><font point-size="14">${label_orig}</font></td>
+    //</tr>
 
-    var label=`<<table border="0" cellpadding="0" cellspacing="0">
-    <tr>
-      <td><font point-size="14">${label_orig}</font></td>
-    </tr>
-    <tr>
-      <td><font point-size="10">`;
 
+    //var label=`<<table border="0" cellpadding="0" cellspacing="0">
+    //<tr>
+    //  <td><font point-size="10">`;
+
+    //if(src_codetype==="src"){
+    //  label=label+"Src Code Line= "+ nodeMap[node]["src_node"]["linename"];
+    //}
+    //else{
+    //  label=label+"Src IR line= "+ nodeMap[node]["src_node"]["ir_linename"];
+    //}
+    //label+=`</font></td>
+    //</tr>\n`;
+    //label+=`<tr>
+    //<td><font point-size="10">`;
+
+    //if(dst_codetype==="src"){
+    //  label=label+"\n Dst Code Line= "+ nodeMap[node]["dst_node"]["linename"];
+    //}
+    //else{
+    //  label=label+"\n Dst IR Line= "+ nodeMap[node]["dst_node"]["ir_linename"];
+    //}
+    //label+=`</font></td>
+    //</tr>
+    //</table>>`
 
     if(src_codetype==="src"){
-      label=label+"Src Code Line= "+ nodeMap[node]["src_node"]["linename"];
+      label= label + "s"+ nodeMap[node]["src_node"]["linename"];
+    } else{
+      label=label+"s"+ nodeMap[node]["src_node"]["ir_linename"];
     }
-    else{
-      label=label+"Src IR line= "+ nodeMap[node]["src_node"]["ir_linename"];
-    }
-    label+=`</font></td>
-    </tr>\n`;
-    label+=`<tr>
-    <td><font point-size="10">`;
-
+    label = label + "; ";
     if(dst_codetype==="src"){
-      label=label+"\n Dst Code Line= "+ nodeMap[node]["dst_node"]["linename"];
+      label=label+"d"+ nodeMap[node]["dst_node"]["linename"];
+    } else{
+      label=label+"d"+ nodeMap[node]["dst_node"]["ir_linename"];
     }
-    else{
-      label=label+"\n Dst IR Line= "+ nodeMap[node]["dst_node"]["ir_linename"];
-    }
-    label+=`</font></td>
-    </tr>
-  </table>>`
-    console.log(nodeMap[node].idx, selected_node)
-    if (nodeMap[node].idx.toString() === selected_node) {
-      node_color = "#8edeb5";
-    }
-    return {id:nodeMap[node].idx, label: label, level: level, color: node_color};
+
+    //console.log(`label =\n${label}`);
+
+    //console.log(nodeMap[node].idx, selected_node)
+    //if (nodeMap[node].idx.toString() === selected_node) {
+    //  node_color = "#8edeb5";
+    //}
+    return {id:nodeMap[node].idx, label: label, level: level, color: color};
   });
 
+  //console.log(`making edges`);
   // Array of the edges of the graph
   var edges = cg_edges.map(function(edge) {
     //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
     //console.log(`edge from_pc ${edge.from_pc} to_pc ${edge.to_pc}`);
     const from_idx = nodeMap[edge.from_pc].idx;
+    //console.log(`from_idx = ${JSON.stringify(from_idx)}`);
     const to_idx = nodeMap[edge.to_pc].idx;
 
+    //console.log(`from_idx = ${JSON.stringify(from_idx)}, to_idx = ${JSON.stringify(to_idx)}`);
     const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
     const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
 
@@ -775,6 +799,7 @@ function drawNetwork(correl_entry) {
     const allocs = get_lsprels(allocs_at_to_pc, locals_map);
     const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
 
+    //console.log(`allocs = ${JSON.stringify(allocs)}, deallocs = ${JSON.stringify(deallocs)}`);
     var label="";
 
     //console.log(`allocs = ${JSON.stringify(allocs)}`);
@@ -810,6 +835,7 @@ function drawNetwork(correl_entry) {
       label+=unroll.toString()+`'`;
     }
 
+    //console.log(`label = ${JSON.stringify(label)}`);
 
     var color;
     // console.log("CG EC EDGES" + JSON.stringify(cg_ec_edges));
@@ -827,20 +853,27 @@ function drawNetwork(correl_entry) {
 
     //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
     
+    //console.log(`returning from edges map`);
     return {from: from_idx, to: to_idx, color: color, label: label};
   });
 
 
+  //console.log(`calling generateDot`);
 
   // Get the dot file from nodes and edges
   var dotSrc = generateDot(nodes, edges);
+
+  //console.log(`returned from generateDot`);
   //console.log(dotSrc);
-
   // This renders the graph
-  d3.select("#graph").graphviz()
-    .renderDot(dotSrc)
-    .zoom(false);
+  const gv = d3.select("#graph").graphviz();
+  //console.log(`done gv`);
+  const dot = gv.renderDot(dotSrc);
+  //console.log(`done dot`);
+  dot.zoom(false);
+  //console.log(`done zoom`);
 
+  //console.log(`drawNetwork returning`);
   return dotSrc;
 }
 
@@ -857,10 +890,12 @@ function refreshPanel()
   //   });
   // };
   
+  //console.log(`adding click`);
   d3.select("#graph").on("click", function() {
     console.log(d3.select("#graph"));
   });
 
+  //console.log(`next inv`);
   document.getElementById("next_inv").addEventListener('click', function(event) {
     if (g_inv_idx < selected_invars.length - 1) {
       g_inv_idx++;
@@ -868,6 +903,7 @@ function refreshPanel()
     }
   });
 
+  //console.log(`prev inv`);
   document.getElementById("prev_inv").addEventListener('click', function(event) {
     if (g_inv_idx > 0) {
       g_inv_idx--;
@@ -875,6 +911,7 @@ function refreshPanel()
     }
   });
 
+  //console.log(`click`);
   document.getElementById("graph").addEventListener('click', function(event) {
     if (event.target.closest('.edge') || event.target.closest('.node')) {
       // console.log("an edge was clicked!");

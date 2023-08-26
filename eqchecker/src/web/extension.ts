@@ -9,7 +9,8 @@ import * as fs from 'fs'
 //import * as path from 'path';
 
 //const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
-const defaultServerURL = 'http://localhost:80';
+//const defaultServerURL = 'http://localhost:80';
+const defaultServerURL = 'http://proton.cse.iitd.ac.in:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -1854,7 +1855,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                   path: message.edge.dst_edge,
                   tfg: message.dst_tfg,
                   eqcheck_info: message.eqcheck_info,
-                  srcdst: "dst"
+                  srcdst: "dst",
                   codetype: "ir"
                   //subprogram_info: message.dst_subprogram_info,
                   //nodeMap: message.dst_nodeMap
@@ -2061,7 +2062,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
       this.panel_post_message(panel_dst_code, {command: "data", code:dst_code,code_filename : dst_code_filename ,ir: dst_ir,ir_filename: dst_ir_filename,syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", vir: dst_vir, edges:dst_edges/*, codetype: "code"*/});
       //this.panel_post_message(panel_dst_ir, {command: "data", code:dst_ir, syntax_type: "c/llvm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", codetype: "ir"});
     } else {
-      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly,obj: dst_code, obj_filename: dst_code_filename ,syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", vir: dst_virt, edges:dst_edges ,codetype: "code"});
+      this.panel_post_message(panel_dst_code, {command: "data", code:dst_assembly,obj: dst_code, obj_filename: dst_code_filename ,syntax_type: "asm", path: dst_ec, tfg: dst_tfg, eqcheck_info: eqcheck_info, srcdst: "dst", vir: dst_vir, edges:dst_edges ,codetype: "code"});
     }
     this.proof_panels = { prd: panel_prd, src_code: panel_src_code, src_ir: panel_src_ir, dst_code: panel_dst_code, dst_ir: panel_dst_ir };
     //console.log(`eqcheckViewProof: new_panels = ${JSON.stringify(new_panels)}\n`);

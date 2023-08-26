@@ -1495,7 +1495,7 @@ class EqcheckHandler {
         //console.log('proof_xml =\n', proof_xml);
 
         var proofObj;
-        xml2js.parseString(proof_xml, function (err, result) {
+        xml2js.parseString(proof_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
             //console.dir(result);
             proofObj = result;
         });

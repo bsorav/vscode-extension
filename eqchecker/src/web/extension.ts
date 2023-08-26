@@ -2892,7 +2892,7 @@ class MemFS implements vscode.FileSystemProvider {
   // --- manage file events
   private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   private _bufferedEvents: vscode.FileChangeEvent[] = [];
-  private _fireSoonHandle?: NodeJS.Timer;
+  private _fireSoonHandle?: NodeJS.Timeout;
   readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event;
   watch(_resource: vscode.Uri): vscode.Disposable {
     // ignore, fires for all changes...

@@ -96,7 +96,7 @@ function find_path(pc_arr, to_pc, vir_code_arr, visited) {
   });
 
   const exhausted_paths = new Set([]);
-  
+
   // Cycle through all the PCs (Perform a "BFS")
   while (j < pc_size){
     curr_pc = pc_arr[j];
@@ -104,7 +104,7 @@ function find_path(pc_arr, to_pc, vir_code_arr, visited) {
     // If all paths are exhausted
     if (exhausted_paths.size == pc_size){
       return [];
-    } 
+    }
 
     // If this path is exhausted
     if (exhausted_paths.has(j)){
@@ -115,14 +115,14 @@ function find_path(pc_arr, to_pc, vir_code_arr, visited) {
 
     if (curr_pc == "E0%d%d"){
       exhausted_paths.add(j);
-      j = ((j+1)%(pc_size)); 
+      j = ((j+1)%(pc_size));
       console.log("Reached the end on one path");
       continue;
     }
 
     // Add the pc to the visited arr
     visited.add(curr_pc);
-    
+
     var i = vir_code_arr.findIndex(function(str) {
       return str.includes("BB%" + curr_pc + " :");
     });
@@ -139,20 +139,20 @@ function find_path(pc_arr, to_pc, vir_code_arr, visited) {
       points[j].push({x: 1, y: i+1, type:"L"})
     }
 
-    // Reach the end of the block 
+    // Reach the end of the block
     while(i < vir_code_arr.length && !(vir_code_arr[i].includes("if (")) && !(vir_code_arr[i].includes("goto"))){
       points[j].push({x: 1, y: i+1, type:"L"});
       i++;
     }
 
-    // If reached an if_else 
+    // If reached an if_else
     if (vir_code_arr[i].includes("if (")){
       console.log("found a if statement");
       var new_pc_arr = [];
       while(vir_code_arr[i].includes("if")){
         var target_pc = vir_code_arr[i].split(" ")[3].replace("BB%","");
-        // We need to check visited here since we are "committing" to this branch 
-        // In a DFS manner. So we must prevent infinite loops 
+        // We need to check visited here since we are "committing" to this branch
+        // In a DFS manner. So we must prevent infinite loops
         if (!visited.has(target_pc)){
           new_pc_arr.push(target_pc);
         }
@@ -175,7 +175,7 @@ function find_path(pc_arr, to_pc, vir_code_arr, visited) {
     var target_pc = vir_code_arr[i].split(" ")[1].replace("BB%","");
 
     // Target pc of this path is already visited
-    // 2nd condition for the case of loops 
+    // 2nd condition for the case of loops
     if (visited.has(target_pc) && target_pc != to_pc){
       exhausted_paths.add(j);
       j = ((j+1)%pc_size);
@@ -204,7 +204,7 @@ function find_path(pc_arr, to_pc, vir_code_arr, visited) {
 
 }
 
-// Function to get line numbers to map for edge 
+// Function to get line numbers to map for edge
 // Fix this for functions with conditional branches!
 function get_points_for_vir(edge){
   if (edge === undefined){
@@ -216,7 +216,7 @@ function get_points_for_vir(edge){
   const from_pc = edge.from_pc;
   const to_pc = edge.to_pc;
 
-  // Array of VIR code 
+  // Array of VIR code
   const vir_code_arr = vir.split("\n");
 
   var points = [];
@@ -262,7 +262,7 @@ function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
       console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
       console.log(`pc = ${pc}`);
     }
-    
+
     var linename = nodeMap[pc].linename;
     const columnname = nodeMap[pc].columnname;
     if(curSyntaxType==="asm"){
@@ -461,7 +461,7 @@ function highlightPathinVIR(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst
   }
 
   scroll(0, topNode);
-  
+
 }
 
 export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst, codetype)
@@ -704,7 +704,7 @@ export function clearCanvas(canvas, ctx){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-// Functions for VIR 
+// Functions for VIR
 
 
 
@@ -1115,6 +1115,7 @@ function drawEdgeBetweenPoints(canvas, ctx, node1, node2, is_fallthrough, is_sou
 }
 
 function highlightNodeInCode(canvas, ctx, codeEl, node, eqcheck_info, tfg, srcdst, codetype){
+  //console.log(`highlightNodeInCode: node = ${JSON.stringify(node)}`);
   if (node === undefined) {
     return;
   }
@@ -1139,7 +1140,7 @@ function highlightNodeInCode(canvas, ctx, codeEl, node, eqcheck_info, tfg, srcds
 
   const newCanvasHeight = 2*deltaY + 2*canvasMarginY*deltaY;
   const newCanvasTop = Math.max(minCanvasTop, topNode - canvasMarginY*deltaY);
-  
+
   if (!isNaN(newCanvasHeight) && !isNaN(newCanvasTop)) {
     canvas.height = newCanvasHeight;
     curCanvasTop = newCanvasTop;
@@ -1167,7 +1168,7 @@ function highlightNodeInCode(canvas, ctx, codeEl, node, eqcheck_info, tfg, srcds
     node_xy.type="exit";
     drawPointOnNode(canvas, ctx, node_xy, "EXIT", undefined, undefined, false, true);
   }
-  
+
   var content = document.getElementById("content");
   var currentZoom = parseFloat(content.style.zoom) || 1;
   scroll(0, topNode*currentZoom);
@@ -1196,7 +1197,7 @@ function redraw()
   var codeDisplay;
   if (curSyntaxType === "asm") {
     codeDisplay = Prism.highlight(codeChosen, Prism.languages.nasm, 'nasm');
-    
+
     //codeEl.innerHTML = Prism.highlight(code, Prism.languages.clike, 'clike');
   } else {
     codeDisplay = Prism.highlight(codeChosen, Prism.languages.clike, 'clike');
@@ -1210,7 +1211,7 @@ function redraw()
   //await new Promise(r => setTimeout(r, 100));
   setupCanvas();
 
-  // console.log("Current HL Message:", current_highlight_message);
+  //console.log("Current HL Message:", current_highlight_message);
 
   //console.log(`message.path = ${JSON.stringify(message.path)}`);
   if (current_highlight_message !== null) {
@@ -1224,10 +1225,8 @@ function redraw()
       }
     }
     else{
-      if (current_codetype == "code") {
-        highlightNodeInCode(canvas, ctx, codeEl, current_highlight_message.node, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
+      highlightNodeInCode(canvas, ctx, codeEl, current_highlight_message.node, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
         //console.log("node recieved="+JSON.stringify(current_highlight_message));
-      }
     }
   }
 }
@@ -1266,7 +1265,7 @@ function constructEdgeLineMap(edges,eqcheck_info,tfg,srcdst){
        }
     }
     else{
-      if (tfg_llvm === undefined) 
+      if (tfg_llvm === undefined)
       {
         const  [insn_pc, linename, columnname, line_and_column_names] = tfg_asm_obtain_line_and_column_names_for_pc(tfg_asm, pc, assembly, insn_pcs, pc_to_assembly_index_map, assembly_index_to_assembly_line_map, insn_index_to_assembly_line_map);
         code_line = linename;
@@ -1323,13 +1322,13 @@ function constructEdgeLineMap(edges,eqcheck_info,tfg,srcdst){
         add_node_to_nodeMap(pc);
       }
       add_edge_to_line_list(pc,key);
-      
+
     }
     else{
       for(var i=0;i<edge_ids.length;i++){
         var from_pc = edge_ids[i].from_pc;
         var to_pc = edge_ids[i].to_pc;
-        
+
         if(nodeMap[from_pc]===undefined){
           add_node_to_nodeMap(from_pc,key);
         }
@@ -1346,13 +1345,13 @@ function constructEdgeLineMap(edges,eqcheck_info,tfg,srcdst){
         }
       }
     }
-    
+
   }
 
   if(tfg_llvm!==undefined){
     return [code_el_map,ir_el_map];
   }
-  
+
   return [code_el_map,undefined];
 
 }
@@ -1417,7 +1416,7 @@ function downloadObjectListener(evt) {
     vscode.postMessage({command:"download",type:"obj",content:obj,filename: obj_filename});
   }
   hideRightClickMenu();
-  
+
 };
 
 function downloadAssemblyListener(evt) {
@@ -1508,7 +1507,7 @@ function showRightClickMenu(mouseX, mouseY) {
       items[i].innerHTML = 'View IR';
       items[i].addEventListener('click', viewIR);
       i++;
-    } 
+    }
   }
 
   if (current_codetype != "vir") {
@@ -1610,7 +1609,7 @@ function onLeftClick(event){
     }
 
   }
-  
+
 }
 
 

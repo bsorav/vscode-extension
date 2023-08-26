@@ -118,7 +118,7 @@ function initializeContainer(){
     let container = document.getElementById('graph');
     container.style.width = '100%';
     container.style.height = '100%';
-    
+
 }
 
 function getEdgeId(from_pc, to_pc)
@@ -215,7 +215,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
     const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc);
-    
+
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
     var dst_ir_linename, dst_ir_columnname, dst_insn_pc;
@@ -421,7 +421,7 @@ function get_lsprels(lsprels, locals_map)
 //       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
 //       return {from: from_idx, to: to_idx, color: color, label: label};
 //     }));
-//     // [VIRAJ] This is where the plotting is happenning 
+//     // [VIRAJ] This is where the plotting is happenning
 //     var network = new vis.Network(document.getElementById('cfg'), {
 //         nodes: nodes,
 //         edges: edges
@@ -489,7 +489,8 @@ function get_lsprels(lsprels, locals_map)
 
 function generateDot(graph_nodes, graph_edges) {
   var dot_src = 'digraph {\n';
-  dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2]\n`;
+  //dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2]\n`;
+  dot_src += `node [shape="plaintext" style="filled, rounded" margin=0.2]\n`;
 
   //console.log(`dot_src = ${dot_src}`);
   // Add declarations for the nodes\"${lab}\"
@@ -503,7 +504,7 @@ function generateDot(graph_nodes, graph_edges) {
   //console.log(`dot_src = ${dot_src}`);
 
   // Add declarations for the edges
-  // Note: Change penwidth if you want to change thickness of the edges  
+  // Note: Change penwidth if you want to change thickness of the edges
   for (const edge of graph_edges) {
     //console.log(`edge.from = ${edge.from}, edge.to = ${edge.to}`);
     dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=3 fontsize="10pt"]\n`;
@@ -527,7 +528,7 @@ function add_exit_lines(edges,nodeMap,nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tf
       break;
     }
   }
-  
+
   var preceding_src_pc,preceding_dst_pc;
   if(exit_edge!==undefined){
     for(var i=0; i<exit_edge["dst_edge"]["graph_ec_constituent_edge_list"]["edge_id"].length;i++){
@@ -586,7 +587,7 @@ function add_exit_lines(edges,nodeMap,nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tf
     else {
 
       [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(dst_tfg_llvm, preceding_dst_pc);
-      
+
       [dst_code_linename, dst_code_columnname, dst_code_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, preceding_dst_pc);
 
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["linename"]= dst_code_linename;
@@ -600,13 +601,13 @@ function add_exit_lines(edges,nodeMap,nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tf
       nodeIdMap[exit_node_index]["dst_node"]["ir_linename"] = dst_ir_linename;
       nodeIdMap[exit_node_index]["dst_node"]["ir_columnname"] = dst_ir_columnname.toString();
       nodeIdMap[exit_node_index]["dst_node"]["line_and_column_names"]="(line "+dst_code_linename+" at column 3)";
-      
-      
+
+
     }
-  
+
 
   }
-  
+
 }
 
 function getUnroll(edge){
@@ -852,7 +853,7 @@ function drawNetwork(correl_entry) {
     //const label = `${from_label} -> ${to_label}`;
 
     //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
-    
+
     //console.log(`returning from edges map`);
     return {from: from_idx, to: to_idx, color: color, label: label};
   });
@@ -882,17 +883,17 @@ function refreshPanel()
   initializeContainer();
 
   drawNetwork(g_prodCfg);
-  
+
   // document.getElementById("graph").onclick = function() {
   //   selected_edge = null;
   //   vscode.postMessage({
   //       command:"clear"
   //   });
   // };
-  
+
   //console.log(`adding click`);
   d3.select("#graph").on("click", function() {
-    console.log(d3.select("#graph"));
+    //console.log(d3.select("#graph"));
   });
 
   //console.log(`next inv`);
@@ -924,7 +925,7 @@ function refreshPanel()
         selected_node = null;
         document.getElementById("invariants").style.visibility = 'hidden';
         document.getElementById("graph").style.marginTop = '0px';
-      } 
+      }
       selected_edge = null;
       selected_node = null;
       vscode.postMessage({
@@ -932,7 +933,7 @@ function refreshPanel()
       });
       drawNetwork(g_prodCfg);
     }
-    
+
   });
 
   d3.select("#graph")
@@ -948,11 +949,14 @@ function refreshPanel()
     var node_id = d3.select(this).attr('id');
     // var labl = d3.select(this).attr('label');
     if (node_id == selected_node){
+      selected_edge = null;
       selected_node = null;
       document.getElementById("invariants").style.visibility = 'hidden';
       document.getElementById("graph").style.marginTop = '0px';
     } else {
+      selected_edge = null;
       selected_node = node_id;
+      //console.log(`selected node ${JSON.stringify(node_id)}`);
       var n_pc = g_nodeIdMap[node_id].pc;
       selected_invars = get_invariants_at_pc(n_pc);
       g_inv_idx = 0;
@@ -963,6 +967,17 @@ function refreshPanel()
       }
       document.getElementById("invariants").style.visibility = 'visible';
       document.getElementById("graph").style.marginTop = '100px';
+
+      //console.log(`inv_txt = ${document.getElementById("inv_txt").innerHTML}`);
+      const node = g_nodeIdMap[node_id];
+      vscode.postMessage({
+        command:"highlight",
+        node_edge:"node",
+        node: node,
+        eqcheck_info: g_eqcheck_info,
+        src_tfg: g_src_tfg,
+        dst_tfg: g_dst_tfg,
+      });
     }
     drawNetwork(g_prodCfg);
   })
@@ -988,7 +1003,7 @@ function refreshPanel()
           command:"clear"
       });
       drawNetwork(g_prodCfg);
-      
+
     } else {
       // Select the new edge
       selected_edge = edgeId;
@@ -1013,38 +1028,37 @@ function refreshPanel()
 
   });
 
-  d3.select("#graph")
-  .selectAll('.node')
-  .on("click",function(){
-    var nodeId=d3.select(this).attr('id');
-    
-    if (selected_node == nodeId) {
-      // Edge is already selected, deselect
-      selected_edge = null;
-      selected_node = null;
-      vscode.postMessage({
-          command:"clear"
-      });
-      drawNetwork(g_prodCfg);
-    } else {
-      // Select the new edge
-      selected_edge = null;
-      selected_node = nodeId;
-      const node = g_nodeIdMap[nodeId];
-      vscode.postMessage({
-        command:"highlight",
-        node_edge:"node",
-        node: node,
-        eqcheck_info: g_eqcheck_info,
-        src_tfg: g_src_tfg,
-        dst_tfg: g_dst_tfg
-      });
-      drawNetwork(g_prodCfg);
-    }
-    
-  }
-
-  );
+  //d3.select("#graph")
+  //.selectAll('.node')
+  //.on("click",function(){
+  //  var nodeId=d3.select(this).attr('id');
+  //
+  //  if (selected_node == nodeId) {
+  //    // Edge is already selected, deselect
+  //    selected_edge = null;
+  //    selected_node = null;
+  //    vscode.postMessage({
+  //        command:"clear"
+  //    });
+  //    drawNetwork(g_prodCfg);
+  //  } else {
+  //    // Select the new edge
+  //    selected_edge = null;
+  //    selected_node = nodeId;
+  //    const node = g_nodeIdMap[nodeId];
+  //    vscode.postMessage({
+  //      command:"highlight",
+  //      node_edge:"node",
+  //      node: node,
+  //      eqcheck_info: g_eqcheck_info,
+  //      src_tfg: g_src_tfg,
+  //      dst_tfg: g_dst_tfg
+  //    });
+  //    drawNetwork(g_prodCfg);
+  //  }
+  //
+  //}
+  //);
 
 
 }

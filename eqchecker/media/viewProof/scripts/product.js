@@ -914,24 +914,27 @@ function refreshPanel()
 
   //console.log(`click`);
   document.getElementById("graph").addEventListener('click', function(event) {
-    if (event.target.closest('.edge') || event.target.closest('.node')) {
-      // console.log("an edge was clicked!");
+    console.log(`graph clicked`);
+    if (event.target.closest('.edge')) {
+      console.log(`graph clicked with edge closest`);
+      //console.log("an edge was clicked!");
       document.getElementById("invariants").style.visibility = 'hidden';
       document.getElementById("graph").style.marginTop = '0px';
       selected_node = null;
       return;
     } else {
       if (!event.target.closest('.node')) {
+        console.log(`graph clicked with node not closest`);
         selected_node = null;
         document.getElementById("invariants").style.visibility = 'hidden';
         document.getElementById("graph").style.marginTop = '0px';
+        selected_edge = null;
+        selected_node = null;
+        vscode.postMessage({
+            command:"clear"
+        });
+        drawNetwork(g_prodCfg);
       }
-      selected_edge = null;
-      selected_node = null;
-      vscode.postMessage({
-          command:"clear"
-      });
-      drawNetwork(g_prodCfg);
     }
 
   });
@@ -947,6 +950,7 @@ function refreshPanel()
 
   d3.select('#graph').selectAll('.node').on('click', function(){
     var node_id = d3.select(this).attr('id');
+    console.log(`node clicked`);
     // var labl = d3.select(this).attr('label');
     if (node_id == selected_node){
       selected_edge = null;
@@ -967,6 +971,7 @@ function refreshPanel()
       }
       document.getElementById("invariants").style.visibility = 'visible';
       document.getElementById("graph").style.marginTop = '100px';
+      drawNetwork(g_prodCfg);
 
       //console.log(`inv_txt = ${document.getElementById("inv_txt").innerHTML}`);
       const node = g_nodeIdMap[node_id];
@@ -979,13 +984,13 @@ function refreshPanel()
         dst_tfg: g_dst_tfg,
       });
     }
-    drawNetwork(g_prodCfg);
-  })
+  });
 
   // Selecting an edge on the TFG
   d3.select("#graph")
   .selectAll('.edge')
   .on("click", function () {
+    console.log(`edge clicked`);
     selected_node = null;
     // debug_str = d3.select(this).attr('id');
     var e_ids = d3.select(this).attr('id').split("#");

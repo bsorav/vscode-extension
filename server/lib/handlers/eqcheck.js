@@ -39,8 +39,8 @@ const commandObtainSearchTree = 'obtainSearchTree';
 const commandCheckLogin = 'checkLogin';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';
 
-// const messageVIR200 = '200';
-// const messageVIR404 = '404';
+const messageVIR200 = '200';
+const messageVIR404 = '404';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusPointsTo = 'pointsto';
@@ -945,7 +945,7 @@ class EqcheckHandler {
       if (buffer === undefined) {
         return [offset, ""];
       }
-      //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
+      //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, oVIRffset);
       //let chunkBuf = buffer.slice(0, bufferSize);
       let chunk = buffer;
       //console.log(`chunk: ${JSON.stringify(chunk)}\n`);
@@ -1543,17 +1543,9 @@ class EqcheckHandler {
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
-      } /* else if (commandIn === commandVIRCheck) {
+      }  /* else if (commandIn === commandVIRCheck) {
         console.log("Got check VIR request from extension");
-        var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
-        const src_vir_file = vir_file_paths.src_vir;
-        const dst_vir_file = vir_file_paths.dst_vir;
-        // In case VIR file is not generated yet
-        if (existsSync(src_vir_file) && existsSync(dst_vir_file)){
-          res.end(messageVIR200);
-        } else {
-          res.end(messageVIR404);
-        } 
+        res.end(messageVIR200);
       } */ else if (commandIn === commandObtainScanviewReport) {
         console.log(`ObtainScanviewReport received with dirPathIn ${dirPathIn} source ${source}`);
 

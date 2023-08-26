@@ -58,7 +58,7 @@ let currentlyShowingProofOfEqCheck;
                     const quotaRemaining = (message.quotaRemaining === undefined) ? oldState.quotaRemaining : message.quotaRemaining;
                     vscode.setState({ eqchecks : oldState.eqchecks, currentUser: oldState.currentUser, quotaRemaining: message.quotaRemaining });
                     displayWelcomeButton();
-                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage), message.runState, message.prepareDirpath, message.pointsToDirpath);
+                    addEqcheckInView(message.dirPath, message.source1Uri, message.source1Name, message.source1Text, message.source2Uri, message.source2Name, message.source2Text, message.functionName, getStatusMessage(message.runState, message.statusMessage, true), message.runState, message.prepareDirpath, message.pointsToDirpath);
                     break;
                 }
             case 'userLogout':
@@ -71,7 +71,7 @@ let currentlyShowingProofOfEqCheck;
             case 'updateEqcheckInView':
                 {
                     //console.log("received updateEqcheckInView message '" + message.type + "'");
-                    updateEqcheckInView(message.origRequest, getStatusMessage(message.runState, message.statusMessage), message.runState);
+                    updateEqcheckInView(message.origRequest, getStatusMessage(message.runState, message.statusMessage, message.vir_flag), message.runState, message.vir_flag);
                     break;
                 }
             case 'removeEqcheckInView':
@@ -92,7 +92,7 @@ let currentlyShowingProofOfEqCheck;
                     const existsAlready = eqcheckExistsAlready(eqcheck);
                     //console.log(`i = ${i}, existsAlready = ${existsAlready}`);
                     if (!existsAlready) {
-                      addEqcheckInView(eqcheck.dirPath, eqcheck.source1Uri, eqcheck.source1Name, eqcheck.source1Text, eqcheck.source2Uri, eqcheck.source2Name, eqcheck.source2Text, eqcheck.functionName, getStatusMessage(eqcheck.runState, eqcheck.statusMessage), eqcheck.runState, eqcheck.prepareDirpath, eqcheck.pointsToDirpath);
+                      addEqcheckInView(eqcheck.dirPath, eqcheck.source1Uri, eqcheck.source1Name, eqcheck.source1Text, eqcheck.source2Uri, eqcheck.source2Name, eqcheck.source2Text, eqcheck.functionName, getStatusMessage(eqcheck.runState, eqcheck.statusMessage, eqcheck.virStatus), eqcheck.runState, eqcheck.prepareDirpath, eqcheck.pointsToDirpath);
                     }
                   }
                   displayEqcheckList(eqchecks);
@@ -162,8 +162,11 @@ let currentlyShowingProofOfEqCheck;
       welcome.addEventListener('contextmenu', welcomeButtonRightClick);
     }
 
-    function getStatusMessage(runState, statusMessage)
+    function getStatusMessage(runState, statusMessage, virStatus)
     {
+      if (virStatus == null || virStatus == undefined){
+        virStatus = true;
+      }
       if (runState == runStateStatusPreparing) {
         return "Preparing";
       } else if (runState == runStateStatusPointsTo) {
@@ -173,7 +176,11 @@ let currentlyShowingProofOfEqCheck;
       } else if (runState == runStateStatusQueued) {
         return "Queued";
       } else if (runState == runStateStatusFoundProof) {
-        return "Found proof and safety";
+        if (virStatus == true){
+          return "Found proof and safety";
+        } else {
+          return "Generating Validation IR";
+        }
       } else if (runState == runStateStatusSafetyCheckRunning) {
         return "Found proof, safety check running";
       } else if (runState == runStateStatusSafetyCheckFailed) {
@@ -192,8 +199,11 @@ let currentlyShowingProofOfEqCheck;
     /**
      * @param {string} runState
      */
-    function getBackgroundColorFromRunstate(runState)
+    function getBackgroundColorFromRunstate(runState, virStatus)
     {
+      if (virStatus == undefined || virStatus == null){
+        virStatus = false;
+      }
       //console.log(`runState = ${runState}.\n`);
       if (runState == runStateStatusQueued) {
         //console.log(`returning red colour\n`);
@@ -201,8 +211,10 @@ let currentlyShowingProofOfEqCheck;
       } else if (runState == runStateStatusRunning || runState == runStateStatusPreparing || runState == runStateStatusPointsTo) {
         //console.log(`returning yellow colour\n`);
         return "rgb(0, 0, 0)"; //black
-      } else if (runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckRunning || runState == runStateStatusSafetyCheckFailed) {
+      } else if ((runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckRunning || runState == runStateStatusSafetyCheckFailed) && !virStatus) {
         //console.log(`returning green colour\n`);
+        return "rgb(73, 11, 120)"; // purple
+      } else if ((runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckRunning || runState == runStateStatusSafetyCheckFailed) && virStatus) {
         return "rgb(0, 150, 0)"; //green
       } else {
         //return "rgb(0,0,0)";
@@ -224,7 +236,7 @@ let currentlyShowingProofOfEqCheck;
       const eqcheckPreview = document.createElement('div');
       eqcheckPreview.className = 'eqcheck-preview';
       //const bgColor = '000000';
-      const bgColor = getBackgroundColorFromRunstate(eqcheck.runState);
+      const bgColor = getBackgroundColorFromRunstate(eqcheck.runState,eqcheck.virStatus);
       //console.log(`runstate = ${eqcheck.runState}, bgColor = ${bgColor}`);
       eqcheckPreview.style.backgroundColor = `${bgColor}`;
       eqcheckPreview.addEventListener('mouseover', (/*event*/) => {
@@ -392,7 +404,19 @@ let currentlyShowingProofOfEqCheck;
       eqcheckRightClickMenu.style.display = "none";
       currentlyShowingProofOfEqCheck = eqcheck;
       hideProofClicked=false;
-      vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+
+      //vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+      // Only send a message if proof is completed and ready to view 
+      // Else the webview crashes
+      const runState = eqcheck.runState;
+      if ((runState == runStateStatusFoundProof || runState == runStateStatusSafetyCheckRunning || runState == runStateStatusSafetyCheckFailed) && eqcheck.virStatus){
+        vscode.postMessage({ type: 'eqcheckViewProof', eqcheck: eqcheck});
+      } else if (runState == runStateStatusExhaustedSearchSpace){
+        vscode.postMessage({type : 'eqcheckFailed'});
+      } else {
+        // vscode.window.showErrorMessage('The equivalence check is not complete yet.');
+        vscode.postMessage({ type: 'eqcheckNotReady'});
+      }
     }
 
     function viewProofListener(evt) {
@@ -925,7 +949,7 @@ let currentlyShowingProofOfEqCheck;
     ///**
     // * @param {{ dirPath: string, source1Uri: string, source1Name: string, source2Uri: string, source2Name: string, functionName: string, statusMessage: string, runState: string }} origRequest, dirName: string, statusMessage: string, runState: string
     // */
-    function updateEqcheckInView(origRequest, statusMessage, runState)
+    function updateEqcheckInView(origRequest, statusMessage, runState, virStatus)
     {
       //console.log('origRequest.dirPath = ' + origRequest.dirPath+ '\n');
       //console.log('statusMessage = ' + statusMessage + '\n');
@@ -935,6 +959,7 @@ let currentlyShowingProofOfEqCheck;
           //console.log(`updateEqcheckInView match found. statusMessage = ${statusMessage}\n`);
           eqcheck.statusMessage = statusMessage;
           eqcheck.runState = runState;
+          eqcheck.virStatus = virStatus;
           break;
         } else {
           //console.log(`eqcheckMatchesOrigRequest returned false for ${eqcheck.dirPath}`);

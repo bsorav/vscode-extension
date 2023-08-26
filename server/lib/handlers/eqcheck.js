@@ -1,3 +1,5 @@
+const { existsSync } = require('fs');
+
 const temp = require('temp'),
     fs = require('fs-extra'),
     path = require('path'),
@@ -26,6 +28,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
+// const commandVIRCheck = 'checkVIR';
 const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
@@ -35,6 +38,9 @@ const commandLoadSession = 'loadSession';
 const commandObtainSearchTree = 'obtainSearchTree';
 const commandCheckLogin = 'checkLogin';
 const commandUploadEqcheckDir = 'uploadEqcheckDir';
+
+const messageVIR200 = '200';
+const messageVIR404 = '404';
 
 const runStateStatusPreparing = 'preparing';
 const runStateStatusPointsTo = 'pointsto';
@@ -51,6 +57,9 @@ const prepareSuffix = "/prepare";
 const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
 const rewritten_prefix = "rewritten.";
+
+const srcVIRPath = null;
+const destVIRPath = null;
 
 var defaultQuotaForNewUser = 10;
 
@@ -425,6 +434,8 @@ class EqcheckHandler {
 
         //const source = sourceJSON;
         //const optimized = optimizedJSON;
+        // console.log("===================\n", "Directory Path: ", dirPath, "===================\n");
+
         const src_ir = src_irJSON;
         const src_etfg = src_etfgJSON;
         const dst_ir = dst_irJSON;
@@ -737,19 +748,58 @@ class EqcheckHandler {
       return buffer;
     }
 
+    async getInvarXML(inv_filename) {
+      var buffer = await this.readBuffer(inv_filename);
+      if (buffer === undefined) return undefined;
+      return buffer;
+    }
+
+
     absPath(dirPath, srcFilenameJSON) {
       return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
     }
 
-    getVIR(src_file, tfg_file, dirPath){
+    get_tfg_for_vir_gen(dirPath, functionName) {
+      var vir_dir;
 
-      const vir_file = src_file + ".vir";
-
-      if (fs.existsSync(vir_file)) {
-        // VIR file has already been generated once.
-        return vir_file;
+      if (dirPath.endsWith(prepareSuffix)) {
+        vir_dir = dirPath.substring(0, dirPath.length - prepareSuffix.length)  + submitSuffix + functionName ;
+      } else if (dirPath.endsWith(pointsToSuffix)) {
+        vir_dir = dirPath.substring(0, dirPath.length - pointsToSuffix.length) + submitSuffix + functionName;
+      } else {
+        vir_dir = dirPath;
       }
 
+      var src_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.src-tfg';
+      var dst_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.dst-tfg';
+      
+      console.log("TFG PATHS:\n", src_tfg, "\n", dst_tfg);
+
+      return {src_tfg:src_tfg, dst_tfg:dst_tfg};
+    }
+
+    wait_for_ms(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    get_vir_file_for_proof(dirPath) {
+      var vir_dir = dirPath;
+      var src_vir = vir_dir + '/' + 'eq.proof.' + 'src.vir';
+      var dst_vir = vir_dir + '/' + 'eq.proof.' + 'dst.vir';
+      return {src_vir:src_vir,dst_vir:dst_vir};
+    }
+
+    get_invariants_file_for_proof(dirPath) {
+      var vir_dir = dirPath;
+      var bveq_inv_path = vir_dir + '/' + 'eq.proof.bveq.invariants.xml';
+      var bvineq_inv_path = vir_dir + '/' + 'eq.proof.bvineq.invariants.xml';
+      var mem_inv_path = vir_dir + '/' + 'eq.proof.memaddrs_diff.invariants.xml';
+
+      return {bveq:bveq_inv_path, bvineq:bvineq_inv_path, mem:mem_inv_path};
+    }
+
+    // Obsolete function (use for VIR GEN)
+    getVIR(tfg_file, dirPath, vir_file){
       // Setup arguments for calling vir_gen
       const in_tfg = ['--in_tfg', tfg_file];
       // const func = ['--func', "main"];
@@ -757,11 +807,11 @@ class EqcheckHandler {
       const is_ssa = ['--ssa', 'y'];
       const outpath = ['--outpath', vir_file];
 
-      console.log("INPUT TFG PATH:", in_tfg);
+      console.log("INPUT TFG PATH:", in_tfg, "\n");
 
-      console.log("OUTPUT PATH:", vir_file);
+      // console.log("OUTPUT PATH:", vir_file, "\n");
 
-      console.log("tmpdir-path:", dirPath);
+      // console.log("tmpdir-path:", dirPath, "\n");
 
       var vir_gen_args = (in_tfg).concat(tmpdir).concat(is_ssa).concat(outpath);
 
@@ -901,7 +951,7 @@ class EqcheckHandler {
       if (buffer === undefined) {
         return [offset, ""];
       }
-      //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, offset);
+      //let numread = fs.readSync(outfd, chunkBuf, 0, max_chunksize, oVIRffset);
       //let chunkBuf = buffer.slice(0, bufferSize);
       let chunk = buffer;
       //console.log(`chunk: ${JSON.stringify(chunk)}\n`);
@@ -1324,8 +1374,8 @@ class EqcheckHandler {
                       fs.writeFileSync(stderr_filename, result.stderr);
 
                       res.end(JSON.stringify({retcode: 0}));
-                  },
-                  error => {
+
+                    },error => {
                       this.eqcheck_error(error, res);
                   });
           if (commandIn === commandPointsToAnalysis) { //decrement as soon as we start doing compute-intensive stuff
@@ -1456,6 +1506,8 @@ class EqcheckHandler {
             proofObj = result;
         });
 
+        // console.log(JSON.stringify(proofObj.functionName));
+
         const src_files = await this.getSrcFiles(dirPathIn);
         const dst_files = await this.getDstFiles(dirPathIn);
 
@@ -1477,22 +1529,45 @@ class EqcheckHandler {
         dst_code = (dst_files.dst === undefined) ? undefined : (await this.readBuffer(dst_files.dst)).toString();
         const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
         
-        const tfg_file = src_files.etfg;
-        const vir_file = this.getVIR(src_files.src, tfg_file, dirPathIn);
-        
-        const src_vir = (vir_file === undefined) ? undefined : (await this.readBuffer(vir_file)).toString();
-        //console.log(`src_vir = ${src_vir}`);
+        // const tfg_file = src_files.etfg;
+        var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
+        var bveq_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bveq);
+        var bvineq_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bvineq);
+        var mem_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).mem);
 
-        // console.log(JSON.stringify(vir));
-        // const vir = this.readBuffer(vir_file).toString();
+        console.log("INVARIANTS XML:", bveq_invariants_xml)
+
+        var bveq_invars;
+        var bvineq_invars;
+        var mem_invars;
+        
+        xml2js.parseString(bveq_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { bveq_invars = result; });
+        xml2js.parseString(bvineq_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { bvineq_invars = result; });
+        xml2js.parseString(mem_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { mem_invars = result; });
+
+
+        // console.log("After parsing XML of invs: ", inv_obj.map.entry[0])
+
+
+        const src_vir_file = vir_file_paths.src_vir;
+        const dst_vir_file = vir_file_paths.dst_vir;
+        
+        const src_vir = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file)).toString();
+        const dst_vir = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file)).toString();
+
+        // const invars = undefined;
+        // const invars = (invariants_file === undefined) ? undefined : (await this.readBuffer(invariants_file)).toString();
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename, vir: src_vir});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename, src_vir: src_vir, dst_vir: dst_vir, bveq_invars: bveq_invars, bvineq_invars: bvineq_invars, mem_invars: mem_invars});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;
-      } else if (commandIn === commandObtainScanviewReport) {
+      }  /* else if (commandIn === commandVIRCheck) {
+        console.log("Got check VIR request from extension");
+        res.end(messageVIR200);
+      } */ else if (commandIn === commandObtainScanviewReport) {
         console.log(`ObtainScanviewReport received with dirPathIn ${dirPathIn} source ${source}`);
 
         const top_level_dir = dirPathIn;// + "/..";

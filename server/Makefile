@@ -1,7 +1,7 @@
 HOSTNAME=proton.cse.iitd.ac.in
 PORT=8080
 SMT_SOLVER_TMP_FILES_DIR=${HOME}/vscode-server-files #/nfs/sbansal
-SUPEROPT_INSTALL_DIR=${HOME}/viraj/superopt-project/usr/local
+SUPEROPT_INSTALL_DIR=${HOME}/superopt-project/usr/local
 USE_HTTPS=false #true
 SSL_PRIVKEY=#/etc/letsencrypt/live/vayu.cse.iitd.ac.in/privkey.pem
 SSL_CERT=#/etc/letsencrypt/live/vayu.cse.iitd.ac.in/fullchain.pem

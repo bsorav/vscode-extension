@@ -601,6 +601,8 @@ class EqcheckHandler {
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
             const unroll = ['-unroll-factor', 16];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
+            const stdout_filename = dirPath + "/stdout";
+            const stdout_arg = ['-stdout', stdout_filename];
             var dryRunArg = [];
             if (commandIn === commandPrepareEqcheck) {
               dryRunArg = ['--dry-run'];
@@ -617,7 +619,7 @@ class EqcheckHandler {
               dryRunArg.push('--submit-eqcheck');
             }
             //const no_use_relocatable_mls = ['-no-use-relocatable-memlabels'];
-            var eq32_args = ([ sourceFilename ]).concat(redirect).concat(proof).concat(dstObjArg).concat(dstCompileLogArg).concat(unroll).concat(dryRunArg).concat(src_names).concat(dst_names);
+            var eq32_args = ([ sourceFilename ]).concat(redirect).concat(proof).concat(stdout_arg).concat(dstObjArg).concat(dstCompileLogArg).concat(unroll).concat(dryRunArg).concat(src_names).concat(dst_names);
             if (optimizedFilename !== undefined) {
               eq32_args = eq32_args.concat(['--dst', optimizedFilename]);
             }

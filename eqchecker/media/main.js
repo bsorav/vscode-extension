@@ -769,7 +769,7 @@ let currentlyShowingProofOfEqCheck;
 
         eqcheckRightClickMenu.style.display = "inline";
 
-        if (eqcheck.runState == runStateStatusFoundProof || eqcheck.runState == runStateStatusSafetyCheckFailed || eqcheck.runState == runStateStatusSafetyCheckRunning) {
+        if (eqcheck.runState == runStateStatusFoundProof/* || eqcheck.runState == runStateStatusSafetyCheckFailed || eqcheck.runState == runStateStatusSafetyCheckRunning*/) {
           if(eqcheck.viewState == viewStateProofPartiallyClosed){
             items[0].innerHTML = 'View Whole Proof';
             items[0].addEventListener('click', viewProofListener);
@@ -860,6 +860,16 @@ let currentlyShowingProofOfEqCheck;
           items[4].style.display = "none";
           menuEntryCount =2;
         } 
+        else if (eqcheck.runState == runStateStatusSafetyCheckFailed) {
+          items[0].innerHTML = 'View Search Tree';
+          items[0].addEventListener('click', viewSearchTreeListener);
+          items[1].innerHTML = 'Clear';
+          items[1].addEventListener('click', eqcheckClearListener);
+          items[2].style.display = "none";
+          items[3].style.display = "none";
+          items[4].style.display = "none";
+          menuEntryCount =2;
+        }
         else {
           items[0].innerHTML = 'Clear';
           items[0].addEventListener('click', eqcheckClearListener);

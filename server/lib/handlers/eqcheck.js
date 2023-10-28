@@ -599,7 +599,7 @@ class EqcheckHandler {
             }
 
             const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
-            const unroll = ['-unroll-factor', 16];
+            const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
             const stdout_filename = dirPath + "/stdout";
             const stdout_arg = ['-stdout', stdout_filename];
@@ -692,6 +692,11 @@ class EqcheckHandler {
           } else {
             const buffer = fs.readFileSync(usersFile);
             const str = buffer.toString();
+            if (str === "") {
+              console.log(`Could not read usersFile ${usersFile}`);
+              console.log(`buffer = ${JSON.stringify(buffer)}`);
+              console.log(`str = ${str}`);
+            }
             users = JSON.parse(str);
           }
           resolve(users);
@@ -1554,8 +1559,10 @@ class EqcheckHandler {
         const src_vir_file = vir_file_paths.src_vir;
         const dst_vir_file = vir_file_paths.dst_vir;
         
-        const src_vir = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file)).toString();
-        const dst_vir = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file)).toString();
+        const src_vir_buf = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file));
+        const src_vir = (src_vir_buf === undefined) ? undefined : src_vir_buf.toString();
+        const dst_vir_buf = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file));
+        const dst_vir = (dst_vir_buf === undefined) ? undefined : dst_vir_buf.toString();
 
         // const invars = undefined;
         // const invars = (invariants_file === undefined) ? undefined : (await this.readBuffer(invariants_file)).toString();

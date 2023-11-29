@@ -11,6 +11,11 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var g_prodCfg = null;
+var g_bveq_invars = null;
+var g_bvineq_invars = null;
+var g_mem_invars = null;
+var g_inv_idx = 0;
+
 //var g_nodeMap = null;
 var g_nodeIdMap = null;
 var g_nodePCMap = null;
@@ -20,10 +25,13 @@ var g_dst_tfg = null;
 var selected_edge = null;
 var selected_node = null;
 var g_eqcheck_info = null;
+var g_src_edge_map = {};
+var g_dst_edge_map = {};
 
 var src_codetype="src";
 var dst_codetype="src";
 
+var selected_invars = null;
 
 window.addEventListener('message', async event => {
     const message = event.data;
@@ -31,6 +39,9 @@ window.addEventListener('message', async event => {
     switch (message.command) {
       case 'showProof':
         g_prodCfg = message.code;
+        g_bveq_invars = message.bveq_invars;
+        g_bvineq_invars = message.bvineq_invars;
+        g_mem_invars = message.mem_invars;
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();
         // var debug_str = String(counter++);
@@ -84,6 +95,20 @@ window.addEventListener('message', async event => {
 //}
 vscode.postMessage({command:"loaded"});
 
+function get_invariants_at_pc(pc){
+  console.log("Searching for PC", pc);
+  var invars = []
+  for (var i = 0; i < g_bveq_invars.map.entry.length; i++){
+    console.log("Currently at", g_bveq_invars.map.entry[i].key);
+    if (g_bveq_invars.map.entry[i].key == pc) {
+      for (var j = 0; j < g_bveq_invars.map.entry[i].value.length; j++){
+        invars.push(g_bveq_invars.map.entry[i].value[j]);
+      }
+      break;
+    }
+  }
+  return invars;
+}
 
 //console.log("Waiting for proof\n");
 //await waitForMessage();
@@ -93,12 +118,38 @@ function initializeContainer(){
     let container = document.getElementById('graph');
     container.style.width = '100%';
     container.style.height = '100%';
-    
+
 }
 
 function getEdgeId(from_pc, to_pc)
 {
   return `${from_pc} -> ${to_pc}`;
+}
+
+function get_src_dst_pc_from_prod(pc)
+{
+  var result = pc.split("_");
+  var src_pc = result[0];
+  var dst_pc = result[1];
+  return {src_pc : src_pc, dst_pc : dst_pc};
+}
+
+function set_src_edge_map(edges){
+  for (var edge of edges) {
+    const e_src_from_pc = get_src_dst_pc_from_prod(edge.from_pc).src_pc;
+    const e_src_to_pc = get_src_dst_pc_from_prod(edge.to_pc).src_pc;
+    const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
+    g_src_edge_map[edgeId] = {from_pc : e_src_from_pc, to_pc : e_src_to_pc};
+  }
+}
+
+function set_dst_edge_map(edges){
+  for (var edge of edges) {
+    const e_dst_from_pc = get_src_dst_pc_from_prod(edge.from_pc).dst_pc;
+    const e_dst_to_pc = get_src_dst_pc_from_prod(edge.to_pc).dst_pc;
+    const edgeId = getEdgeId(edge.from_pc, edge.to_pc);
+    g_dst_edge_map[edgeId] = {from_pc : e_dst_from_pc, to_pc : e_dst_to_pc};
+  }
 }
 
 function getEdgesFromEC_recursive(ec)
@@ -164,7 +215,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
     const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc);
-    
+
 
     var dst_linename, dst_columnname, dst_line_and_column_names;
     var dst_ir_linename, dst_ir_columnname, dst_insn_pc;
@@ -370,7 +421,7 @@ function get_lsprels(lsprels, locals_map)
 //       //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
 //       return {from: from_idx, to: to_idx, color: color, label: label};
 //     }));
-//     // [VIRAJ] This is where the plotting is happenning 
+//     // [VIRAJ] This is where the plotting is happenning
 //     var network = new vis.Network(document.getElementById('cfg'), {
 //         nodes: nodes,
 //         edges: edges
@@ -438,19 +489,24 @@ function get_lsprels(lsprels, locals_map)
 
 function generateDot(graph_nodes, graph_edges) {
   var dot_src = 'digraph {\n';
-  dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2]\n`;
+  //dot_src += `node [shape="plaintext" style="filled, rounded" fontname="Lato" margin=0.2]\n`;
+  dot_src += `node [shape="plaintext" style="filled, rounded" margin=0.2]\n`;
 
-  // Add declarations for the nodes
+  //console.log(`dot_src = ${dot_src}`);
+  // Add declarations for the nodes\"${lab}\"
   for (const node of graph_nodes) {
+    //console.log(`id = ${id}`);
     var id = node.id;
     var lab = node.label;
     var color = node.color;
-    dot_src += `${id} [id=\"${id}\" label=${lab} color=\"${color}\"] \n`;
+    dot_src += `${id} [id=\"${id}\" label=\"${lab}\" color=\"${color}\"]\n`;
   }
+  //console.log(`dot_src = ${dot_src}`);
 
   // Add declarations for the edges
-  // Note: Change penwidth if you want to change thickness of the edges  
+  // Note: Change penwidth if you want to change thickness of the edges
   for (const edge of graph_edges) {
+    //console.log(`edge.from = ${edge.from}, edge.to = ${edge.to}`);
     dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.from}#${edge.to}\" label=\"${edge.label}\" color=\"${edge.color}\" penwidth=3 fontsize="10pt"]\n`;
     // dot_src += `${edge.from} -> ${edge.to} [id=\"${edge.label}\" label=\"${edge.label}\" color=\"\"]\n`;
   }
@@ -472,7 +528,7 @@ function add_exit_lines(edges,nodeMap,nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tf
       break;
     }
   }
-  
+
   var preceding_src_pc,preceding_dst_pc;
   if(exit_edge!==undefined){
     for(var i=0; i<exit_edge["dst_edge"]["graph_ec_constituent_edge_list"]["edge_id"].length;i++){
@@ -531,7 +587,7 @@ function add_exit_lines(edges,nodeMap,nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tf
     else {
 
       [dst_ir_linename, dst_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(dst_tfg_llvm, preceding_dst_pc);
-      
+
       [dst_code_linename, dst_code_columnname, dst_code_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(dst_tfg_llvm, preceding_dst_pc);
 
       nodeMap["E0%0%d_E0%0%d"]["dst_node"]["linename"]= dst_code_linename;
@@ -545,13 +601,13 @@ function add_exit_lines(edges,nodeMap,nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tf
       nodeIdMap[exit_node_index]["dst_node"]["ir_linename"] = dst_ir_linename;
       nodeIdMap[exit_node_index]["dst_node"]["ir_columnname"] = dst_ir_columnname.toString();
       nodeIdMap[exit_node_index]["dst_node"]["line_and_column_names"]="(line "+dst_code_linename+" at column 3)";
-      
-      
+
+
     }
-  
+
 
   }
-  
+
 }
 
 function getUnroll(edge){
@@ -585,6 +641,12 @@ function drawNetwork(correl_entry) {
   const cg_edges = mk_array(cg_edges_);
   const cg_nodes_ = cg_collapsed_nodes_and_edges["node_pc_after_collapse"];
   const cg_nodes = mk_array(cg_nodes_);
+
+  // Send the edges for VIR
+  set_src_edge_map(cg_edges);
+  set_dst_edge_map(cg_edges);
+
+  // console.log(g_src_edge_map);
 
   const alloc_assumes = corr_graph["alloca_pc_local_sprel_assumes"];
   const dealloc_assumes = corr_graph["dealloca_pc_local_sprel_assumes"];
@@ -642,63 +704,89 @@ function drawNetwork(correl_entry) {
 
   g_nodePCMap = nodeMap;
 
+  //console.log(`making nodes`);
   // // Array of the nodes of the graph
   var nodes = cg_nodes.map(function(node) {
     var label_orig = nodeMap[node].label;
     //console.log(`label_orig = ${label_orig}`);
+    //var label = label_orig;
+    //var node_color = "#cfe2f3";
     const level = nodeMap[node].level;
 
     var color = "#cfe2f3";
     //var x = ((level % 2) * 2 - 1) * 500;
-    //console.log(`node = ${node}, level = ${level}, x = ${x}`);
+    //console.log(`node = ${node}, level = ${level}`);
+    var label = "";
     if (node === 'L0%0%d_L0%0%d') {
-      label_orig = "entry";
+      label = "entry: ";
     } else if (node.charAt(0) !== 'L') {
-      label_orig = "exit";
+      label = "exit: ";
     }
 
     if(nodeMap[node].idx==selected_node){
       color = "#ffbaba";
     }
+    //<tr>
+    //  <td><font point-size="14">${label_orig}</font></td>
+    //</tr>
 
-    var label=`<<table border="0" cellpadding="0" cellspacing="0">
-    <tr>
-      <td><font point-size="14">${label_orig}</font></td>
-    </tr>
-    <tr>
-      <td><font point-size="10">`;
 
+    //var label=`<<table border="0" cellpadding="0" cellspacing="0">
+    //<tr>
+    //  <td><font point-size="10">`;
+
+    //if(src_codetype==="src"){
+    //  label=label+"Src Code Line= "+ nodeMap[node]["src_node"]["linename"];
+    //}
+    //else{
+    //  label=label+"Src IR line= "+ nodeMap[node]["src_node"]["ir_linename"];
+    //}
+    //label+=`</font></td>
+    //</tr>\n`;
+    //label+=`<tr>
+    //<td><font point-size="10">`;
+
+    //if(dst_codetype==="src"){
+    //  label=label+"\n Dst Code Line= "+ nodeMap[node]["dst_node"]["linename"];
+    //}
+    //else{
+    //  label=label+"\n Dst IR Line= "+ nodeMap[node]["dst_node"]["ir_linename"];
+    //}
+    //label+=`</font></td>
+    //</tr>
+    //</table>>`
 
     if(src_codetype==="src"){
-      label=label+"Src Code Line= "+ nodeMap[node]["src_node"]["linename"];
+      label= label + "s"+ nodeMap[node]["src_node"]["linename"];
+    } else{
+      label=label+"s"+ nodeMap[node]["src_node"]["ir_linename"];
     }
-    else{
-      label=label+"Src IR line= "+ nodeMap[node]["src_node"]["ir_linename"];
-    }
-    label+=`</font></td>
-    </tr>\n`;
-    label+=`<tr>
-    <td><font point-size="10">`;
-
+    label = label + "; ";
     if(dst_codetype==="src"){
-      label=label+"\n Dst Code Line= "+ nodeMap[node]["dst_node"]["linename"];
+      label=label+"d"+ nodeMap[node]["dst_node"]["linename"];
+    } else{
+      label=label+"d"+ nodeMap[node]["dst_node"]["ir_linename"];
     }
-    else{
-      label=label+"\n Dst IR Line= "+ nodeMap[node]["dst_node"]["ir_linename"];
-    }
-    label+=`</font></td>
-    </tr>
-  </table>>`
-    return {id:nodeMap[node].idx, label: label, level: level,color: color};
+
+    //console.log(`label =\n${label}`);
+
+    //console.log(nodeMap[node].idx, selected_node)
+    //if (nodeMap[node].idx.toString() === selected_node) {
+    //  node_color = "#8edeb5";
+    //}
+    return {id:nodeMap[node].idx, label: label, level: level, color: color};
   });
 
+  //console.log(`making edges`);
   // Array of the edges of the graph
   var edges = cg_edges.map(function(edge) {
     //console.log(`nodeMap = ${JSON.stringify(nodeMap)}`);
     //console.log(`edge from_pc ${edge.from_pc} to_pc ${edge.to_pc}`);
     const from_idx = nodeMap[edge.from_pc].idx;
+    //console.log(`from_idx = ${JSON.stringify(from_idx)}`);
     const to_idx = nodeMap[edge.to_pc].idx;
 
+    //console.log(`from_idx = ${JSON.stringify(from_idx)}, to_idx = ${JSON.stringify(to_idx)}`);
     const dst_from_pc = nodeMap[edge.from_pc].dst_node.pc;
     const dst_to_pc = nodeMap[edge.to_pc].dst_node.pc;
 
@@ -712,6 +800,7 @@ function drawNetwork(correl_entry) {
     const allocs = get_lsprels(allocs_at_to_pc, locals_map);
     const deallocs = get_lsprels(deallocs_at_to_pc, locals_map);
 
+    //console.log(`allocs = ${JSON.stringify(allocs)}, deallocs = ${JSON.stringify(deallocs)}`);
     var label="";
 
     //console.log(`allocs = ${JSON.stringify(allocs)}`);
@@ -747,6 +836,7 @@ function drawNetwork(correl_entry) {
       label+=unroll.toString()+`'`;
     }
 
+    //console.log(`label = ${JSON.stringify(label)}`);
 
     var color;
     // console.log("CG EC EDGES" + JSON.stringify(cg_ec_edges));
@@ -763,53 +853,90 @@ function drawNetwork(correl_entry) {
     //const label = `${from_label} -> ${to_label}`;
 
     //console.log(`from_idx = ${from_idx}, to_idx = ${to_idx}\n`);
+
+    //console.log(`returning from edges map`);
     return {from: from_idx, to: to_idx, color: color, label: label};
   });
 
+
+  //console.log(`calling generateDot`);
+
   // Get the dot file from nodes and edges
   var dotSrc = generateDot(nodes, edges);
+
+  //console.log(`returned from generateDot`);
   //console.log(dotSrc);
-
   // This renders the graph
-  d3.select("#graph").graphviz()
-    .renderDot(dotSrc)
-    .zoom(false);
+  const gv = d3.select("#graph").graphviz();
+  //console.log(`done gv`);
+  const dot = gv.renderDot(dotSrc);
+  //console.log(`done dot`);
+  dot.zoom(false);
+  //console.log(`done zoom`);
 
+  //console.log(`drawNetwork returning`);
   return dotSrc;
 }
-
-
 
 function refreshPanel()
 {
   initializeContainer();
 
   drawNetwork(g_prodCfg);
-  
+
   // document.getElementById("graph").onclick = function() {
   //   selected_edge = null;
   //   vscode.postMessage({
   //       command:"clear"
   //   });
   // };
-  
+
+  //console.log(`adding click`);
   d3.select("#graph").on("click", function() {
-    console.log(d3.select("#graph"));
+    //console.log(d3.select("#graph"));
   });
 
+  //console.log(`next inv`);
+  document.getElementById("next_inv").addEventListener('click', function(event) {
+    if (g_inv_idx < selected_invars.length - 1) {
+      g_inv_idx++;
+      document.getElementById("inv_txt").innerHTML = selected_invars[g_inv_idx];
+    }
+  });
+
+  //console.log(`prev inv`);
+  document.getElementById("prev_inv").addEventListener('click', function(event) {
+    if (g_inv_idx > 0) {
+      g_inv_idx--;
+      document.getElementById("inv_txt").innerHTML = selected_invars[g_inv_idx];
+    }
+  });
+
+  //console.log(`click`);
   document.getElementById("graph").addEventListener('click', function(event) {
-    if (event.target.closest('.edge') || event.target.closest('.node')) {
-      // console.log("an edge was clicked!");
+    console.log(`graph clicked`);
+    if (event.target.closest('.edge')) {
+      console.log(`graph clicked with edge closest`);
+      //console.log("an edge was clicked!");
+      document.getElementById("invariants").style.visibility = 'hidden';
+      document.getElementById("graph").style.marginTop = '0px';
+      selected_node = null;
       return;
     } else {
-      selected_edge = null;
-      selected_node = null;
-      vscode.postMessage({
-          command:"clear"
-      });
-      drawNetwork(g_prodCfg);
+      if (!event.target.closest('.node')) {
+        console.log(`graph clicked with node not closest`);
+        selected_node = null;
+        document.getElementById("invariants").style.visibility = 'hidden';
+        document.getElementById("graph").style.marginTop = '0px';
+        selected_edge = null;
+        selected_node = null;
+        vscode.postMessage({
+            command:"clear"
+        });
+        drawNetwork(g_prodCfg);
+      }
     }
-    
+
   });
 
   d3.select("#graph")
@@ -821,10 +948,50 @@ function refreshPanel()
     d3.select(this).attr("cursor", "default");
   });
 
+  d3.select('#graph').selectAll('.node').on('click', function(){
+    var node_id = d3.select(this).attr('id');
+    console.log(`node clicked`);
+    // var labl = d3.select(this).attr('label');
+    if (node_id == selected_node){
+      selected_edge = null;
+      selected_node = null;
+      document.getElementById("invariants").style.visibility = 'hidden';
+      document.getElementById("graph").style.marginTop = '0px';
+    } else {
+      selected_edge = null;
+      selected_node = node_id;
+      //console.log(`selected node ${JSON.stringify(node_id)}`);
+      var n_pc = g_nodeIdMap[node_id].pc;
+      selected_invars = get_invariants_at_pc(n_pc);
+      g_inv_idx = 0;
+      if (selected_invars.length > 0) {
+        document.getElementById("inv_txt").innerHTML = selected_invars[g_inv_idx];
+      } else {
+        document.getElementById("inv_txt").innerHTML = "No invariants to display";
+      }
+      document.getElementById("invariants").style.visibility = 'visible';
+      document.getElementById("graph").style.marginTop = '100px';
+      drawNetwork(g_prodCfg);
+
+      //console.log(`inv_txt = ${document.getElementById("inv_txt").innerHTML}`);
+      const node = g_nodeIdMap[node_id];
+      vscode.postMessage({
+        command:"highlight",
+        node_edge:"node",
+        node: node,
+        eqcheck_info: g_eqcheck_info,
+        src_tfg: g_src_tfg,
+        dst_tfg: g_dst_tfg,
+      });
+    }
+  });
+
   // Selecting an edge on the TFG
   d3.select("#graph")
   .selectAll('.edge')
   .on("click", function () {
+    console.log(`edge clicked`);
+    selected_node = null;
     // debug_str = d3.select(this).attr('id');
     var e_ids = d3.select(this).attr('id').split("#");
     console.log(e_ids);
@@ -841,11 +1008,14 @@ function refreshPanel()
           command:"clear"
       });
       drawNetwork(g_prodCfg);
+
     } else {
       // Select the new edge
       selected_edge = edgeId;
       selected_node = null;
       const edge = g_edgeMap[edgeId];
+      const src_edge_vir = g_src_edge_map[edgeId];
+      const dst_edge_vir = g_dst_edge_map[edgeId];
       vscode.postMessage({
         command:"highlight",
         node_edge:"edge",
@@ -854,45 +1024,46 @@ function refreshPanel()
         edge: edge,
         eqcheck_info: g_eqcheck_info,
         src_tfg: g_src_tfg,
-        dst_tfg: g_dst_tfg
+        dst_tfg: g_dst_tfg,
+        src_edge_vir : src_edge_vir,
+        dst_edge_vir : dst_edge_vir
       });
       drawNetwork(g_prodCfg);
     }
 
   });
 
-  d3.select("#graph")
-  .selectAll('.node')
-  .on("click",function(){
-    var nodeId=d3.select(this).attr('id');
-    
-    if (selected_node == nodeId) {
-      // Edge is already selected, deselect
-      selected_edge = null;
-      selected_node = null;
-      vscode.postMessage({
-          command:"clear"
-      });
-      drawNetwork(g_prodCfg);
-    } else {
-      // Select the new edge
-      selected_edge = null;
-      selected_node = nodeId;
-      const node = g_nodeIdMap[nodeId];
-      vscode.postMessage({
-        command:"highlight",
-        node_edge:"node",
-        node: node,
-        eqcheck_info: g_eqcheck_info,
-        src_tfg: g_src_tfg,
-        dst_tfg: g_dst_tfg
-      });
-      drawNetwork(g_prodCfg);
-    }
-    
-  }
-
-  );
+  //d3.select("#graph")
+  //.selectAll('.node')
+  //.on("click",function(){
+  //  var nodeId=d3.select(this).attr('id');
+  //
+  //  if (selected_node == nodeId) {
+  //    // Edge is already selected, deselect
+  //    selected_edge = null;
+  //    selected_node = null;
+  //    vscode.postMessage({
+  //        command:"clear"
+  //    });
+  //    drawNetwork(g_prodCfg);
+  //  } else {
+  //    // Select the new edge
+  //    selected_edge = null;
+  //    selected_node = nodeId;
+  //    const node = g_nodeIdMap[nodeId];
+  //    vscode.postMessage({
+  //      command:"highlight",
+  //      node_edge:"node",
+  //      node: node,
+  //      eqcheck_info: g_eqcheck_info,
+  //      src_tfg: g_src_tfg,
+  //      dst_tfg: g_dst_tfg
+  //    });
+  //    drawNetwork(g_prodCfg);
+  //  }
+  //
+  //}
+  //);
 
 
 }

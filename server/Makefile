@@ -1,11 +1,11 @@
 HOSTNAME=0.0.0.0
 PORT=80
-SMT_SOLVER_TMP_FILES_DIR=${HOME}/vscode-server-files #
+SMT_SOLVER_TMP_FILES_DIR=${HOME}/vscode-server-files #/nfs/sbansal
 SUPEROPT_INSTALL_DIR=${HOME}/superopt-project/usr/local
-USE_HTTPS=false
+USE_HTTPS=false #false
 SSL_PRIVKEY=#/etc/letsencrypt/live/vayu.cse.iitd.ac.in/privkey.pem
 SSL_CERT=#/etc/letsencrypt/live/vayu.cse.iitd.ac.in/fullchain.pem
-CHECK_LOGIN=false
+CHECK_LOGIN=false #true
 DEFAULT_EQCHECK_QUOTA=10000 #10
 
 run::

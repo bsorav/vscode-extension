@@ -13,7 +13,9 @@ const temp = require('temp'),
     assert = require('assert'),
     tree_kill = require('tree-kill'),
     textEncoding = require('text-encoding'),
-    tar = require('tar')
+    tar = require('tar'),
+
+    Mutex = require('async-mutex').Mutex // added
 ;
 
 //temp.track();
@@ -52,7 +54,20 @@ const pointsToSuffix = "/pointsTo";
 const submitSuffix = "/submit.";
 const rewritten_prefix = "rewritten.";
 
+const mutex = new Mutex(); 		// mutex lock for start
+const fin_mutex = new Mutex();    	// mutex lock for finish
+
 var defaultQuotaForNewUser = 10;
+
+// number of tasks that can be executed simultaneously
+const prepareLimit = 10;
+const pointsToLimit = 10;
+const submitLimit = 5;
+
+// current number of tasks at each stage
+var currSubmitTasks= 0;
+var currPrepareTasks= 0;
+var currPointsToTasks= 0;
 
 function def(a) {
   return (a === undefined) ? "undef" : "def";
@@ -396,6 +411,41 @@ class EqcheckHandler {
       return (json === undefined) ? undefined : Buffer.from(json.data);
     }
 
+    // delays a task by y seconds
+    delay(time){
+      return new Promise(resolve=> setTimeout(resolve,time));
+    }
+
+    // checks whether a task can start processing according to the current stage
+    canAdmit = async (commandIn)=>{
+      if (commandIn == commandSubmitEqcheck && currSubmitTasks < submitLimit){
+        currSubmitTasks++;
+        return true;
+      }
+      else if (commandIn == commandPrepareEqcheck && currPrepareTasks < prepareLimit){
+        currPrepareTasks++;
+        return true;
+      }
+      else if (commandIn == commandPointsToAnalysis && currPointsToTasks < pointsToLimit){
+        currPointsToTasks++;
+        return true;
+      }
+      return false;
+    }
+
+    // Decrements the current task number
+    finish = async (commandIn)=>{
+      if (commandIn == commandSubmitEqcheck){
+	currSubmitTasks--;
+      }
+      else if (commandIn == commandPrepareEqcheck){
+	currPrepareTasks--;
+      }
+      else if (commandIn == commandPointsToAnalysis){
+	currPointsToTasks--;
+      }
+    }
+
     run_eqcheck(source_filename, source_contents, src_bc, src_irJSON, src_etfgJSON, optimized_filename, optimized_contents, dst_bc, dst_irJSON, dst_etfgJSON, objectJSON, compile_logJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn, extra_args) {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
@@ -513,7 +563,24 @@ class EqcheckHandler {
         const proofFilename = this.get_proof_filename(dirPath, undefined);
         //const errFilename = this.get_errfilename(dirPath);
 
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
+
+	    var admit = false;
+
+	// checks whether a task can start processing
+	    while (!admit){
+              const release = await mutex.acquire();
+              try {
+                admit = await this.canAdmit(commandIn).then((value)=> {return value});
+              } finally {
+                release();
+              }
+	// Task will wait for 5 secs before checking whether it can start
+              if(admit === false){
+                await this.delay(50000);
+              }
+            }
+
             //console.log('dirPath = ', dirPath);
             //const sourceFilename = path.join(dirPath, srcName);
             if (!fs.existsSync(path.resolve(sourceFilename))) {
@@ -616,7 +683,15 @@ class EqcheckHandler {
             //eq32_args = eq32_args.concat([" ", extra_args_without_quotes, " "]);
             //eq32_args = eq32_args.concat(extra_args_array);
             console.log('calling eq32 ' + eq32_args);
-            resolve(exec.execute(this.superoptInstall + "/bin/eq32", eq32_args));
+            resolve(await exec.execute(this.superoptInstall + "/bin/eq32", eq32_args));
+
+	// current job number will be decremented after completion
+	    fin_mutex.acquire().then((release)=>{
+	    try {
+    	      this.finish(commandIn);
+	    } finally {
+    	      release();
+	    }});
         });
         //result.stdout = result.stdout.split('\n');
         //result.stderr = result.stderr.split('\n');
@@ -1311,6 +1386,7 @@ class EqcheckHandler {
 
 
           //console.log(`extra_args = ${extra_args}.`);
+
           this.run_eqcheck(source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn, extra_args)
               .then(
                   result => {
@@ -1328,6 +1404,7 @@ class EqcheckHandler {
                   error => {
                       this.eqcheck_error(error, res);
                   });
+
           if (commandIn === commandPointsToAnalysis) { //decrement as soon as we start doing compute-intensive stuff
             await this.decrementQuotaForUser(loginName);
           }

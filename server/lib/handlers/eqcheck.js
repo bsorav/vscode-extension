@@ -577,7 +577,7 @@ class EqcheckHandler {
               }
 	// Task will wait for 5 secs before checking whether it can start
               if(admit === false){
-                await this.delay(50000);
+                await this.delay(5000);
               }
             }
 

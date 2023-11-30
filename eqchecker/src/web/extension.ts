@@ -331,7 +331,7 @@ class Eqchecker {
     var runState;
     //console.log(`runStatus = ${runStatus}\n`);
     if (runStatus === null || runStatus === undefined || runStatus.running_status === undefined) {
-     runState = runStateStatusPreparing;
+     runState = runStateStatusQueued;
     } else {
      runState = runStatus.running_status.status_flag;
     }

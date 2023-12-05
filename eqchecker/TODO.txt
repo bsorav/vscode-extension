@@ -1,0 +1,6 @@
+# Make unmovable (DONE)
+# Background (DONE)
+# On click (DOING)
+# On hover - mouse change (DONE)
+# Design 
+# 

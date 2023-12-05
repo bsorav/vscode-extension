@@ -33,10 +33,11 @@ body{
 
 }
 
-.zoom-buttons{
-  position: absolute;
-  bottom: 5px;
-  right: 5px;
+.zoom-button {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  z-index: 9999;
 }
 
 .zoom-buttons input{
@@ -49,9 +50,39 @@ body{
   border-radius: 3px;
 }
 
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.invariants {
+  min-height: 100vh; /* Ensures the container takes at least the full viewport height */
+  position: relative; /* Establishes the context for absolute positioning */
+}
+
+.fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #64c1e3;
+  border-top: 1px solid #ccc;
+}
+
+.scrolling-content {
+  max-height: 200px; /* Set a maximum height for the scrolling area */
+  overflow-y: auto; /* Enable vertical scrolling when content overflows */
+  padding: 10px; /* Add padding for better appearance */
+  color: rgb(0, 0, 0);
+}
+
 .full-view{
     width:100vw;
     height:100vh;
+}
+
+.content{
+  overflow: auto;
 }
 
 .flexbox-1{
@@ -76,6 +107,75 @@ body{
     height:50vh;
 }
 
+div.graph{
+  position: absolute;
+  top:0;
+  /* bottom: 0; */
+  left: 0;
+  right: 0;
+  margin: auto;
+  margin-top:0px;
+}
+
+/* Style for the fixed navbar */
+.invbar {
+  position: fixed;
+  top: 0;
+  color:black;
+  visibility: hidden;
+  padding:5px;
+  /* bottom: 0; */
+  left: 0;
+  width: 100%;
+  min-height: 90px; 
+  background-color: #61c4e8; 
+  z-index: 100;
+  
+}
+
+.invbar_text {
+  color: black;
+  white-space: pre-line;
+  margin-bottom: 30px;
+  /* flex: 1; Allow the text to take up remaining space */
+}
+
+.lr_buttons {
+  /* vertical-align: bottom; */
+  margin-top:5px;
+  margin-left:5px;
+  margin-right:5px;
+  position: absolute;
+  /* right:    0; */
+  bottom: 5px;
+  /* display: flex; */
+  align-items: center;
+}
+
+.lr_button {
+  padding: 5px 5px;
+  border: none;
+  margin-top:5px;
+  margin-left:5px;
+  margin-right:5px;
+  /* background-color: #007bff; */
+  /* color: white; */
+  font-size: 12px;
+  /* border-radius: 5px; */
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.lr_button:hover {
+  background-color: #0056b3;
+}
+
+/* .main-content {margin-bottom: 150px} */
+
+.graph-node:hover { cursor: pointer; }
+
+.graph-edge:hover {cursor: pointer;}
+
 /* The switch - the box around the slider */
 .switch {
     position: relative;
@@ -83,14 +183,14 @@ body{
     width: 60px;
     height: 34px;
   }
-  
+
   /* Hide default HTML checkbox */
   .switch input {
     opacity: 0;
     width: 0;
     height: 0;
   }
-  
+
   /* The slider */
   .slider {
     position: absolute;
@@ -103,7 +203,7 @@ body{
     -webkit-transition: .4s;
     transition: .4s;
   }
-  
+
   .slider:before {
     position: absolute;
     content: "";
@@ -115,26 +215,51 @@ body{
     -webkit-transition: .4s;
     transition: .4s;
   }
-  
+
   input:checked + .slider {
     background-color: #2196F3;
   }
-  
+
   input:focus + .slider {
     box-shadow: 0 0 1px #2196F3;
   }
-  
+
   input:checked + .slider:before {
     -webkit-transform: translateX(26px);
     -ms-transform: translateX(26px);
     transform: translateX(26px);
   }
-  
+
   /* Rounded sliders */
   .slider.round {
     border-radius: 34px;
   }
-  
+
   .slider.round:before {
     border-radius: 50%;
   }
+
+#right-click-menu {
+	position: fixed;
+	z-index: 10000;
+	width: 150px;
+	background: #3b1a1a;
+    border-radius: 5px;
+	display: none;
+}
+
+#right-click-menu.visible {
+	display: block;
+}
+
+#right-click-menu .item {
+	padding: 8px 10px;
+	font-size: 10px;
+	color: #eee;
+	cursor: pointer;
+	border-radius: inherit;
+}
+
+#right-click-menu .item:hover {
+	background: #543434;
+}

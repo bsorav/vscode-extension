@@ -32,11 +32,13 @@ const defArgs = {
   tmpDir: opts.tmpDir || '/tmp',
 };
 
+//const codeAnalysisURL = "/codeAnalysis";
+
 async function main() {
     const CompilationEnvironment = require('./lib/compilation-env');
     const compilationEnvironment = new CompilationEnvironment(/*compilerProps, compilationQueue, defArgs.doCache*/);
     const EqcheckHandler = require('./lib/handlers/eqcheck').Handler;
-    const eqcheckHandler = new EqcheckHandler(defArgs.superoptInstall/*, awsProps*/);
+    const eqcheckHandler = new EqcheckHandler(defArgs.hostname, defArgs.port, defArgs.superoptInstall, process.env.DEFAULT_EQCHECK_QUOTA);
 
     const StorageHandler = require('./lib/storage/storage');
     const storageHandler = StorageHandler.storageFactory('local'/*, compilerProps, awsProps*/, '/');
@@ -55,10 +57,16 @@ async function main() {
     webServer
         .set('trust proxy', true)
         .set('view engine', 'pug')
-        .use(bodyParser.json({limit: '10mb'}))
+        .use(bodyParser.json({limit: '1000mb'}))
         .on('error', err => logger.error('Caught error in web handler; continuing:', err))
         .use(express.json())
         .use('/', router)
+        //.use(codeAnalysisURL, (req, res) => {
+        //  console.log('Url ', req.originalUrl, ' reached at ', req._startTime, ' by ip address ', req.ip, ' refered by ', req.get('Referer'), ' headers ', req.headers);
+        //  const path = req.originalUrl.substring(codeAnalysisURL.length);
+        //  const html = fs.readFileSync('path');
+        //  res.send(html);
+        //})
         //.post('/test', (req, res) => {
         //    console.log('method:\n' + req.method);
         //    console.log('headers:\n' + JSON.stringify(req.headers));
@@ -136,18 +144,21 @@ function startListening(server) {
     } else */{
         _port = defArgs.port;
     }
-    //logger.info(`  Listening on http://${defArgs.hostname}:${_port}/`);
-    //logger.info("=======================================");
-    //server.listen(_port, defArgs.hostname);
 
-    //const httpServer = http.createServer({
-    //  //key: fs.readFileSync(defArgs.serverInstall + '/certificates/ssl.key'),
-    //  //cert: fs.readFileSync(defArgs.serverInstall + '/certificates/ssl.crt'),
-    //}, server);
-    server.listen(_port,  () => {
-      logger.info(`HTTP server started on port ${_port}`);
+    if (process.env.USE_HTTPS == "true") {
+      const httpsServer = https.createServer({
+        key: fs.readFileSync(process.env.SSL_PRIVKEY),
+        cert: fs.readFileSync(process.env.SSL_CERT),
+      }, server);
+      httpsServer.listen(_port,  () => {
+        logger.info(`HTTPS server started on port ${_port}`);
+        logger.info("=======================================");
+      });
+    } else {
+      logger.info(`  Listening on http://${defArgs.hostname}:${_port}/`);
       logger.info("=======================================");
-    });
+      server.listen(_port, defArgs.hostname);
+    }
 }
 
 main()

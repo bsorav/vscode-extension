@@ -450,12 +450,13 @@ class EqcheckHandler {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
         const source = (source_filename === undefined) ? this.readFileObjectToUint8Array(source_contents) : undefined;
-        const optimized = (optimized_filename === undefined) ? this.readFileObjectToUint8Array(optimized_contents) : undefined;
+	 const optimized = (optimized_filename === undefined) ? this.readFileObjectToUint8Array(optimized_contents) : undefined;
         if (source !== undefined) {
           srcName = path.basename(srcName);
           if (srcName.startsWith("\\") || srcName.startsWith("/")) {
             srcName = srcName.substr(1);
           }
+	   srcName = srcName.substr(srcName.lastIndexOf("\\")+1);
           srcName = "src.".concat(srcName);
         }
         if (optimized !== undefined) {

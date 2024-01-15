@@ -498,7 +498,7 @@ class Eqchecker {
   {
     const prepareDirpath = request.prepareDirpath;
     //console.log(`prepareDirpath = ${prepareDirpath}`);
-    const {src_filename: src_filename_arr, dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, src_bc: src_bc, src_ir: src_ir, dst_bc: dst_bc, dst_ir: dst_ir, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
+    const {src_filename: src_filename_arr, dst_filename: dst_filename_arr, dst_tfg_is_llvm: dst_tfg_is_llvm, dst_filename_is_object: dst_filename_is_object_str, src_bc: src_bc, src_ir: src_ir, dst_bc: dst_bc, dst_ir: dst_ir, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
 
     const src_filename = src_filename_arr.toString();
     const dst_filename = dst_filename_arr.toString();
@@ -514,6 +514,7 @@ class Eqchecker {
       request.source1Uri = src_filename.toString();
       request.source2Name = posix.basename(dst_filename.toString(), undefined);
       request.source2Uri = dst_filename.toString();
+      request.dst_tfg_is_llvm = dst_tfg_is_llvm;
       request.dstFilenameIsObject = dst_filename_is_object;
       request.source2Text = object;
       request.compile_log = compile_log;
@@ -746,6 +747,7 @@ class Eqchecker {
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
           source2Text: source2Text,
+          dst_tfg_is_llvm: undefined,
           dstFilenameIsObject: undefined,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           dirPathIn: undefined,

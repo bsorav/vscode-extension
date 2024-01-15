@@ -153,7 +153,7 @@ class EqcheckHandler {
     }
 
     parseRequest(req/*, compiler*/) {
-        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName;
+        let commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dst_tfg_is_llvm, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName;
         if (req.is('json')) {
             // JSON-style request
             ////console.log('JSON-style parseRequest:\n' + JSON.stringify(req)); //this fails due to a circularity in REQ
@@ -195,6 +195,7 @@ class EqcheckHandler {
             offsetIn = req.body.offsetIn;
             srcName = req.body.source1Name;
             optName = req.body.source2Name;
+            dst_tfg_is_llvm = req.body.dst_tfg_is_llvm;
             dstFilenameIsObject = req.body.dstFilenameIsObject;
             functionName = req.body.functionName;
             sessionName = req.body.sessionName;
@@ -238,6 +239,7 @@ class EqcheckHandler {
             srcName = req.source1Name;
             //optName = "opt.".concat(req.source2Name);
             optName = req.source2Name;
+            dst_tfg_is_llvm = req.dst_tfg_is_llvm;
             dstFilenameIsObject = req.dstFilenameIsObject;
             functionName = req.functionName;
             sessionName = req.sessionName;
@@ -276,7 +278,7 @@ class EqcheckHandler {
         //});
         //return {source, options, backendOptions, filters, bypassCache, tools, executionParameters, libraries};
         //console.log("commandIn = " + commandIn);
-        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName};
+        return {commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dst_tfg_is_llvm, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName};
     }
 
     //splitArguments(options) {
@@ -405,7 +407,7 @@ class EqcheckHandler {
       return (json === undefined) ? undefined : Buffer.from(json.data);
     }
 
-    run_eqcheck(source_filename, source_contents, src_bc, src_irJSON, src_etfgJSON, optimized_filename, optimized_contents, dst_bc, dst_irJSON, dst_etfgJSON, objectJSON, compile_logJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn, extra_args) {
+    run_eqcheck(source_filename, source_contents, src_bc, src_irJSON, src_etfgJSON, optimized_filename, optimized_contents, dst_bc, dst_irJSON, dst_etfgJSON, objectJSON, compile_logJSON, harvestJSON, unrollFactor, dirPath, srcName, optName, dst_tfg_is_llvm, dstFilenameIsObject, functionName, commandIn, extra_args) {
         //console.log(`run_eqcheck called. sourceJSON (type ${typeof sourceJSON}) = ${sourceJSON}`);
 
         const source = (source_filename === undefined) ? this.readFileObjectToUint8Array(source_contents) : undefined;
@@ -549,6 +551,9 @@ class EqcheckHandler {
               src_names.push(src_irFilename);
             }
             var dst_names = (optimizedFilename === undefined) ? [] : ['-dst-filename', orig_optimizedFilename];
+            if (dst_tfg_is_llvm) {
+              dst_names.push('-dst-tfg-is-llvm');
+            }
             if (dstFilenameIsObject) {
               dst_names.push('-dst-filename-is-object');
             }
@@ -875,6 +880,7 @@ class EqcheckHandler {
       //const dst = await this.readBuffer(dstFilename);
       const dst = dstFilename;
       //console.log(`dirPath = ${dirPath}, dst = ${dst}`);
+      const dst_tfg_is_llvm = (runStatus.running_status.dst_tfg_is_llvm == "true");
       const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
       const objFilenameJSON = runStatus.running_status.dst_object_filename;
       const objFilename = this.absPath(dirPath, objFilenameJSON);
@@ -1311,7 +1317,7 @@ class EqcheckHandler {
       //}
       //console.log('parseRequest called');
       var {
-          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName
+          commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dst_tfg_is_llvm, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName
       } = this.parseRequest(req/*, compiler*/);
       //const remote = compiler.getRemote();
       //if (remote) {
@@ -1368,7 +1374,7 @@ class EqcheckHandler {
 
 
           //console.log(`extra_args = ${extra_args}.`);
-          this.run_eqcheck(source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dstFilenameIsObject, functionName, commandIn, extra_args)
+          this.run_eqcheck(source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, dirPath, srcName, optName, dst_tfg_is_llvm, dstFilenameIsObject, functionName, commandIn, extra_args)
               .then(
                   result => {
                       //console.log(result.stdout);
@@ -1476,6 +1482,7 @@ class EqcheckHandler {
           res.end(JSON.stringify({ src_filename: srcFilename, src_bc: src_bc, src_ir: src_ir, dst_filename: dstFilename, dst_bc: dst_bc, dst_ir: dst_ir }));
           return;
         }
+        const dst_tfg_is_llvm = (runStatus.running_status.dst_tfg_is_llvm == "true");
         const dstFilenameIsObject = (runStatus.running_status.dst_filename_is_object == "true");
         //const objectFilename = this.get_object_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
         //const compile_logFilename = this.get_compile_log_filename_for_dst_filename(dstFilename, dstFilenameIsObject);
@@ -1499,7 +1506,7 @@ class EqcheckHandler {
         const dst_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].dst_only_functions[0]);
         //console.log(`harvest = ${harvest}\n`);
         //console.log(`common = ${common}, src_only = ${src_only}, dst_only = ${dst_only}`);
-        const responseStr = JSON.stringify({ src_filename: srcFilename, src_bc: src_bc, src_ir: src_ir, dst_filename: dstFilename, dst_bc: dst_bc, dst_ir: dst_ir, dst_filename_is_object: dstFilenameIsObject, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only });
+        const responseStr = JSON.stringify({ src_filename: srcFilename, src_bc: src_bc, src_ir: src_ir, dst_filename: dstFilename, dst_bc: dst_bc, dst_ir: dst_ir, dst_tfg_is_llvm: dst_tfg_is_llvm, dst_filename_is_object: dstFilenameIsObject, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only });
         res.end(responseStr);
         return;
       } else if (commandIn === commandObtainProof) {

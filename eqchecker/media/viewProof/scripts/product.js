@@ -697,6 +697,16 @@ function drawNetwork(correl_entry) {
   g_nodeIdMap["0"]["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
   g_nodeIdMap["0"]["src_node"]["columnname"] = "1";
   g_nodeIdMap["0"]["dst_node"]["columnname"] = "1";
+
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["src_node"]["linename"] = src_code_subprogram_info.scope_line;
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["src_node"]["columnname"] = "1";
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["dst_node"]["columnname"] = "1";
+  g_nodeIdMap["1"]["src_node"]["linename"] = src_code_subprogram_info.scope_line;
+  g_nodeIdMap["1"]["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  g_nodeIdMap["1"]["src_node"]["columnname"] = "1";
+  g_nodeIdMap["1"]["dst_node"]["columnname"] = "1";
+
   //console.log("Edges= "+JSON.stringify(cg_edges));
   add_exit_lines(cg_edges,nodeMap,g_nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 

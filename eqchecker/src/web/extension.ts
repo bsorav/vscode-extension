@@ -508,13 +508,13 @@ class Eqchecker {
     }
 
     const dst_filename_is_object = (dst_filename_is_object_str == "true");
+    request.dst_tfg_is_llvm = dst_tfg_is_llvm;
 
     if (request.source2Uri === undefined) {
       request.source1Name = posix.basename(src_filename.toString(), undefined);
       request.source1Uri = src_filename.toString();
       request.source2Name = posix.basename(dst_filename.toString(), undefined);
       request.source2Uri = dst_filename.toString();
-      request.dst_tfg_is_llvm = dst_tfg_is_llvm;
       request.dstFilenameIsObject = dst_filename_is_object;
       request.source2Text = object;
       request.compile_log = compile_log;

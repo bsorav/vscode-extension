@@ -1,4 +1,4 @@
-import {convert_long_long_map_json_to_associative_array} from "./utils.js";
+import {convert_long_long_map_json_to_associative_array,get_numeric_suffix} from "./utils.js";
 
 
 const default_columnname_for_assembly = 16;
@@ -66,7 +66,7 @@ export function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc,
     dst_columnname = ""; //unused
     dst_line_and_column_names = dst_linename; //unused
   } else if (dst_index.charAt(0) === 'L') {
-    const index_name = dst_index.substring(1);
+    const index_name = get_numeric_suffix(dst_index.substring(1));
     dst_insn_pc = dst_insn_pcs[index_name];
     //console.log(`before: dst_insn_pc = ${dst_insn_pc}`);
     dst_insn_pc = parseInt(dst_insn_pc);

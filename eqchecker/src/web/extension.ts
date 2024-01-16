@@ -1815,6 +1815,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 //  //subprogram_info: message.src_subprogram_info,
                 //  //nodeMap: message.src_nodeMap
                 //});
+                //console.log(`highlighting src path:\n path = ${JSON.stringify(message.edge.src_edge)}\n`);
                 this.panel_post_message(panel_src_code, {
                   command: "highlight",
                   node_edge: "edge",
@@ -1839,6 +1840,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                   //subprogram_info: message.src_ir_subprogram_info,
                   //nodeMap: message.src_ir_nodeMap
                 });
+                //console.log(`highlighting dst path:\n path = ${JSON.stringify(message.edge.dst_edge)}\n`);
                 this.panel_post_message(panel_dst_code, {
                   command: "highlight",
                   node_edge: "edge",

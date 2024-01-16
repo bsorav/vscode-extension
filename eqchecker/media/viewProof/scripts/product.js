@@ -3,7 +3,7 @@
     PRODUCT CFG
 */
 
-import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
+import {arrayUnique, convert_long_long_map_json_to_associative_array,get_numeric_suffix} from "./utils.js";
 import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc} from "./tfg.js";
 // import { graphviz } from 'd3-graphviz';
 // import * as d3 from 'd3';
@@ -72,6 +72,7 @@ window.addEventListener('message', async event => {
         selected_edge = edgeId;
         selected_node = null;
         const edge = g_edgeMap[edgeId];
+        //console.log(`highlighting product-CFG edge:\nto = ${JSON.stringify(to)}\nfrom = ${JSON.stringify(from)}\nedge = ${JSON.stringify(edge)}\n`);
         vscode.postMessage({
           command:"highlight",
           node_edge:"edge",
@@ -201,8 +202,8 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
       return 1;
     }
 
-    const a_index_name = a_dst_pc_index.substring(1);
-    const b_index_name = b_dst_pc_index.substring(1);
+    const a_index_name = get_numeric_suffix(a_dst_pc_index.substring(1));
+    const b_index_name = get_numeric_suffix(b_dst_pc_index.substring(1));
     const a_idx = parseInt(a_index_name);
     const b_idx = parseInt(b_index_name);
     return a_idx - b_idx;

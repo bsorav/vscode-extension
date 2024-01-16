@@ -521,6 +521,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   const is_epsilon = graph_ec.is_epsilon;
   //console.log(`nodeMap =${JSON.stringify(nodeMap)}`);
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap, codetype);
+  //console.log(`path.from_pc = ${JSON.stringify(path.from_pc)}; from_pc_xy = ${JSON.stringify(from_pc_xy)}`);
   NODES.push(from_pc_xy);
 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
@@ -563,6 +564,9 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
     canvas.style.top = curCanvasTop + "px";
   }
 
+  var content = document.getElementById("content");
+  var currentZoom = parseFloat(content.style.zoom) || 1;
+  scroll(0, topNode*currentZoom);
 
   if (is_epsilon) {
     //console.log(`${curSyntaxType}: is_epsilon: calling drawPointOnNode with from_pc_xy = ${JSON.stringify(from_pc_xy)}`);
@@ -593,9 +597,6 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);
 
   //window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
-  var content = document.getElementById("content");
-  var currentZoom = parseFloat(content.style.zoom) || 1;
-  scroll(0, topNode*currentZoom);
 }
 
 function canvasRelativeY(canvas, abs_y)

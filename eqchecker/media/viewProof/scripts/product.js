@@ -11,9 +11,7 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 const vscode = acquireVsCodeApi();
 
 var g_prodCfg = null;
-var g_bveq_invars = null;
-var g_bvineq_invars = null;
-var g_mem_invars = null;
+var g_invars = null;
 var g_inv_idx = 0;
 
 //var g_nodeMap = null;
@@ -39,9 +37,7 @@ window.addEventListener('message', async event => {
     switch (message.command) {
       case 'showProof':
         g_prodCfg = message.code;
-        g_bveq_invars = message.bveq_invars;
-        g_bvineq_invars = message.bvineq_invars;
-        g_mem_invars = message.mem_invars;
+        g_invars = message.invars_obj;
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();
         // var debug_str = String(counter++);
@@ -98,17 +94,8 @@ vscode.postMessage({command:"loaded"});
 
 function get_invariants_at_pc(pc){
   console.log("Searching for PC", pc);
-  var invars = []
-  for (var i = 0; i < g_bveq_invars.map.entry.length; i++){
-    console.log("Currently at", g_bveq_invars.map.entry[i].key);
-    if (g_bveq_invars.map.entry[i].key == pc) {
-      for (var j = 0; j < g_bveq_invars.map.entry[i].value.length; j++){
-        invars.push(g_bveq_invars.map.entry[i].value[j]);
-      }
-      break;
-    }
-  }
-  return invars;
+  // Currently only capturing BV EQ invariants
+  return g_invars[pc]['BV_EQ'];
 }
 
 //console.log("Waiting for proof\n");
@@ -975,7 +962,7 @@ function refreshPanel()
       var n_pc = g_nodeIdMap[node_id].pc;
       selected_invars = get_invariants_at_pc(n_pc);
       g_inv_idx = 0;
-      if (selected_invars.length > 0) {
+      if (selected_invars) {
         document.getElementById("inv_txt").innerHTML = selected_invars[g_inv_idx];
       } else {
         document.getElementById("inv_txt").innerHTML = "No invariants to display";

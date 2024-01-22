@@ -1721,9 +1721,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
     const src_ir_filename = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir_filename[0].split("/")[1];
     const dst_ir_filename = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir_filename[0].split("/")[1];
-    const bveq_invars = (proof_response.bveq_invars === undefined) ? undefined : proof_response.bveq_invars;
-    const bvineq_invars = (proof_response.bvineq_invars === undefined) ? undefined : proof_response.bvineq_invars;
-    const mem_invars = (proof_response.mem_invars === undefined) ? undefined : proof_response.mem_invars;
+    const invars_obj = (proof_response.invars_obj === undefined) ? undefined : proof_response.invars_obj;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
@@ -2043,7 +2041,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     await waitForLoading();
     // Message passing to src and dst webview
     //console.log(`Panels loaded. Posting proof to panel_prd.\n`);
-    this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry, bveq_invars: bveq_invars, bvineq_invars: bvineq_invars, mem_invars: mem_invars});
+    this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry, invars_obj: invars_obj});
     //console.log("Posted proof to panel_prd\n");
 
     this.panel_post_message(panel_prd,{command: 'getEdges'});

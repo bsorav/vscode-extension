@@ -771,24 +771,24 @@ class EqcheckHandler {
       return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
     }
 
-    get_tfg_for_vir_gen(dirPath, functionName) {
-      var vir_dir;
+    //get_tfg_for_vir_gen(dirPath, functionName) {
+    //  var vir_dir;
 
-      if (dirPath.endsWith(prepareSuffix)) {
-        vir_dir = dirPath.substring(0, dirPath.length - prepareSuffix.length)  + submitSuffix + functionName ;
-      } else if (dirPath.endsWith(pointsToSuffix)) {
-        vir_dir = dirPath.substring(0, dirPath.length - pointsToSuffix.length) + submitSuffix + functionName;
-      } else {
-        vir_dir = dirPath;
-      }
+    //  if (dirPath.endsWith(prepareSuffix)) {
+    //    vir_dir = dirPath.substring(0, dirPath.length - prepareSuffix.length)  + submitSuffix + functionName ;
+    //  } else if (dirPath.endsWith(pointsToSuffix)) {
+    //    vir_dir = dirPath.substring(0, dirPath.length - pointsToSuffix.length) + submitSuffix + functionName;
+    //  } else {
+    //    vir_dir = dirPath;
+    //  }
 
-      var src_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.src-tfg';
-      var dst_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.dst-tfg';
-      
-      console.log("TFG PATHS:\n", src_tfg, "\n", dst_tfg);
+    //  var src_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.src-tfg';
+    //  var dst_tfg = vir_dir + "/" + 'eq.proof.' + functionName + '.dst-tfg';
+    //  
+    //  console.log("TFG PATHS:\n", src_tfg, "\n", dst_tfg);
 
-      return {src_tfg:src_tfg, dst_tfg:dst_tfg};
-    }
+    //  return {src_tfg:src_tfg, dst_tfg:dst_tfg};
+    //}
 
     wait_for_ms(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
@@ -811,33 +811,33 @@ class EqcheckHandler {
     }
 
     // Obsolete function (use for VIR GEN)
-    getVIR(tfg_file, dirPath, vir_file){
-      // Setup arguments for calling vir_gen
-      const in_tfg = ['--in_tfg', tfg_file];
-      // const func = ['--func', "main"];
-      const tmpdir = ['--tmpdir-path', dirPath];
-      const is_ssa = ['--ssa', 'y'];
-      const outpath = ['--outpath', vir_file];
+    //getVIR(tfg_file, dirPath, vir_file){
+    //  // Setup arguments for calling vir_gen
+    //  const in_tfg = ['--in_tfg', tfg_file];
+    //  // const func = ['--func', "main"];
+    //  const tmpdir = ['--tmpdir-path', dirPath];
+    //  const is_ssa = ['--ssa', 'y'];
+    //  const outpath = ['--outpath', vir_file];
 
-      console.log("INPUT TFG PATH:", in_tfg, "\n");
+    //  console.log("INPUT TFG PATH:", in_tfg, "\n");
 
-      // console.log("OUTPUT PATH:", vir_file, "\n");
+    //  // console.log("OUTPUT PATH:", vir_file, "\n");
 
-      // console.log("tmpdir-path:", dirPath, "\n");
+    //  // console.log("tmpdir-path:", dirPath, "\n");
 
-      var vir_gen_args = (in_tfg).concat(tmpdir).concat(is_ssa).concat(outpath);
+    //  var vir_gen_args = (in_tfg).concat(tmpdir).concat(is_ssa).concat(outpath);
 
-      console.log('calling vir_gen ' + vir_gen_args + '\n');
-      exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args);
-      console.log('called vir gen');
+    //  console.log('calling vir_gen ' + vir_gen_args + '\n');
+    //  exec.execute(this.superoptInstall + "/bin/vir_gen", vir_gen_args);
+    //  console.log('called vir gen');
 
-      if (fs.existsSync(vir_file)) {
-        return vir_file;
-      } else {
-        console.log(`WARNING: VIR file does not exist!`);
-        return undefined;
-      }
-    }
+    //  if (fs.existsSync(vir_file)) {
+    //    return vir_file;
+    //  } else {
+    //    console.log(`WARNING: VIR file does not exist!`);
+    //    return undefined;
+    //  }
+    //}
 
     async getSrcFiles(dirPath) {
       const runStatus = await this.getRunningStatus(dirPath);
@@ -1549,7 +1549,7 @@ class EqcheckHandler {
         var bvineq_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bvineq);
         var mem_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).mem);
 
-        console.log("INVARIANTS XML:", bveq_invariants_xml)
+        //console.log("INVARIANTS XML:", bveq_invariants_xml)
 
         var bveq_invars;
         var bvineq_invars;

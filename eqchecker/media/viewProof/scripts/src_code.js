@@ -5,7 +5,7 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 
 const vscode = acquireVsCodeApi();
 
-var code = null;
+var global_code = null;
 var ir = null;
 var vir = null;
 var obj = null;
@@ -1187,7 +1187,7 @@ function redraw()
 
   var codeChosen;
   if (current_codetype == "src") {
-    codeChosen = code;
+    codeChosen = global_code;
   } else if (current_codetype == "ir") {
     codeChosen = ir;
   } else if (current_codetype == "vir") {
@@ -1381,7 +1381,7 @@ window.addEventListener('message', async event => {
             break;
         }
         case "data": {
-            code = message.code + "\n.";
+            global_code = message.code + "\n.";
             ir = message.ir;
             vir = message.vir;
             obj = message.obj;
@@ -1422,8 +1422,8 @@ function downloadObjectListener(evt) {
 
 function downloadAssemblyListener(evt) {
   console.log('downloadAssemblyListener called');
-  if(code !==undefined){
-    vscode.postMessage({command:"download",type:"asm",content:code,filename: code_filename});
+  if(global_code !==undefined){
+    vscode.postMessage({command:"download",type:"asm",content:global_code,filename: code_filename});
   }
   hideRightClickMenu();
 };
@@ -1431,8 +1431,8 @@ function downloadAssemblyListener(evt) {
 
 async function downloadSourceListener(evt) {
   console.log('downloadSourceListener called');
-  if(code !==undefined){
-    vscode.postMessage({command:"download",type:"source",content:code, filename: code_filename});
+  if(global_code !==undefined){
+    vscode.postMessage({command:"download",type:"source",content:global_code, filename: code_filename});
   }
   hideRightClickMenu();
 };

@@ -211,12 +211,12 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
 
   var idx = 0;
   nodes_in.forEach(element => {
-    console.log(`product: node element = ${JSON.stringify(element)}`);
+    //console.log(`product: node element = ${JSON.stringify(element)}`);
     const src_pc = element.split('_')[0];
     const dst_pc = element.split('_')[1];
 
-    console.log(`product: src_pc = ${JSON.stringify(src_pc)}`);
-    console.log(`product: dst_pc = ${JSON.stringify(dst_pc)}`);
+    //console.log(`product: src_pc = ${JSON.stringify(src_pc)}`);
+    //console.log(`product: dst_pc = ${JSON.stringify(dst_pc)}`);
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
     const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc);

@@ -3,8 +3,8 @@
     PRODUCT CFG
 */
 
-import {arrayUnique, convert_long_long_map_json_to_associative_array,get_numeric_suffix} from "./utils.js";
-import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc} from "./tfg.js";
+import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc,get_assembly_inum} from "./tfg.js";
 // import { graphviz } from 'd3-graphviz';
 // import * as d3 from 'd3';
 
@@ -202,8 +202,8 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
       return 1;
     }
 
-    const a_index_name = get_numeric_suffix(a_dst_pc_index.substring(1));
-    const b_index_name = get_numeric_suffix(b_dst_pc_index.substring(1));
+    const a_index_name = get_assembly_inum(a_dst_pc_index.substring(1));
+    const b_index_name = get_assembly_inum(b_dst_pc_index.substring(1));
     const a_idx = parseInt(a_index_name);
     const b_idx = parseInt(b_index_name);
     return a_idx - b_idx;
@@ -211,8 +211,12 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
 
   var idx = 0;
   nodes_in.forEach(element => {
+    console.log(`product: node element = ${JSON.stringify(element)}`);
     const src_pc = element.split('_')[0];
     const dst_pc = element.split('_')[1];
+
+    console.log(`product: src_pc = ${JSON.stringify(src_pc)}`);
+    console.log(`product: dst_pc = ${JSON.stringify(dst_pc)}`);
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
     const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc);

@@ -477,14 +477,3 @@ export function convert_long_long_map_json_to_associative_array(long_long_map_js
   return ret;
 }
 
-export function get_numeric_suffix(str)
-{
-  var ret = "";
-  for (var i = 1; i < str.length; i++) {
-    const s = str.substr(-1*i);
-    if (Number.isInteger(parseInt(s))) {
-      ret = s;
-    }
-  }
-  return ret;
-}

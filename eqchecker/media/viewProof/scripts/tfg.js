@@ -6,26 +6,23 @@ const default_columnname_for_ir = 10;
 
 export function get_assembly_inum(str)
 {
-  var ret = "";
-  console.log(`str = ${str}`);
-  for (var i = 1; i < str.length; i++) {
-    const s = str.substr(-1*i);
-    if (s.startsWith("inum")) {
-      var inum_str = s.substr(4);
-      const percent = inum_str.indexOf("%");
-      //console.log(`inum_str = ${inum_str}`);
-      if (percent != -1) {
-        inum_str = inum_str.substr(0, percent);
-      }
-      if (Number.isInteger(parseInt(inum_str))) {
-        ret = inum_str;
-      }
+  if (Number.isInteger(parseInt(str))) {
+    return str;
+  }
+  const inum_index = str.indexOf("inum");
+  if (inum_index != -1) {
+    var inum_str = str.substr(inum_index + 4);
+    const percent = inum_str.indexOf("%");
+    //console.log(`inum_str = ${inum_str}`);
+    if (percent != -1) {
+      inum_str = inum_str.substr(0, percent);
+    }
+    if (Number.isInteger(parseInt(inum_str))) {
+      return inum_str;
     }
   }
-  //if (ret == "") {
-  //  console.log(`get_assembly_inum returning ${ret} for ${str}`);
-  //}
-  return ret;
+  console.log(`get_assembly_inum returning empty string for ${str}`);
+  return "";
 }
 
 function dst_asm_compute_index_to_line_map_helper(index, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map)

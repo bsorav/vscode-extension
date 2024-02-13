@@ -1438,6 +1438,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   panel_post_message(panel, msg)
   {
     if (panel !== undefined) {
+      //console.log(`posting message to panel\n`);
       panel.webview.postMessage(msg);
     }
   }
@@ -1898,15 +1899,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               }
               break;
             case "clear":
+              //console.log(`clearing src_code panel\n`);
               this.panel_post_message(panel_src_code, {
                 command: "clear"
               });
+              //console.log(`clearing src_ir panel\n`);
               this.panel_post_message(panel_src_ir, {
                 command: "clear"
               });
+              //console.log(`clearing dst_code panel\n`);
               this.panel_post_message(panel_dst_code, {
                 command: "clear"
               });
+              //console.log(`clearing dst_ir panel\n`);
               this.panel_post_message(panel_dst_ir, {
                 command: "clear"
               });

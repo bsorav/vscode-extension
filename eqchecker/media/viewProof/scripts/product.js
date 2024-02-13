@@ -1005,7 +1005,7 @@ function refreshPanel()
   d3.select("#graph")
   .selectAll('.edge')
   .on("click", function () {
-    console.log(`edge clicked`);
+    //console.log(`edge clicked`);
     selected_node = null;
     // debug_str = d3.select(this).attr('id');
     var e_ids = d3.select(this).attr('id').split("#");
@@ -1015,6 +1015,7 @@ function refreshPanel()
 
     const edgeId = getEdgeId(from.pc, to.pc);
 
+    console.log(`\nedge clicked edgeId = ${edgeId}\n`);
     if (selected_edge == edgeId) {
       // Edge is already selected, deselect
       selected_edge = null;

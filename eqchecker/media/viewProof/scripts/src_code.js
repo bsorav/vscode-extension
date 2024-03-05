@@ -8,6 +8,9 @@ const vscode = acquireVsCodeApi();
 var code = null;
 var ir = null;
 var vir = null;
+var vir_obj = null;
+var skip_override = null;
+var vir_line_expr_map = null;
 var obj = null;
 var code_filename;
 var ir_filename;
@@ -242,6 +245,88 @@ function get_points_for_vir(edge){
   return {valid: true, points: points};
 
 }
+
+function rec_get_expr_vir(cur_expr, done, strs, vir_obj, skip) {
+  
+  if (done[cur_expr]) {
+				return;
+  }
+  done[cur_expr] = true;
+  let start = skip[cur_expr] ? 1 : 0;
+  for (let i = start; i < vir_obj.expr_args[cur_expr].length; i ++) {
+				rec_get_expr_vir(vir_obj.expr_args[cur_expr][i], done, strs, vir_obj, skip);
+  }
+  strs.push(vir_obj.expr_strings[cur_expr]);
+  
+}
+
+function get_vir_from_obj(vir_obj, skip_override){
+  
+  var new_skip = vir_obj.can_skip.slice();
+  for (let i = 0; i < new_skip.length; i ++) {
+				new_skip[i] = new_skip[i] & !(skip_override[i]);
+  }
+
+  var vir = "";
+
+  var done = new Array(vir_obj.expr_strings.length).fill(false);
+
+  for (let i = 0; i < vir_obj.vir.length; i ++) {
+				if (Number.isInteger(vir_obj.vir[i])) {
+						// this corresponds to a root expression
+						let strs = [];
+						rec_get_expr_vir(vir_obj.vir[i], done, strs, vir_obj, new_skip);
+						for (let j = 0; j < strs.length; j ++) {
+								vir += strs[j];
+								vir += "\n";
+						}
+				}
+				else {
+						vir += vir_obj.vir[i];
+						vir += "\n";
+				}
+  }
+
+  return vir;
+  
+}
+
+function parse_vir_obj(message){
+  
+  vir_obj = JSON.parse(message)
+  
+  for (let i = 0; i < vir_obj.expr_args.length; i++) {
+				if (vir_obj.expr_args[i] == "") {
+						vir_obj.expr_args[i] = [];
+				}
+				else {
+						for (let j = 0; j < vir_obj.expr_args[i].length; j ++) {
+								vir_obj.expr_args[i][j] = parseInt(vir_obj.expr_args[i][j]);
+						}
+				}
+  }
+
+  for (let i = 0; i < vir_obj.can_skip.length; i++) {
+				if (vir_obj.can_skip[i] == "0") {
+						vir_obj.can_skip[i] = false;
+				}
+				else {
+						vir_obj.can_skip[i] = true;
+				}
+  }
+
+  for (let i = 0; i < vir_obj.vir.length; i++) {
+				if (vir_obj.vir[i].type == "other") {
+						vir_obj.vir[i] = vir_obj.vir[i].value;
+				}
+				else {
+						vir_obj.vir[i] = parseInt(vir_obj.vir[i].value);
+				}
+  }
+
+  return vir_obj;
+}
+
 
 function node_convert_to_xy(pc, pc_unroll, subprogram_info, nodeMap, codetype)
 {
@@ -1382,7 +1467,9 @@ window.addEventListener('message', async event => {
         case "data": {
             code = message.code + "\n.";
             ir = message.ir;
-            vir = message.vir;
+            vir_obj = JSON.parse(message.vir);
+	    skip_override = new Array(vir_obj.expr_strings.length).fill(false);
+	    vir = get_vir_from_obj(vir_obj, skip_override);
             obj = message.obj;
             code_filename = message.code_filename;
             ir_filename = message.ir_filename;
@@ -1609,6 +1696,9 @@ function onLeftClick(event){
     }
 
   }
+		else if (current_codetype==="vir"){
+    
+		}
 
 }
 

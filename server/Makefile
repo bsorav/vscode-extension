@@ -1,5 +1,5 @@
 HOSTNAME=0.0.0.0
-PORT=80
+PORT=8080
 SMT_SOLVER_TMP_FILES_DIR=${HOME}/vscode-server-files #/nfs/sbansal
 SUPEROPT_INSTALL_DIR=${HOME}/superopt-project/usr/local
 USE_HTTPS=false #false

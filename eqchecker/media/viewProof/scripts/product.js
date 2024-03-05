@@ -4,7 +4,7 @@
 */
 
 import {arrayUnique, convert_long_long_map_json_to_associative_array} from "./utils.js";
-import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc} from "./tfg.js";
+import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_asm_obtain_subprogram_info,obtain_insn_arrays_from_eqcheck_info,tfg_asm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_line_and_column_names_for_pc,tfg_llvm_obtain_LL_linenum_for_pc,get_assembly_inum} from "./tfg.js";
 // import { graphviz } from 'd3-graphviz';
 // import * as d3 from 'd3';
 
@@ -72,6 +72,7 @@ window.addEventListener('message', async event => {
         selected_edge = edgeId;
         selected_node = null;
         const edge = g_edgeMap[edgeId];
+        //console.log(`highlighting product-CFG edge:\nto = ${JSON.stringify(to)}\nfrom = ${JSON.stringify(from)}\nedge = ${JSON.stringify(edge)}\n`);
         vscode.postMessage({
           command:"highlight",
           node_edge:"edge",
@@ -201,8 +202,8 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
       return 1;
     }
 
-    const a_index_name = a_dst_pc_index.substring(1);
-    const b_index_name = b_dst_pc_index.substring(1);
+    const a_index_name = get_assembly_inum(a_dst_pc_index.substring(1));
+    const b_index_name = get_assembly_inum(b_dst_pc_index.substring(1));
     const a_idx = parseInt(a_index_name);
     const b_idx = parseInt(b_index_name);
     return a_idx - b_idx;
@@ -210,8 +211,12 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
 
   var idx = 0;
   nodes_in.forEach(element => {
+    //console.log(`product: node element = ${JSON.stringify(element)}`);
     const src_pc = element.split('_')[0];
     const dst_pc = element.split('_')[1];
+
+    //console.log(`product: src_pc = ${JSON.stringify(src_pc)}`);
+    //console.log(`product: dst_pc = ${JSON.stringify(dst_pc)}`);
 
     const [src_linename, src_columnname, src_line_and_column_names] = tfg_llvm_obtain_line_and_column_names_for_pc(src_tfg_llvm, src_pc);
     const [src_ir_linename, src_ir_columnname] = tfg_llvm_obtain_LL_linenum_for_pc(src_tfg_llvm, src_pc);
@@ -697,6 +702,16 @@ function drawNetwork(correl_entry) {
   g_nodeIdMap["0"]["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
   g_nodeIdMap["0"]["src_node"]["columnname"] = "1";
   g_nodeIdMap["0"]["dst_node"]["columnname"] = "1";
+
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["src_node"]["linename"] = src_code_subprogram_info.scope_line;
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["src_node"]["columnname"] = "1";
+  nodeMap['L0%0%startCEs_L0%0%startCEs']["dst_node"]["columnname"] = "1";
+  g_nodeIdMap["1"]["src_node"]["linename"] = src_code_subprogram_info.scope_line;
+  g_nodeIdMap["1"]["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
+  g_nodeIdMap["1"]["src_node"]["columnname"] = "1";
+  g_nodeIdMap["1"]["dst_node"]["columnname"] = "1";
+
   //console.log("Edges= "+JSON.stringify(cg_edges));
   add_exit_lines(cg_edges,nodeMap,g_nodeIdMap,src_tfg_llvm,dst_tfg_llvm,dst_tfg_asm,dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
 
@@ -990,7 +1005,7 @@ function refreshPanel()
   d3.select("#graph")
   .selectAll('.edge')
   .on("click", function () {
-    console.log(`edge clicked`);
+    //console.log(`edge clicked`);
     selected_node = null;
     // debug_str = d3.select(this).attr('id');
     var e_ids = d3.select(this).attr('id').split("#");
@@ -1000,6 +1015,7 @@ function refreshPanel()
 
     const edgeId = getEdgeId(from.pc, to.pc);
 
+    console.log(`\nedge clicked edgeId = ${edgeId}\n`);
     if (selected_edge == edgeId) {
       // Edge is already selected, deselect
       selected_edge = null;

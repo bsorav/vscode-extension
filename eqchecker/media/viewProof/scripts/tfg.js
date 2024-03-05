@@ -4,6 +4,26 @@ import {convert_long_long_map_json_to_associative_array} from "./utils.js";
 const default_columnname_for_assembly = 16;
 const default_columnname_for_ir = 10;
 
+export function get_assembly_inum(str)
+{
+  if (Number.isInteger(parseInt(str))) {
+    return str;
+  }
+  const inum_index = str.indexOf("inum");
+  if (inum_index != -1) {
+    var inum_str = str.substr(inum_index + 4);
+    const percent = inum_str.indexOf("%");
+    //console.log(`inum_str = ${inum_str}`);
+    if (percent != -1) {
+      inum_str = inum_str.substr(0, percent);
+    }
+    if (Number.isInteger(parseInt(inum_str))) {
+      return inum_str;
+    }
+  }
+  console.log(`get_assembly_inum returning empty string for ${str}`);
+  return "";
+}
 
 function dst_asm_compute_index_to_line_map_helper(index, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map)
 {
@@ -66,7 +86,7 @@ export function tfg_asm_obtain_line_and_column_names_for_pc(dst_tfg_asm, dst_pc,
     dst_columnname = ""; //unused
     dst_line_and_column_names = dst_linename; //unused
   } else if (dst_index.charAt(0) === 'L') {
-    const index_name = dst_index.substring(1);
+    const index_name = get_assembly_inum(dst_index.substring(1));
     dst_insn_pc = dst_insn_pcs[index_name];
     //console.log(`before: dst_insn_pc = ${dst_insn_pc}`);
     dst_insn_pc = parseInt(dst_insn_pc);

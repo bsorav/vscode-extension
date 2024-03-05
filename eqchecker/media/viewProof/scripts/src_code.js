@@ -5,7 +5,7 @@ import {dst_asm_compute_index_to_line_map,tfg_llvm_obtain_subprogram_info,tfg_as
 
 const vscode = acquireVsCodeApi();
 
-var code = null;
+var global_code = null;
 var ir = null;
 var vir = null;
 var vir_obj = null;
@@ -18,6 +18,7 @@ var obj_filename;
 var current_codetype = "src";
 var curSyntaxType = null;
 var current_highlight_message = null;
+var current_scroll_height = null;
 
 var code_line_edge_map , ir_line_edge_map
 
@@ -546,6 +547,7 @@ function highlightPathinVIR(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst
   }
 
   scroll(0, topNode);
+  current_scroll_height = topNode;
 
 }
 
@@ -606,6 +608,7 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   const is_epsilon = graph_ec.is_epsilon;
   //console.log(`nodeMap =${JSON.stringify(nodeMap)}`);
   const from_pc_xy = node_convert_to_xy(path.from_pc, { unroll: 1 }, subprogram_info, nodeMap, codetype);
+  //console.log(`path.from_pc = ${JSON.stringify(path.from_pc)}; from_pc_xy = ${JSON.stringify(from_pc_xy)}`);
   NODES.push(from_pc_xy);
 
   //console.log(`highlightPathInCode codetype ${codetype}: EDGES=\n${JSON.stringify(EDGES)}\n`);
@@ -648,6 +651,10 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
     canvas.style.top = curCanvasTop + "px";
   }
 
+  var content = document.getElementById("content");
+  var currentZoom = parseFloat(content.style.zoom) || 1;
+  scroll(0, topNode*currentZoom);
+  current_scroll_height = topNode*currentZoom;
 
   if (is_epsilon) {
     //console.log(`${curSyntaxType}: is_epsilon: calling drawPointOnNode with from_pc_xy = ${JSON.stringify(from_pc_xy)}`);
@@ -678,9 +685,6 @@ export function highlightPathInCode(canvas, ctx, codeEl, path, eqcheck_info, tfg
   //console.log(`deltaY = ${deltaY} topNode = ${topNode}`);
 
   //window.scroll({left:window.scrollWidth, top:topNode, behavior:'smooth'});
-  var content = document.getElementById("content");
-  var currentZoom = parseFloat(content.style.zoom) || 1;
-  scroll(0, topNode*currentZoom);
 }
 
 function canvasRelativeY(canvas, abs_y)
@@ -1257,6 +1261,7 @@ function highlightNodeInCode(canvas, ctx, codeEl, node, eqcheck_info, tfg, srcds
   var content = document.getElementById("content");
   var currentZoom = parseFloat(content.style.zoom) || 1;
   scroll(0, topNode*currentZoom);
+  current_scroll_height = topNode*currentZoom;
 
 
 }
@@ -1269,9 +1274,11 @@ function redraw()
   scroll(0, 0);
   clearCanvas(canvas, ctx);
 
+  //console.log(`global_code =\n${global_code.length}`);
+
   var codeChosen;
   if (current_codetype == "src") {
-    codeChosen = code;
+    codeChosen = global_code;
   } else if (current_codetype == "ir") {
     codeChosen = ir;
   } else if (current_codetype == "vir") {
@@ -1303,7 +1310,7 @@ function redraw()
     if(current_highlight_message.path!==undefined){
       console.log("Going to highlight");
       if (current_codetype == "vir") {
-        console.log("Current codetype is VIR");
+        //console.log("Current codetype is VIR");
         highlightPathinVIR(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_highlight_message.vir_edge);
       } else {
         highlightPathInCode(canvas, ctx, codeEl, current_highlight_message.path, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
@@ -1313,6 +1320,9 @@ function redraw()
       highlightNodeInCode(canvas, ctx, codeEl, current_highlight_message.node, current_highlight_message.eqcheck_info, current_highlight_message.tfg, current_highlight_message.srcdst, current_codetype);
         //console.log("node recieved="+JSON.stringify(current_highlight_message));
     }
+  }
+  if (current_scroll_height !== null) {
+    scroll(0, current_scroll_height);
   }
 }
 
@@ -1448,6 +1458,7 @@ window.addEventListener('message', async event => {
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
 
+    console.log(`codetype ${current_codetype} syntaxtype ${curSyntaxType}: command = ${message.command}`);
     switch (message.command) {
         case "highlight": {
             //console.log(`highlight called on path ${JSON.stringify(message.path)}\n`);
@@ -1465,7 +1476,7 @@ window.addEventListener('message', async event => {
             break;
         }
         case "data": {
-            code = message.code + "\n.";
+            global_code = message.code + "\n.";
             ir = message.ir;
             vir_obj = JSON.parse(message.vir);
 	    skip_override = new Array(vir_obj.expr_strings.length).fill(false);
@@ -1489,8 +1500,9 @@ window.addEventListener('message', async event => {
             break;
         }
     }
+    //console.log(`codetype ${current_codetype} syntaxtype ${curSyntaxType}: command = ${message.command} redraw start`);
     redraw();
-
+    //console.log(`codetype ${current_codetype} syntaxtype ${curSyntaxType}: command = ${message.command} redraw done`);
 });
 
 
@@ -1508,8 +1520,8 @@ function downloadObjectListener(evt) {
 
 function downloadAssemblyListener(evt) {
   console.log('downloadAssemblyListener called');
-  if(code !==undefined){
-    vscode.postMessage({command:"download",type:"asm",content:code,filename: code_filename});
+  if(global_code !==undefined){
+    vscode.postMessage({command:"download",type:"asm",content:global_code,filename: code_filename});
   }
   hideRightClickMenu();
 };
@@ -1517,8 +1529,8 @@ function downloadAssemblyListener(evt) {
 
 async function downloadSourceListener(evt) {
   console.log('downloadSourceListener called');
-  if(code !==undefined){
-    vscode.postMessage({command:"download",type:"source",content:code, filename: code_filename});
+  if(global_code !==undefined){
+    vscode.postMessage({command:"download",type:"source",content:global_code, filename: code_filename});
   }
   hideRightClickMenu();
 };

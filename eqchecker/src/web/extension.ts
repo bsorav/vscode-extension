@@ -498,7 +498,7 @@ class Eqchecker {
   {
     const prepareDirpath = request.prepareDirpath;
     //console.log(`prepareDirpath = ${prepareDirpath}`);
-    const {src_filename: src_filename_arr, dst_filename: dst_filename_arr, dst_filename_is_object: dst_filename_is_object_str, src_bc: src_bc, src_ir: src_ir, dst_bc: dst_bc, dst_ir: dst_ir, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
+    const {src_filename: src_filename_arr, dst_filename: dst_filename_arr, dst_tfg_is_llvm: dst_tfg_is_llvm, dst_filename_is_object: dst_filename_is_object_str, src_bc: src_bc, src_ir: src_ir, dst_bc: dst_bc, dst_ir: dst_ir, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only} = await this.obtainFunctionListsAfterPreparePhase(prepareDirpath);
 
     const src_filename = src_filename_arr.toString();
     const dst_filename = dst_filename_arr.toString();
@@ -508,6 +508,7 @@ class Eqchecker {
     }
 
     const dst_filename_is_object = (dst_filename_is_object_str == "true");
+    request.dst_tfg_is_llvm = dst_tfg_is_llvm;
 
     if (request.source2Uri === undefined) {
       request.source1Name = posix.basename(src_filename.toString(), undefined);
@@ -746,6 +747,7 @@ class Eqchecker {
           source2Uri: entry.source2Uri,
           source2Name: entry.source2Name,
           source2Text: source2Text,
+          dst_tfg_is_llvm: undefined,
           dstFilenameIsObject: undefined,
           statusMessage: EQCHECK_STATUS_MESSAGE_START,
           dirPathIn: undefined,
@@ -1436,6 +1438,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   panel_post_message(panel, msg)
   {
     if (panel !== undefined) {
+      //console.log(`posting message to panel\n`);
       panel.webview.postMessage(msg);
     }
   }
@@ -1813,6 +1816,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                 //  //subprogram_info: message.src_subprogram_info,
                 //  //nodeMap: message.src_nodeMap
                 //});
+                //console.log(`highlighting src path:\n path = ${JSON.stringify(message.edge.src_edge)}\n`);
                 this.panel_post_message(panel_src_code, {
                   command: "highlight",
                   node_edge: "edge",
@@ -1837,6 +1841,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
                   //subprogram_info: message.src_ir_subprogram_info,
                   //nodeMap: message.src_ir_nodeMap
                 });
+                //console.log(`highlighting dst path:\n path = ${JSON.stringify(message.edge.dst_edge)}\n`);
                 this.panel_post_message(panel_dst_code, {
                   command: "highlight",
                   node_edge: "edge",
@@ -1894,15 +1899,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
               }
               break;
             case "clear":
+              //console.log(`clearing src_code panel\n`);
               this.panel_post_message(panel_src_code, {
                 command: "clear"
               });
+              //console.log(`clearing src_ir panel\n`);
               this.panel_post_message(panel_src_ir, {
                 command: "clear"
               });
+              //console.log(`clearing dst_code panel\n`);
               this.panel_post_message(panel_dst_code, {
                 command: "clear"
               });
+              //console.log(`clearing dst_ir panel\n`);
               this.panel_post_message(panel_dst_ir, {
                 command: "clear"
               });

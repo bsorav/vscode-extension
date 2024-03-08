@@ -11,6 +11,7 @@ var vir = null;
 var vir_obj = null;
 var skip_override = null;
 var vir_line_expr_map = null;
+var vir_expr_line_map = null;
 var obj = null;
 var code_filename;
 var ir_filename;
@@ -63,6 +64,9 @@ function setupCanvas(){
       const deltaY = startY - event.clientY;
 
       window.scrollBy(deltaX, deltaY);
+      console.log("scrolling");
+      console.log(deltaY);
+      current_scroll_height += deltaY;
 
       startX = event.clientX;
       startY = event.clientY;
@@ -221,71 +225,206 @@ function get_points_for_vir(edge){
   const to_pc = edge.to_pc;
 
   // Array of VIR code
-  const vir_code_arr = vir.split("\n");
+    const vir_code_arr = vir.split("\n");
 
-  var points = [];
-  // Point = {x, y, type}
+    var points = [];
+    // Point = {x, y, type}
 
-  var chk1 = vir_code_arr.findIndex(function(str) {
-    return str.includes("BB%" + from_pc + " :");
-  });
+    var chk1 = vir_code_arr.findIndex(function(str) {
+	return str.includes("BB%" + from_pc + " :");
+    });
 
-  var chk2 = vir_code_arr.findIndex(function(str) {
-    return str.includes("BB%" + to_pc + " :");
-  });
+    var chk2 = vir_code_arr.findIndex(function(str) {
+	return str.includes("BB%" + to_pc + " :");
+    });
 
-  if (chk1 == -1 || chk2 == -1){
-    return {valid: false, points: []};
-  }
+    if (chk1 == -1 || chk2 == -1){
+	return {valid: false, points: []};
+    }
 
-  var pc_arr = [from_pc];
-  var visited = new Set([]);
+    var pc_arr = [from_pc];
+    var visited = new Set([]);
+  
+    points = find_path(pc_arr, to_pc, vir_code_arr, visited);
 
-  points = find_path(pc_arr, to_pc, vir_code_arr, visited);
-
-  return {valid: true, points: points};
+    return {valid: true, points: points};
 
 }
 
-function rec_get_expr_vir(cur_expr, done, strs, vir_obj, skip) {
+function get_expr_id_or_var(vir_obj, idx) {
+  if (vir_obj.exprs[idx].type == "var") {
+    return vir_obj.exprs[idx].val;
+  } else {
+    return "t" + idx.toString();
+  }
+}
+
+function construct_expr_args(vir_obj, args, skipfirst){
+  if (args.length == 0) return "";
+  var args_str = "(";
+  const startidx = skipfirst ? 1 : 0;
+  for (let i = startidx; i < args.length; i ++) {
+    let e = args[i];
+    args_str += get_expr_id_or_var(vir_obj, e);
+    if (i != args.length-1) {
+      args_str += ", ";
+    }
+  }
+  args_str += ")";
+  return args_str;
+}
+
+function construct_expr(vir_obj, idx, skip){
+  var vst = "t" + idx.toString() + " := ";
+  if (vir_obj.exprs[idx].type == "simple") {
+    vst += vir_obj.exprs[idx].op;
+    vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], false);
+  } else {
+    if (skip[idx] == false) {
+      vst += "t" + vir_obj.expr_args[idx][0].toString() + " := ";
+    }
+    if (vir_obj.exprs[idx].type == "donotsimplify_expr") {
+      if (vir_obj.exprs[idx].op == "read_mem") {
+	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+	vst += "[";
+	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+	vst += "]";
+      } else if (vir_obj.exprs[idx].op == "write_mem") {
+	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+	vst += "[";
+	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+	vst += "] = ";
+	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][3]);
+      } else {
+	vst += vir_obj.exprs[idx].op;
+	vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      }
+    } else if (vir_obj.exprs[idx].type == "setflags") {
+      vst += "setflags(";
+      for (let i = 1; i < vir_obj.expr_args[idx].length; i ++) {
+	vst += vir_obj.exprs[idx].flags[i];
+	vst += " = ";
+	let e = vir_obj.expr_args[idx][i];
+	vst += get_expr_id_or_var(vir_obj, e);
+	if (i != vir_obj.expr_args[idx].length-1) {
+	  vst += ", ";
+	}
+      }
+      vst += ")"
+    } else if (vir_obj.exprs[idx].type == "donotsimplify_parith_expr") {
+      vst += vir_obj.exprs[idx].op;
+      vst += "_vec";
+      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+    } else if (vir_obj.exprs[idx].type == "packed_float_vector") {
+      vst += vir_obj.exprs[idx].op;
+      vst += "_packed_float_vec";
+      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+    } else if (vir_obj.exprs[idx].type == "scalar_float_vector") {
+      vst += vir_obj.exprs[idx].op;
+      vst += "_scalar_float_vec";
+      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+    } else if (vir_obj.exprs[idx].type == "setflag_op") {
+      vst += "set_";
+      vst += vir_obj.exprs[idx].flag;
+      vst += "_from_";
+      vst += vir_obj.exprs[idx].op;
+      vst += "_op"
+      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+    } else {
+      console.error("expr type not defined");
+    }
+  }
+  vst += " : " + vir_obj.exprs[idx].sort;
+
+  return vst;
+}
+
+function rec_get_expr_vir(cur_expr, done, strs, expr_nums, vir_obj, skip) {
   
   if (done[cur_expr]) {
-				return;
+    return;
   }
   done[cur_expr] = true;
+  if (vir_obj.exprs[cur_expr].type == "var") {
+    return;
+  }
   let start = skip[cur_expr] ? 1 : 0;
   for (let i = start; i < vir_obj.expr_args[cur_expr].length; i ++) {
-				rec_get_expr_vir(vir_obj.expr_args[cur_expr][i], done, strs, vir_obj, skip);
+    rec_get_expr_vir(vir_obj.expr_args[cur_expr][i], done, strs, expr_nums, vir_obj, skip);
   }
-  strs.push(vir_obj.expr_strings[cur_expr]);
-  
+  strs.push(construct_expr(vir_obj, cur_expr, skip));
+  expr_nums.push(cur_expr);
 }
 
 function get_vir_from_obj(vir_obj, skip_override){
   
   var new_skip = vir_obj.can_skip.slice();
   for (let i = 0; i < new_skip.length; i ++) {
-				new_skip[i] = new_skip[i] & !(skip_override[i]);
+    new_skip[i] = new_skip[i] & !(skip_override[i]);
   }
 
   var vir = "";
 
-  var done = new Array(vir_obj.expr_strings.length).fill(false);
+  var cline = 0;
+
+  var done = new Array(vir_obj.expr_args.length).fill(false);
+  
+  vir_expr_line_map = new Array(vir_obj.expr_args.length).fill(-1);
 
   for (let i = 0; i < vir_obj.vir.length; i ++) {
-				if (Number.isInteger(vir_obj.vir[i])) {
-						// this corresponds to a root expression
-						let strs = [];
-						rec_get_expr_vir(vir_obj.vir[i], done, strs, vir_obj, new_skip);
-						for (let j = 0; j < strs.length; j ++) {
-								vir += strs[j];
-								vir += "\n";
-						}
-				}
-				else {
-						vir += vir_obj.vir[i];
-						vir += "\n";
-				}
+    if (vir_obj.vir[i].type == "expr") {
+      let strs = [];
+      let expr_nums = [];
+      rec_get_expr_vir(vir_obj.vir[i].idx, done, strs, expr_nums, vir_obj, new_skip);
+      for (let j = 0; j < strs.length; j ++) {
+    	vir += strs[j];
+    	vir_expr_line_map[expr_nums[j]] = cline;
+    	var newline_count = strs[j].split("\n").length - 1;
+    	cline += newline_count;
+    	vir += "\n";
+    	cline += 1;
+      }
+    } else if (vir_obj.vir[i].type == "condbr") {
+      vir += "if (" + get_expr_id_or_var(vir_obj, vir_obj.vir[i].cond) + ") goto BB%" + vir_obj.vir[i].target;
+      vir += "\n";
+      cline += 1;
+    } else if (vir_obj.vir[i].type == "branch") {
+      vir += "goto BB%" + vir_obj.vir[i].target;
+      vir += "\n";
+      cline += 1;
+    } else if (vir_obj.vir[i].type == "label") {
+      if (vir_obj.vir[i].label == "L0%0%d") {
+	vir += "BB%" + vir_obj.vir[i].label + " :";
+	vir += "\n";
+	cline += 1;
+      }
+      else {
+	vir += "\n";
+	vir += "BB%" + vir_obj.vir[i].label + " :";
+	vir += "\n";
+	cline += 2;
+      } 
+    } else if (vir_obj.vir[i].type == "phi") {
+      var e = vir_obj.vir[i].exprs;
+      vir += vir_obj.vir[i].val + " := PHI" + construct_expr_args(vir_obj, e, false) + " : " + vir_obj.vir[i].sort;
+      vir += "\n";
+      cline += 1;
+    } else if (vir_obj.vir[i].type == "assgn") {
+      var e = vir_obj.vir[i].exprs;
+      vir += vir_obj.vir[i].val + " := " + get_expr_id_or_var(vir_obj, e) + " : " + vir_obj.vir[i].sort;
+      vir += "\n";
+      cline += 1;
+    } else {
+      console.log(vir_obj.vir[i].type);
+      console.error("vir type not defined");
+    }
+  }
+
+  vir_line_expr_map = new Array(cline+1).fill(-1);
+  for (let i = 0; i < vir_expr_line_map.length; i ++) {
+    if (vir_expr_line_map[i] != -1) {
+      vir_line_expr_map[vir_expr_line_map[i]+1] = i;
+    }
   }
 
   return vir;
@@ -297,32 +436,40 @@ function parse_vir_obj(message){
   vir_obj = JSON.parse(message)
   
   for (let i = 0; i < vir_obj.expr_args.length; i++) {
-				if (vir_obj.expr_args[i] == "") {
-						vir_obj.expr_args[i] = [];
-				}
-				else {
-						for (let j = 0; j < vir_obj.expr_args[i].length; j ++) {
-								vir_obj.expr_args[i][j] = parseInt(vir_obj.expr_args[i][j]);
-						}
-				}
+    if (vir_obj.expr_args[i] == "") {
+      vir_obj.expr_args[i] = [];
+    }
+    else {
+      for (let j = 0; j < vir_obj.expr_args[i].length; j ++) {
+	vir_obj.expr_args[i][j] = parseInt(vir_obj.expr_args[i][j]);
+      }
+    }
   }
 
   for (let i = 0; i < vir_obj.can_skip.length; i++) {
-				if (vir_obj.can_skip[i] == "0") {
-						vir_obj.can_skip[i] = false;
-				}
-				else {
-						vir_obj.can_skip[i] = true;
-				}
+    if (vir_obj.can_skip[i] == "0") {
+      vir_obj.can_skip[i] = false;
+    }
+    else {
+      vir_obj.can_skip[i] = true;
+    }
   }
 
   for (let i = 0; i < vir_obj.vir.length; i++) {
-				if (vir_obj.vir[i].type == "other") {
-						vir_obj.vir[i] = vir_obj.vir[i].value;
-				}
-				else {
-						vir_obj.vir[i] = parseInt(vir_obj.vir[i].value);
-				}
+    if (vir_obj.vir[i].type == "expr") {
+      vir_obj.vir[i].idx = parseInt(vir_obj.vir[i].idx);
+    }
+    else if (vir_obj.vir[i].type == "assgn") {
+      vir_obj.vir[i].exprs = parseInt(vir_obj.vir[i].exprs);
+    }
+    else if (vir_obj.vir[i].type == "phi") {
+      for (let j = 0; j < vir_obj.vir[i].exprs.length; j ++) {
+	vir_obj.vir[i].exprs[j] = parseInt(vir_obj.vir[i].exprs[j]);
+      }
+    }
+    else if (vir_obj.vir[i].type == "condbr") {
+      vir_obj.vir[i].cond = parseInt(vir_obj.vir[i].cond);
+    }
   }
 
   return vir_obj;
@@ -545,6 +692,9 @@ function highlightPathinVIR(canvas, ctx, codeEl, path, eqcheck_info, tfg, srcdst
 
     drawEdgeBetweenCoords(canvas, ctx, pt1, pt2, false, true);
   }
+
+  console.log("topnode");
+  console.log(topNode);
 
   scroll(0, topNode);
   current_scroll_height = topNode;
@@ -1478,9 +1628,12 @@ window.addEventListener('message', async event => {
         case "data": {
             global_code = message.code + "\n.";
             ir = message.ir;
-            vir_obj = JSON.parse(message.vir);
-	    skip_override = new Array(vir_obj.expr_strings.length).fill(false);
+            vir_obj = parse_vir_obj(message.vir);
+	    skip_override = new Array(vir_obj.expr_args.length).fill(false);
+	    console.log(vir_obj);
 	    vir = get_vir_from_obj(vir_obj, skip_override);
+	    console.log(vir);
+	    console.log(vir_line_expr_map);
             obj = message.obj;
             code_filename = message.code_filename;
             ir_filename = message.ir_filename;
@@ -1708,9 +1861,34 @@ function onLeftClick(event){
     }
 
   }
-		else if (current_codetype==="vir"){
+  else if (current_codetype==="vir"){
+    console.log("Vir lineNumber");
+    console.log(lineNumber);
+    console.log(vir_line_expr_map[lineNumber]);
     
-		}
+    const styles = window.getComputedStyle(codeEl);
+    const deltaY = parseInt(styles.getPropertyValue("line-height"));
+    var currentZoom = parseFloat(content.style.zoom) || 1;
+
+    // var current_line_delta = lineNumber - current_scroll_height / (currentZoom*deltaY);
+    var pcsh = window.scrollY;
+    // console.log("cvals");
+    // console.log(current_line_delta);
+    // console.log(current_scroll_height / (currentZoom*deltaY));
+    
+    var expr_num = vir_line_expr_map[lineNumber];
+    if (expr_num != -1) {
+      skip_override[expr_num] = !skip_override[expr_num];
+      if (vir_obj.can_skip[expr_num]) {
+	vir = get_vir_from_obj(vir_obj, skip_override);
+	redraw();
+	scroll(0, pcsh);
+	current_scroll_height = pcsh;
+	// scroll(0, (current_line_delta + vir_expr_line_map[expr_num])*currentZoom*deltaY);
+	// current_scroll_height = (current_line_delta + vir_expr_line_map[expr_num])*currentZoom*deltaY;
+      }
+    }
+  }
 
 }
 

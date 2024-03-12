@@ -1752,7 +1752,17 @@ function showRightClickMenu(mouseX, mouseY) {
       items[i].innerHTML = 'View IR';
       items[i].addEventListener('click', viewIR);
       i++;
-    } else if ((current_codetype == "ir") || (current_codetype == "vir")) {
+      items[i].innerHTML = 'View VIR';
+      items[i].addEventListener('click', viewVIR);
+      i++;
+    } else if (current_codetype == "ir") {
+      items[i].innerHTML = 'View Source';
+      items[i].addEventListener('click', viewSourceCode);
+      i++;
+      items[i].innerHTML = 'View VIR';
+      items[i].addEventListener('click', viewVIR);
+      i++;
+    } else if (current_codetype == "vir") {
       items[i].innerHTML = 'View Source';
       items[i].addEventListener('click', viewSourceCode);
       i++;
@@ -1760,31 +1770,28 @@ function showRightClickMenu(mouseX, mouseY) {
       items[i].addEventListener('click', viewIR);
       i++;
     }
-  }
-
-  if (current_codetype != "vir") {
-    items[i].innerHTML = 'View VIR';
-    items[i].addEventListener('click', viewVIR);
+    items[i].innerHTML = 'Download Source Code';
+    items[i].addEventListener('click', downloadSourceListener);
     i++;
-  }
-
-  if (curSyntaxType == "asm") {
+    items[i].innerHTML = 'Download LLVM IR';
+    items[i].addEventListener('click', downloadLLVMIRListener);
+    i++;
+  } else {
+    if (current_codetype == "vir") {
+      items[i].innerHTML = 'View Assembly';
+      items[i].addEventListener('click', viewSourceCode);
+      i++;
+    } else {
+      items[i].innerHTML = 'View VIR';
+      items[i].addEventListener('click', viewVIR);
+      i++;
+    }
     items[i].innerHTML = 'Download Object Code';
     items[i].addEventListener('click', downloadObjectListener);
     i++;
     items[i].innerHTML = 'Download Assembly Code';
     items[i].addEventListener('click', downloadAssemblyListener);
     i++;
-  } else {
-    if (current_codetype == "src") {
-      items[i].innerHTML = 'Download Source Code';
-      items[i].addEventListener('click', downloadSourceListener);
-      i++;
-    } else if (current_codetype == "ir") {
-      items[i].innerHTML = 'Download LLVM IR';
-      items[i].addEventListener('click', downloadLLVMIRListener);
-      i++;
-    }
   }
   while(i<4){
     items[i].style.display = "none";

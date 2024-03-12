@@ -1630,10 +1630,7 @@ window.addEventListener('message', async event => {
             ir = message.ir;
             vir_obj = parse_vir_obj(message.vir);
 	    skip_override = new Array(vir_obj.expr_args.length).fill(false);
-	    console.log(vir_obj);
 	    vir = get_vir_from_obj(vir_obj, skip_override);
-	    console.log(vir);
-	    console.log(vir_line_expr_map);
             obj = message.obj;
             code_filename = message.code_filename;
             ir_filename = message.ir_filename;
@@ -1862,9 +1859,6 @@ function onLeftClick(event){
 
   }
   else if (current_codetype==="vir"){
-    console.log("Vir lineNumber");
-    console.log(lineNumber);
-    console.log(vir_line_expr_map[lineNumber]);
     
     const styles = window.getComputedStyle(codeEl);
     const deltaY = parseInt(styles.getPropertyValue("line-height"));

@@ -12,6 +12,8 @@ const vscode = acquireVsCodeApi();
 
 var g_prodCfg = null;
 var g_invars = null;
+var g_expr_inv_idx_map = null;
+var g_invar_counter = 0;
 var g_inv_idx = 0;
 
 //var g_nodeMap = null;
@@ -31,13 +33,36 @@ var dst_codetype="src";
 
 var selected_invars = null;
 
+function parse_invars_obj(invars_obj){
+  for (var loc in invars_obj) {
+    if (loc == "exprs_list") {
+      continue;
+    }
+    for (var inv_type in invars_obj[loc]) {
+      for (var i = 0; i < invars_obj[loc][inv_type].length; i ++) {
+	invars_obj[loc][inv_type][i].lhs = parseInt(invars_obj[loc][inv_type][i].lhs);
+	invars_obj[loc][inv_type][i].rhs = parseInt(invars_obj[loc][inv_type][i].rhs);
+      }
+    }
+  }
+  for (var i = 0; i < invars_obj.exprs_list.length; i ++) {
+    if (invars_obj.exprs_list[i].type == "expr") {
+      for (var j = 0; j < invars_obj.exprs_list[i].args.length; j ++) {
+	invars_obj.exprs_list[i].args[j] = parseInt(invars_obj.exprs_list[i].args[j]);
+      }
+    }
+  }
+  return invars_obj;
+}
+
 window.addEventListener('message', async event => {
     const message = event.data;
     //console.log(`RECEIVED EVENT: ${JSON.stringify(message)}\n`);
     switch (message.command) {
       case 'showProof':
         g_prodCfg = message.code;
-        g_invars = message.invars_obj;
+        g_invars = parse_invars_obj(message.invars_obj);
+        g_expr_inv_idx_map = new Array(g_invars.exprs_list.length).fill(-1);
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();
         // var debug_str = String(counter++);
@@ -92,10 +117,67 @@ window.addEventListener('message', async event => {
 //}
 vscode.postMessage({command:"loaded"});
 
+function build_expr_rec(idx, is_first_rec, inv_var_list){
+  if (g_invars.exprs_list[idx].type == "var") {
+    return g_invars.exprs_list[idx].val;
+  }
+  // add special cases for select, bvextract
+  var exp = "";
+  exp += g_invars.exprs_list[idx].op + "(";
+  for (var i = 0; i < g_invars.exprs_list[idx].args.length; i ++) {
+    var arg = g_invars.exprs_list[idx].args[i];
+    if (g_expr_inv_idx_map[arg] != -1) {
+      exp += "z" + g_expr_inv_idx_map[arg].toString();
+    }
+    else if (g_invars.exprs_list[arg].type == "src") {
+      exp += "st" + g_invars.exprs_list[arg].idx.toString();
+    }
+    else if (g_invars.exprs_list[arg].type == "dst") {
+      exp += "dt" + g_invars.exprs_list[arg].idx.toString();
+    }
+    else if (g_invars.exprs_list[arg].type == "var") {
+      exp += g_invars.exprs_list[arg].val;
+    }
+    else {
+      build_expr_rec(arg, false, inv_var_list, g_expr_inv_idx_map);
+      exp += "z" + g_expr_inv_idx_map[arg].toString();
+    }
+    if (i != g_invars.exprs_list[idx].args.length-1) {
+      exp += ", ";
+    }
+  }
+  exp += ")";
+  if (!is_first_rec) {
+    exp = "z" + g_invar_counter.toString() + " := " + exp + " : " + g_invars.exprs_list[idx].sort;
+    g_expr_inv_idx_map[idx] = g_invar_counter;
+    g_invar_counter += 1;
+    inv_var_list.push(exp);
+  }
+  return exp;
+}
+
+function build_invars(invars){
+  var invarr = [];
+  for (var i = 0; i < invars.length; i ++) {
+    var inv = invars[i];
+    var inv_var_list = [];
+    var exp1 = build_expr_rec(inv.lhs, true, inv_var_list);
+    var exp2 = build_expr_rec(inv.rhs, true, inv_var_list);
+    var invstr = "";
+    for (var j = 0; j < inv_var_list.length; j ++) {
+      invstr += inv_var_list[j] + "\n";
+    }
+    invstr += exp1 + " " + inv.op + " "  + exp2 + " : " + inv.sort;
+    invarr.push(invstr);
+  }
+  return invarr;
+}
+
 function get_invariants_at_pc(pc){
   console.log("Searching for PC", pc);
   // Currently only capturing BV EQ invariants
-  return g_invars[pc]['BV_EQ'];
+  
+  return build_invars(g_invars[pc]['BV_EQ']);
 }
 
 //console.log("Waiting for proof\n");

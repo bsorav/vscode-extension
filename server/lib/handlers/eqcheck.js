@@ -1540,7 +1540,6 @@ class EqcheckHandler {
         // const tfg_file = src_files.etfg;
         var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
         var invariants_json = await this.getInvarJson(this.getInvariantsFileForProof(dirPathIn));
-        console.log("INVARIANTS JSON: ", invariants_json);
         
         var invars_obj;
 

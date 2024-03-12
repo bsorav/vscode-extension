@@ -8,9 +8,9 @@ import * as fs from 'fs'
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+//const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
 //const defaultServerURL = 'http://localhost:80';
-//const defaultServerURL = 'http://proton.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://hal.cse.iitd.ac.in:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';

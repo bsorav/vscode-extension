@@ -555,6 +555,7 @@ class Eqchecker {
 
     const preparePhaseResult = await this.populatePreparePhaseInfo(request);
     if (!preparePhaseResult.retval) {
+      console.log(`submitRunCommand: preparePhaseResult retval is false.\n`);
       return false;
     }
 
@@ -651,6 +652,7 @@ class Eqchecker {
 
     const preparePhaseResult = await this.populatePreparePhaseInfo(request);
     if (!preparePhaseResult.retval) {
+      console.log(`submitPointsToCommand: preparePhaseResult retval is false.\n`);
       return false;
     }
 
@@ -710,6 +712,7 @@ class Eqchecker {
     request.dirPathIn = undefined;
     request.source1Text = undefined;
     request.source2Text = undefined;
+    console.log(`submitting PointsTo command.\n`);
     return await Eqchecker.submitPointsToCommand(request);
   }
 

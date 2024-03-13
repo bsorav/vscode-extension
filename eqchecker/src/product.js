@@ -40,15 +40,15 @@ function parse_invars_obj(invars_obj){
     }
     for (var inv_type in invars_obj[loc]) {
       for (var i = 0; i < invars_obj[loc][inv_type].length; i ++) {
-	invars_obj[loc][inv_type][i].lhs = parseInt(invars_obj[loc][inv_type][i].lhs);
-	invars_obj[loc][inv_type][i].rhs = parseInt(invars_obj[loc][inv_type][i].rhs);
+        invars_obj[loc][inv_type][i].lhs = parseInt(invars_obj[loc][inv_type][i].lhs);
+        invars_obj[loc][inv_type][i].rhs = parseInt(invars_obj[loc][inv_type][i].rhs);
       }
     }
   }
   for (var i = 0; i < invars_obj.exprs_list.length; i ++) {
     if (invars_obj.exprs_list[i].type == "expr") {
       for (var j = 0; j < invars_obj.exprs_list[i].args.length; j ++) {
-	invars_obj.exprs_list[i].args[j] = parseInt(invars_obj.exprs_list[i].args[j]);
+        invars_obj.exprs_list[i].args[j] = parseInt(invars_obj.exprs_list[i].args[j]);
       }
     }
   }
@@ -333,6 +333,7 @@ function getNodesEdgesMap(nodes_in, src_nodes, dst_nodes, cg_edges, src_tfg_llvm
     edgeMap[edgeId] = entry;
     //console.log(`Adding to edgeMap at index ${JSON.stringify(edgeId)}, entry ${entry}\n`);
   });
+  //console.log(`nodeMap =\n${JSON.stringify(nodeMap)}`);
   return [nodeMap, nodeIdMap, edgeMap/*, src_subprogram_info, src_ir_subprogram_info, dst_subprogram_info, dst_ir_subprogram_info, src_nodeMap, src_ir_nodeMap, dst_nodeMap, dst_ir_nodeMap*/];
 }
 

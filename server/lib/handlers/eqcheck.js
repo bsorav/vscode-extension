@@ -772,7 +772,7 @@ class EqcheckHandler {
     //}
 
     absPath(dirPath, srcFilenameJSON) {
-      return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + (srcFilenameJSON.isJSON ? srcFilenameJSON.join() : srcFilenameJSON);
+      return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + (utils.isJSON(srcFilenameJSON) ? srcFilenameJSON.join() : srcFilenameJSON);
     }
 
     //get_tfg_for_vir_gen(dirPath, functionName) {
@@ -1173,13 +1173,13 @@ class EqcheckHandler {
       var ret = [];
       var vals = [];
       var ls = fmap.function_dry_run_info_entry_pair;
-      console.log(`ls = ${JSON.stringify(ls)}`);
+      //console.log(`ls = ${JSON.stringify(ls)}`);
       if (ls === undefined) {
         console.log(`returning empty for ${JSON.stringify(ls)}`);
         return [];
       }
-      ls = mk_array(ls); //convert ls to an array (if it was not already one)
-      console.log(`ls.length = ${ls.length}`);
+      //ls = utils.mk_array(ls); //convert ls to an array (if it was not already one)
+      //console.log(`ls.length = ${ls.length}`);
       for (let i = 0; i < ls.length; i++) {
         const e = ls[i];
         //console.log(`entry = ${JSON.stringify(e)}`);

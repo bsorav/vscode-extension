@@ -9,6 +9,7 @@ import * as fs from 'fs'
 //import * as path from 'path';
 
 //const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+//const defaultServerURL = 'http://jal.cse.iitd.ac.in:8080';
 //const defaultServerURL = 'http://localhost:80';
 const defaultServerURL = 'http://hal.cse.iitd.ac.in:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
@@ -23,7 +24,7 @@ const commandSubmitEqcheck = 'submitEqcheck';
 const commandPrepareEqcheck = 'prepareEqcheck';
 const commandPointsToAnalysis = 'pointsToAnalysis';
 const commandObtainProof = 'obtainProof';
-const commandVIRCheck = 'checkVIR';
+const commandVIRCheck = 'checkVIR'; 
 const commandObtainScanviewReport = 'obtainScanviewReport';
 const commandObtainSrcFiles = 'obtainSrcFiles';
 const commandObtainDstFiles = 'obtainDstFiles';
@@ -1722,9 +1723,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
 
     const src_ir_filename = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir_filename[0].split("/")[1];
     const dst_ir_filename = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir_filename[0].split("/")[1];
-    const bveq_invars = (proof_response.bveq_invars === undefined) ? undefined : proof_response.bveq_invars;
-    const bvineq_invars = (proof_response.bvineq_invars === undefined) ? undefined : proof_response.bvineq_invars;
-    const mem_invars = (proof_response.mem_invars === undefined) ? undefined : proof_response.mem_invars;
+    const invars_obj = (proof_response.invars_obj === undefined) ? undefined : proof_response.invars_obj;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));
@@ -1758,19 +1757,19 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const index_css = webview.asWebviewUri(
       vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/css/index.css')
     );
-    const product_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
+    const product_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/product.js'));
     const prism = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/prism.js'));
     const prism_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/themes/prism.css'));
     const prism_ln_css = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css'));
     const prism_ln_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js'));
     const prism_nasm_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/prismjs/components/prism-nasm.min.js'));
     //const highlight_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/highlight.js/lib/index.js'));
-    const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-    //const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-    //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/dst_code.js'));
-    const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-    //const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/src_code.js'));
-    const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'media/viewProof/scripts/product.js'));
+    const src_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/src_code.js'));
+    //const src_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/src_code.js'));
+    //const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/dst_code.js'));
+    const dst_code_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/src_code.js'));
+    //const dst_ir_script = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/src_code.js'));
+    const prod_source_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'src/product.js'));
     const d3_v5_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3/dist/d3.js'));
     const index_min_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/@hpcc-js/wasm/dist/index.min.js'));
     const d3_graphviz_js = webview.asWebviewUri(vscode.Uri.joinPath(Eqchecker.extensionUri, 'node_modules/d3-graphviz/build/d3-graphviz.js'));
@@ -2048,7 +2047,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     await waitForLoading();
     // Message passing to src and dst webview
     //console.log(`Panels loaded. Posting proof to panel_prd.\n`);
-    this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry, bveq_invars: bveq_invars, bvineq_invars: bvineq_invars, mem_invars: mem_invars});
+    this.panel_post_message(panel_prd, {command: 'showProof', code: correl_entry, invars_obj: invars_obj});
     //console.log("Posted proof to panel_prd\n");
 
     this.panel_post_message(panel_prd,{command: 'getEdges'});

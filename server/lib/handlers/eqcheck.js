@@ -760,10 +760,8 @@ class EqcheckHandler {
       return buffer;
     }
 
-    async getInvarXML(inv_filename) {
-      var buffer = await this.readBuffer(inv_filename);
-      if (buffer === undefined) return undefined;
-      return buffer;
+    async getInvarJson(filename) {
+      return await this.readBuffer(filename);
     }
 
 
@@ -801,13 +799,9 @@ class EqcheckHandler {
       return {src_vir:src_vir,dst_vir:dst_vir};
     }
 
-    get_invariants_file_for_proof(dirPath) {
-      var vir_dir = dirPath;
-      var bveq_inv_path = vir_dir + '/' + 'eq.proof.bveq.invariants.xml';
-      var bvineq_inv_path = vir_dir + '/' + 'eq.proof.bvineq.invariants.xml';
-      var mem_inv_path = vir_dir + '/' + 'eq.proof.memaddrs_diff.invariants.xml';
-
-      return {bveq:bveq_inv_path, bvineq:bvineq_inv_path, mem:mem_inv_path};
+    getInvariantsFileForProof(dirPath) {
+      var invariants_json_path = `${dirPath}/eq.proof.invariants.json`;
+      return invariants_json_path
     }
 
     // Obsolete function (use for VIR GEN)
@@ -1545,23 +1539,11 @@ class EqcheckHandler {
         
         // const tfg_file = src_files.etfg;
         var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
-        var bveq_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bveq);
-        var bvineq_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).bvineq);
-        var mem_invariants_xml = await this.getInvarXML(this.get_invariants_file_for_proof(dirPathIn).mem);
-
-        console.log("INVARIANTS XML:", bveq_invariants_xml)
-
-        var bveq_invars;
-        var bvineq_invars;
-        var mem_invars;
+        var invariants_json = await this.getInvarJson(this.getInvariantsFileForProof(dirPathIn));
         
-        xml2js.parseString(bveq_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { bveq_invars = result; });
-        xml2js.parseString(bvineq_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { bvineq_invars = result; });
-        xml2js.parseString(mem_invariants_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) { mem_invars = result; });
+        var invars_obj;
 
-
-        // console.log("After parsing XML of invs: ", inv_obj.map.entry[0])
-
+        invars_obj = JSON.parse(invariants_json);
 
         const src_vir_file = vir_file_paths.src_vir;
         const dst_vir_file = vir_file_paths.dst_vir;
@@ -1576,7 +1558,7 @@ class EqcheckHandler {
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename, src_vir: src_vir, dst_vir: dst_vir, bveq_invars: bveq_invars, bvineq_invars: bvineq_invars, mem_invars: mem_invars});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename, src_vir: src_vir, dst_vir: dst_vir, invars_obj:invars_obj});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;

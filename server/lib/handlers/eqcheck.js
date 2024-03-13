@@ -1540,7 +1540,7 @@ class EqcheckHandler {
         //});
 
         // console.log(JSON.stringify(proofObj.functionName));
-         console.log(`proofObj = ${JSON.stringify(proofObj)}`);
+         //console.log(`proofObj = ${JSON.stringify(proofObj)}`);
 
         const src_files = await this.getSrcFiles(dirPathIn);
         const dst_files = await this.getDstFiles(dirPathIn);

@@ -232,15 +232,15 @@ function setupCanvas(){
 //    // Point = {x, y, type}
 //
 //    var chk1 = vir_code_arr.findIndex(function(str) {
-//	return str.includes("BB%" + from_pc + " :");
+//        return str.includes("BB%" + from_pc + " :");
 //    });
 //
 //    var chk2 = vir_code_arr.findIndex(function(str) {
-//	return str.includes("BB%" + to_pc + " :");
+//        return str.includes("BB%" + to_pc + " :");
 //    });
 //
 //    if (chk1 == -1 || chk2 == -1){
-//	return {valid: false, points: []};
+//        return {valid: false, points: []};
 //    }
 //
 //    var pc_arr = [from_pc];
@@ -286,30 +286,30 @@ function construct_expr(vir_obj, idx, skip){
     }
     if (vir_obj.exprs[idx].type == "donotsimplify_expr") {
       if (vir_obj.exprs[idx].op == "read_mem") {
-	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
-	vst += "[";
-	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
-	vst += "]";
+        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+        vst += "[";
+        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+        vst += "]";
       } else if (vir_obj.exprs[idx].op == "write_mem") {
-	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
-	vst += "[";
-	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
-	vst += "] = ";
-	vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][3]);
+        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+        vst += "[";
+        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+        vst += "] = ";
+        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][3]);
       } else {
-	vst += vir_obj.exprs[idx].op;
-	vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+        vst += vir_obj.exprs[idx].op;
+        vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
       }
     } else if (vir_obj.exprs[idx].type == "setflags") {
       vst += "setflags(";
       for (let i = 1; i < vir_obj.expr_args[idx].length; i ++) {
-	vst += vir_obj.exprs[idx].flags[i];
-	vst += " = ";
-	let e = vir_obj.expr_args[idx][i];
-	vst += get_expr_id_or_var(vir_obj, e);
-	if (i != vir_obj.expr_args[idx].length-1) {
-	  vst += ", ";
-	}
+        vst += vir_obj.exprs[idx].flags[i];
+        vst += " = ";
+        let e = vir_obj.expr_args[idx][i];
+        vst += get_expr_id_or_var(vir_obj, e);
+        if (i != vir_obj.expr_args[idx].length-1) {
+          vst += ", ";
+        }
       }
       vst += ")"
     } else if (vir_obj.exprs[idx].type == "donotsimplify_parith_expr") {
@@ -378,12 +378,12 @@ function get_vir_from_obj(vir_obj, skip_override){
       let expr_nums = [];
       rec_get_expr_vir(vir_obj.vir[i].idx, done, strs, expr_nums, vir_obj, new_skip);
       for (let j = 0; j < strs.length; j ++) {
-    	vir += strs[j];
-    	vir_expr_line_map[expr_nums[j]] = cline;
-    	var newline_count = strs[j].split("\n").length - 1;
-    	cline += newline_count;
-    	vir += "\n";
-    	cline += 1;
+            vir += strs[j];
+            vir_expr_line_map[expr_nums[j]] = cline;
+            var newline_count = strs[j].split("\n").length - 1;
+            cline += newline_count;
+            vir += "\n";
+            cline += 1;
       }
     } else if (vir_obj.vir[i].type == "condbr") {
       vir += "if (" + get_expr_id_or_var(vir_obj, vir_obj.vir[i].cond) + ") goto BB%" + vir_obj.vir[i].target;
@@ -395,15 +395,15 @@ function get_vir_from_obj(vir_obj, skip_override){
       cline += 1;
     } else if (vir_obj.vir[i].type == "label") {
       if (vir_obj.vir[i].label == "L0%0%d") {
-	vir += "BB%" + vir_obj.vir[i].label + " :";
-	vir += "\n";
-	cline += 1;
+        vir += "BB%" + vir_obj.vir[i].label + " :";
+        vir += "\n";
+        cline += 1;
       }
       else {
-	vir += "\n";
-	vir += "BB%" + vir_obj.vir[i].label + " :";
-	vir += "\n";
-	cline += 2;
+        vir += "\n";
+        vir += "BB%" + vir_obj.vir[i].label + " :";
+        vir += "\n";
+        cline += 2;
       } 
     } else if (vir_obj.vir[i].type == "phi") {
       var e = vir_obj.vir[i].exprs;
@@ -442,7 +442,7 @@ function parse_vir_obj(message){
     }
     else {
       for (let j = 0; j < vir_obj.expr_args[i].length; j ++) {
-	vir_obj.expr_args[i][j] = parseInt(vir_obj.expr_args[i][j]);
+        vir_obj.expr_args[i][j] = parseInt(vir_obj.expr_args[i][j]);
       }
     }
   }
@@ -465,7 +465,7 @@ function parse_vir_obj(message){
     }
     else if (vir_obj.vir[i].type == "phi") {
       for (let j = 0; j < vir_obj.vir[i].exprs.length; j ++) {
-	vir_obj.vir[i].exprs[j] = parseInt(vir_obj.vir[i].exprs[j]);
+        vir_obj.vir[i].exprs[j] = parseInt(vir_obj.vir[i].exprs[j]);
       }
     }
     else if (vir_obj.vir[i].type == "condbr") {
@@ -1640,8 +1640,8 @@ window.addEventListener('message', async event => {
             global_code = message.code + "\n.";
             ir = message.ir;
             vir_obj = parse_vir_obj(message.vir);
-	    skip_override = new Array(vir_obj.expr_args.length).fill(false);
-	    vir = get_vir_from_obj(vir_obj, skip_override);
+            skip_override = new Array(vir_obj.expr_args.length).fill(false);
+            vir = get_vir_from_obj(vir_obj, skip_override);
             obj = message.obj;
             code_filename = message.code_filename;
             ir_filename = message.ir_filename;
@@ -1892,12 +1892,12 @@ function onLeftClick(event){
     if (expr_num != -1) {
       skip_override[expr_num] = !skip_override[expr_num];
       if (vir_obj.can_skip[expr_num]) {
-	vir = get_vir_from_obj(vir_obj, skip_override);
-	redraw();
-	scroll(0, pcsh);
-	current_scroll_height = pcsh;
-	// scroll(0, (current_line_delta + vir_expr_line_map[expr_num])*currentZoom*deltaY);
-	// current_scroll_height = (current_line_delta + vir_expr_line_map[expr_num])*currentZoom*deltaY;
+        vir = get_vir_from_obj(vir_obj, skip_override);
+        redraw();
+        scroll(0, pcsh);
+        current_scroll_height = pcsh;
+        // scroll(0, (current_line_delta + vir_expr_line_map[expr_num])*currentZoom*deltaY);
+        // current_scroll_height = (current_line_delta + vir_expr_line_map[expr_num])*currentZoom*deltaY;
       }
     }
   }

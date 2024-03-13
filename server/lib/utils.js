@@ -376,4 +376,20 @@ function base32Encode(buffer) {
     return output;
 }
 
+//var stringConstructor = "test".constructor;
+//var arrayConstructor = [].constructor;
+var objectConstructor = ({}).constructor;
+
+function isJSON(obj) {
+  return (obj.constructor === objectConstructor);
+}
+
+function mk_array(x) {
+  if (x === undefined) return [];
+  else if (Array.isArray(x)) return x;
+  else return [x];
+}
+
 exports.base32Encode = base32Encode;
+exports.isJSON = isJSON;
+exports.mk_array = mk_array;

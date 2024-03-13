@@ -334,10 +334,10 @@ class EqcheckHandler {
       return path.join(dirPath, 'eq.proof');
     }
 
-    get_proof_filename_xml(dirPath, cg_name) {
+    get_proof_filename_json(dirPath, cg_name) {
       //console.log('dirPath ', dirPath);
       if (cg_name === undefined) {
-        return path.join(dirPath, 'eq.proof.xml');
+        return path.join(dirPath, 'eq.proof.json');
       } else {
         return path.join(dirPath, cg_name);
       }
@@ -603,7 +603,8 @@ class EqcheckHandler {
               dstCompileLogArg = ['--compile-log', compile_logFilename];
             }
 
-            const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
+            //const redirect = ['-xml-output', outFilename, '-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
+            const redirect = ['-running_status', runstatusFilename, '-search_tree', searchTreeFilename];
             const unroll = ['-unroll-factor', unrollFactor];
             const proof = ['-proof', proofFilename, '-tmpdir-path', dirPath];
             const stdout_filename = dirPath + "/stdout";
@@ -753,11 +754,11 @@ class EqcheckHandler {
       return buffer;
     }
 
-    async getProofXML(dirPath, cg_name) {
-      let proofFilename = this.get_proof_filename_xml(dirPath, cg_name);
+    async getProofJson(dirPath, cg_name) {
+      let proofFilename = this.get_proof_filename_json(dirPath, cg_name);
       var buffer = await this.readBuffer(proofFilename);
       if (buffer === undefined) return undefined;
-      return buffer;
+      return JSON.parse(buffer);
     }
 
     async getInvarJson(filename) {
@@ -771,7 +772,7 @@ class EqcheckHandler {
     //}
 
     absPath(dirPath, srcFilenameJSON) {
-      return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + srcFilenameJSON.join();
+      return (srcFilenameJSON === undefined) ? undefined : dirPath + "/../" + (srcFilenameJSON.isJSON ? srcFilenameJSON.join() : srcFilenameJSON);
     }
 
     //get_tfg_for_vir_gen(dirPath, functionName) {
@@ -1086,12 +1087,13 @@ class EqcheckHandler {
       if (!fs.existsSync(searchTreeFilename)) {
         return "";
       }
-      const buffer = fs.readFileSync(searchTreeFilename);
-      const searchTreeXML = buffer.toString();
-      var searchTree;
-      xml2js.parseString(searchTreeXML, {explictArray: false}, function (err, result) { //XXX: explicitArray is mis-spelled. Fix this either by correcting the spelling (and ensure nothing else breaks) or by removing this option
-        searchTree = result;
-      });
+      const searchTree = fs.readFileSync(searchTreeFilename);
+      //const buffer = fs.readFileSync(searchTreeFilename);
+      //const searchTreeXML = buffer.toString();
+      //var searchTree;
+      //xml2js.parseString(searchTreeXML, {explictArray: false}, function (err, result) { //XXX: explicitArray is mis-spelled. Fix this either by correcting the spelling (and ensure nothing else breaks) or by removing this option
+      //  searchTree = result;
+      //});
       return searchTree;
     }
 
@@ -1100,12 +1102,14 @@ class EqcheckHandler {
       if (!fs.existsSync(runStatusFilename)) {
         return {};
       }
-      const buffer = fs.readFileSync(runStatusFilename);
-      const runStatusXML = buffer.toString();
-      var runStatus;
-      xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
-        runStatus = result;
-      });
+      const runStatus = JSON.parse(fs.readFileSync(runStatusFilename));
+      //console.log(`runStatus =\n${runStatus}`);
+      //const buffer = fs.readFileSync(runStatusFilename);
+      //const runStatusXML = buffer.toString();
+      //var runStatus;
+      //xml2js.parseString(runStatusXML, {explictArray: false}, function (err, result) {
+      //  runStatus = result;
+      //});
       return runStatus;
     }
 
@@ -1165,19 +1169,22 @@ class EqcheckHandler {
     }
 
     dryRunInfoGetFunctions(fmap) {
-      //console.log(`fmap = ${JSON.stringify(fmap)}\n`);
+      console.log(`fmap = ${JSON.stringify(fmap)}\n`);
       var ret = [];
       var vals = [];
-      const ls = fmap.function_dry_run_info_entry_pair;
-      //console.log(`ls = ${JSON.stringify(ls)}`);
+      var ls = fmap.function_dry_run_info_entry_pair;
+      console.log(`ls = ${JSON.stringify(ls)}`);
       if (ls === undefined) {
+        console.log(`returning empty for ${JSON.stringify(ls)}`);
         return [];
       }
+      ls = mk_array(ls); //convert ls to an array (if it was not already one)
+      console.log(`ls.length = ${ls.length}`);
       for (let i = 0; i < ls.length; i++) {
         const e = ls[i];
         //console.log(`entry = ${JSON.stringify(e)}`);
-        const src_loc = e.dry_run_info_entry[0].src_lines_of_code;
-        const dst_loc = e.dry_run_info_entry[0].dst_lines_of_code;
+        const src_loc = e.dry_run_info_entry.src_lines_of_code;
+        const dst_loc = e.dry_run_info_entry.dst_lines_of_code;
         const metric = dst_loc;
         vals.push({ function_name: e.function_name, metric: metric});
       }
@@ -1463,10 +1470,13 @@ class EqcheckHandler {
         const runStatus = await this.getRunningStatus(dirPathIn);
 
         if (runStatus.running_status === undefined) {
+          //console.log(`runStatus =\n${runStatus}`);
+          console.log('running status is undefined for ', dirPathIn);
           res.end(JSON.stringify({}));
           return;
         }
         const srcFilenameJSON = runStatus.running_status.src_filename;
+        //console.log(`srcFilenameJSON=\n${srcFilenameJSON}`);
         const srcFilename = this.absPath(dirPath, srcFilenameJSON);
         const dstFilenameJSON = runStatus.running_status.dst_filename;
         const dstFilename = this.absPath(dirPath, dstFilenameJSON);
@@ -1487,6 +1497,7 @@ class EqcheckHandler {
         //console.log(`src_bc = ${src_bc}\n`);
         //console.log(`src_ir = ${src_ir}\n`);
         if (dstFilename === "") {
+          console.log(`dstFilename is empty! returning empty list`);
           res.end(JSON.stringify({ src_filename: srcFilename, src_bc: src_bc, src_ir: src_ir, dst_filename: dstFilename, dst_bc: dst_bc, dst_ir: dst_ir }));
           return;
         }
@@ -1509,9 +1520,9 @@ class EqcheckHandler {
         const compile_log = compile_logFilename;
         //const harvest = await this.readBuffer(harvestFilename);
         const harvest = harvestFilename;
-        const common = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].common_functions[0]);
-        const src_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].src_only_functions[0]);
-        const dst_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info[0].dst_only_functions[0]);
+        const common = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info.common_functions);
+        const src_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info.src_only_functions);
+        const dst_only = this.dryRunInfoGetFunctions(runStatus.running_status.dry_run_info.dst_only_functions);
         //console.log(`harvest = ${harvest}\n`);
         //console.log(`common = ${common}, src_only = ${src_only}, dst_only = ${dst_only}`);
         const responseStr = JSON.stringify({ src_filename: srcFilename, src_bc: src_bc, src_ir: src_ir, dst_filename: dstFilename, dst_bc: dst_bc, dst_ir: dst_ir, dst_tfg_is_llvm: dst_tfg_is_llvm, dst_filename_is_object: dstFilenameIsObject, harvest: harvest, object: object, compile_log: compile_log, common: common, src_only: src_only, dst_only: dst_only });
@@ -1519,14 +1530,14 @@ class EqcheckHandler {
         return;
       } else if (commandIn === commandObtainProof) {
         console.log('ObtainProof received with dirPathIn ', dirPathIn);
-        const proof_xml = await this.getProofXML(dirPathIn, cg_name);
-        console.log('proof_xml =\n', proof_xml);
+        const proofObj = await this.getProofJson(dirPathIn, cg_name);
+        //console.log('proof_xml =\n', proof_xml);
 
-        var proofObj;
-        xml2js.parseString(proof_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
-            //console.dir(result);
-            proofObj = result;
-        });
+        //var proofObj;
+        //xml2js.parseString(proof_xml, {explicitArray: false, preserveChildrenOrder: true}, function (err, result) {
+        //    //console.dir(result);
+        //    proofObj = result;
+        //});
 
         // console.log(JSON.stringify(proofObj.functionName));
          console.log(`proofObj = ${JSON.stringify(proofObj)}`);

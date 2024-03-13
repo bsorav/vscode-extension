@@ -753,17 +753,16 @@ function drawNetwork(correl_entry) {
   var dst_code_subprogram_info, dst_ir_subprogram_info;
   if (dst_tfg_llvm === undefined) {
     dst_code_subprogram_info = tfg_asm_obtain_subprogram_info(dst_tfg_asm, dst_assembly);
-    dst_code_subprogram_info["line"] = parseInt(dst_code_subprogram_info["line"])+1;
-    dst_code_subprogram_info["line"]=dst_code_subprogram_info["line"].toString();
-    dst_code_subprogram_info["scope_line"] = parseInt(dst_code_subprogram_info["scope_line"])+1;
-    dst_code_subprogram_info["scope_line"]=dst_code_subprogram_info["scope_line"].toString();
+    dst_code_subprogram_info["line"] = parseInt(dst_code_subprogram_info["line"]) + 1;
+    dst_code_subprogram_info["line"] = dst_code_subprogram_info["line"].toString();
+    dst_code_subprogram_info["scope_line"] = parseInt(dst_code_subprogram_info["scope_line"]) + 1;
+    dst_code_subprogram_info["scope_line"] = dst_code_subprogram_info["scope_line"].toString();
   } else {
     [dst_code_subprogram_info, dst_ir_subprogram_info] = tfg_llvm_obtain_subprogram_info(dst_tfg_llvm);
   }
 
-
   var nodeMap;
-  [nodeMap, g_nodeIdMap, g_edgeMap/*, g_src_subprogram_info, g_src_ir_subprogram_info, g_dst_subprogram_info, g_dst_ir_subprogram_info, g_src_nodeMap, g_src_ir_nodeMap, g_dst_nodeMap, g_dst_ir_nodeMap*/] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
+  [nodeMap, g_nodeIdMap, g_edgeMap] = getNodesEdgesMap(cg_nodes, src_nodes, dst_nodes, cg_edges, src_tfg_llvm, dst_tfg_llvm, dst_tfg_asm, dst_assembly, dst_insn_pcs, dst_pc_to_assembly_index_map, dst_assembly_index_to_assembly_line_map, dst_insn_index_to_assembly_line_map);
   nodeMap['L0%0%d_L0%0%d']["src_node"]["linename"] = src_code_subprogram_info.scope_line;
   nodeMap['L0%0%d_L0%0%d']["dst_node"]["linename"] = dst_code_subprogram_info.scope_line;
   nodeMap['L0%0%d_L0%0%d']["src_node"]["columnname"] = "1";

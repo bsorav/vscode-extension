@@ -1717,15 +1717,15 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //console.log(`src_code = ${src_code}\n`);
     const dst_code = proof_response.dst_code;
 
-    const src_code_filename = proof_response.src_code_filename[0].split("/")[1];
-    const dst_code_filename = proof_response.dst_code_filename[0].split("/")[1];
+    const src_code_filename = proof_response.src_code_filename.split("/")[1];
+    const dst_code_filename = proof_response.dst_code_filename.split("/")[1];
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
     const src_vir = (proof_response.src_vir === undefined) ? undefined : proof_response.src_vir;
     const dst_vir = (proof_response.dst_vir === undefined) ? undefined : proof_response.dst_vir;
 
-    const src_ir_filename = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir_filename[0].split("/")[1];
-    const dst_ir_filename = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir_filename[0].split("/")[1];
+    const src_ir_filename = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir_filename.split("/")[1];
+    const dst_ir_filename = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir_filename.split("/")[1];
     const invars_obj = (proof_response.invars_obj === undefined) ? undefined : proof_response.invars_obj;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];

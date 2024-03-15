@@ -185,10 +185,14 @@ function build_invars(invars){
 }
 
 function get_invariants_at_pc(pc){
-  console.log("Searching for PC", pc);
   // Currently only capturing BV EQ invariants
-  
-  return build_invars(g_invars[pc]['BV_EQ']);
+  let pc_u = pc.replace(/\./g, "_");
+  //console.log("Searching for PC_u", pc_u);
+  const pc_invars = g_invars[pc_u];
+  if (pc_invars === undefined) {
+    console.log(`Could not find PC ${pc_u}. g_invars = ${JSON.stringify(g_invars)}`)
+  }
+  return build_invars(pc_invars['BV_EQ']);
 }
 
 //console.log("Waiting for proof\n");

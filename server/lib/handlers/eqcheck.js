@@ -1575,9 +1575,9 @@ class EqcheckHandler {
         const dst_vir_file = vir_file_paths.dst_vir;
         
         const src_vir_buf = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file));
-        const src_vir = (src_vir_buf === undefined) ? undefined : src_vir_buf.toString();
+        const src_vir = (src_vir_buf === undefined) ? undefined : JSON.parse(src_vir_buf);
         const dst_vir_buf = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file));
-        const dst_vir = (dst_vir_buf === undefined) ? undefined : dst_vir_buf.toString();
+        const dst_vir = (dst_vir_buf === undefined) ? undefined : JSON.parse(dst_vir_buf);
 
         // const invars = undefined;
         // const invars = (invariants_file === undefined) ? undefined : (await this.readBuffer(invariants_file)).toString();

@@ -1581,12 +1581,17 @@ function constructEdgeLineMap(edges,eqcheck_info,tfg,srcdst){
 
     }
     else{
+      //console.log(`edge_ids.length = ${edge_ids.length}`);
       for(var i=0;i<edge_ids.length;i++){
+        //console.log(`edge_ids[${i}] = ${JSON.stringify(edge_ids[i])}`);
         var from_pc = edge_ids[i].from_pc;
         var to_pc = edge_ids[i].to_pc;
+        if (from_pc === undefined) {
+          continue;
+        }
 
         if(nodeMap[from_pc]===undefined){
-          add_node_to_nodeMap(from_pc,key);
+          add_node_to_nodeMap(from_pc, key);
         }
         add_edge_to_line_list(from_pc,key);
 

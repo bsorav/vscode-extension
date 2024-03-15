@@ -35,11 +35,21 @@ var selected_invars = null;
 
 function parse_invars_obj(invars_obj){
   for (var loc in invars_obj) {
+    if (loc == "name") {
+      continue;
+    }
     if (loc == "exprs_list") {
       continue;
     }
+    //console.log(`loc = ${JSON.stringify(loc)}`);
+    //console.log(`invars_obj[loc] = ${JSON.stringify(invars_obj[loc])}`);
     for (var inv_type in invars_obj[loc]) {
+      if (inv_type == "name") {
+        continue;
+      }
+      //console.log(`inv_type = ${JSON.stringify(inv_type)}`);
       for (var i = 0; i < invars_obj[loc][inv_type].length; i ++) {
+        //console.log(`invars_obj[loc][inv_type] = ${JSON.stringify(invars_obj[loc][inv_type])}`);
         invars_obj[loc][inv_type][i].lhs = parseInt(invars_obj[loc][inv_type][i].lhs);
         invars_obj[loc][inv_type][i].rhs = parseInt(invars_obj[loc][inv_type][i].rhs);
       }
@@ -61,7 +71,8 @@ window.addEventListener('message', async event => {
     switch (message.command) {
       case 'showProof':
         g_prodCfg = message.code;
-        g_invars = parse_invars_obj(message.invars_obj);
+        //console.log(`invars_obj = ${JSON.stringify(message.invars_obj)}`);
+        g_invars = parse_invars_obj(message.invars_obj.invariants);
         g_expr_inv_idx_map = new Array(g_invars.exprs_list.length).fill(-1);
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();

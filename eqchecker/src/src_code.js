@@ -434,7 +434,8 @@ function get_vir_from_obj(vir_obj, skip_override){
 
 function parse_vir_obj(message){
   
-  vir_obj = JSON.parse(message)
+  //vir_obj = JSON.parse(message)
+  vir_obj = message
   
   for (let i = 0; i < vir_obj.expr_args.length; i++) {
     if (vir_obj.expr_args[i] == "") {
@@ -1644,9 +1645,6 @@ window.addEventListener('message', async event => {
         case "data": {
             global_code = message.code + "\n.";
             ir = message.ir;
-            vir_obj = parse_vir_obj(message.vir);
-            skip_override = new Array(vir_obj.expr_args.length).fill(false);
-            vir = get_vir_from_obj(vir_obj, skip_override);
             obj = message.obj;
             code_filename = message.code_filename;
             ir_filename = message.ir_filename;
@@ -1654,6 +1652,10 @@ window.addEventListener('message', async event => {
             curSyntaxType = message.syntax_type;
             current_highlight_message = { path: message.path, eqcheck_info: message.eqcheck_info, tfg: message.tfg, srcdst: message.srcdst };
             [code_line_edge_map,ir_line_edge_map]=constructEdgeLineMap(message.edges,message.eqcheck_info,message.tfg,message.srcdst);
+            //console.log(`message.vir = ${JSON.stringify(message.vir)}`);
+            vir_obj = parse_vir_obj(message.vir.vir_builder);
+            skip_override = new Array(vir_obj.expr_args.length).fill(false);
+            vir = get_vir_from_obj(vir_obj, skip_override);
             // console.log("codeLinesEdgeMap = "+ JSON.stringify(code_line_edge_map));
             // console.log("irLinesEdgeMap = "+ JSON.stringify(ir_line_edge_map));
             break;
@@ -1760,7 +1762,8 @@ function showRightClickMenu(mouseX, mouseY) {
 
   var i = 0;
 
-  if (curSyntaxType != "asm") {
+  //console.log(`curSyntaxType = ${curSyntaxType}.`);
+  if (curSyntaxType == "c/llvm") {
     if (current_codetype == "src") {
       items[i].innerHTML = 'View IR';
       items[i].addEventListener('click', viewIR);
@@ -1789,7 +1792,7 @@ function showRightClickMenu(mouseX, mouseY) {
     items[i].innerHTML = 'Download LLVM IR';
     items[i].addEventListener('click', downloadLLVMIRListener);
     i++;
-  } else {
+  } else if (curSyntaxType == "asm") {
     if (current_codetype == "vir") {
       items[i].innerHTML = 'View Assembly';
       items[i].addEventListener('click', viewSourceCode);

@@ -100,9 +100,11 @@ export function deactivate() {}
 function aNodeWithIdTreeDataProvider(webview, dirPath): vscode.TreeDataProvider<{ key: string[] }> {
   return {
     getChildren: (element: { key: string[] }): { key: string[] }[] => {
+      //console.log(`getChildren: element = ${JSON.stringify(element)}`);
       return getChildren(element ? element.key : undefined).map(key => getNode(key));
     },
     getTreeItem: (element: { key: string[] }): vscode.TreeItem => {
+      //console.log(`getTreeItem: element = ${JSON.stringify(element)}`);
       const treeItem = getTreeItem(webview, dirPath, element.key);
       //treeItem.id = element.key.join('.');
       //treeItem.command = enumeratedCGselected(treeItem.id);
@@ -121,6 +123,7 @@ function aNodeWithIdTreeDataProvider(webview, dirPath): vscode.TreeDataProvider<
 
 function getChildren(key: string[] | undefined): string[][] {
   const treeElement = key ? getTreeElement(key) : Eqchecker.searchTree;
+  //console.log(`searchTree = ${JSON.stringify(Eqchecker.searchTree)}`)
   //if (key !== undefined) {
   //  console.log(`getting children of ${key.join('.')}`);
   //}
@@ -139,6 +142,7 @@ function getChildren(key: string[] | undefined): string[][] {
 
 function getSearchTreeNodeCorrelEntryFilename(searchTreeNode)
 {
+  //console.log(`searchTreeNode = ${JSON.stringify(searchTreeNode)}`);
   return searchTreeNode.correl_entry_filename.toString();
 }
 
@@ -153,18 +157,28 @@ function getSearchTreeNodeDescription(searchTreeNode)
 }
 
 function getTreeItem(webview: vscode.Webview, dirPath: string, key: string[]): vscode.TreeItem {
+  //console.log(`dirPath = ${dirPath}`);
+  //console.log(`key = ${JSON.stringify(key)}`);
   const treeElement = getTreeElement(key);
+  //console.log(`treeElement = ${JSON.stringify(treeElement)}`);
   const searchNode = getNode(key);
+  //console.log(`searchNode = ${JSON.stringify(searchNode)}`);
   const description = getSearchTreeNodeDescription(searchNode);
+  //console.log(`description = ${JSON.stringify(description)}`);
   // An example of how to use codicons in a MarkdownString in a tree item tooltip.
   const correl_entry_filename = getSearchTreeNodeCorrelEntryFilename(searchNode);
+  //console.log(`correl_entry_filename = ${JSON.stringify(correl_entry_filename)}`);
   const markdown_tooltip = getSearchTreeNodeMarkdownTooltip(searchNode);
+  //console.log(`markdown_tooltip = ${JSON.stringify(markdown_tooltip)}`);
   const tooltip = new vscode.MarkdownString(`$(zap) ${key.join('.')}\n\n${markdown_tooltip}`, true);
+  //console.log(`tooltip = ${JSON.stringify(tooltip)}`);
   //console.log(`key = ${key}, treeElement = ${JSON.stringify(treeElement)}`);
   const children = treeElement ? Object.keys(treeElement) : [];
+  //console.log(`children = ${JSON.stringify(children)}`);
   var collapsibleState = children.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
   const id = key.join('.');
   const key_last_elem = key[key.length - 1];
+
   return {
     label: /**vscode.TreeItemLabel**/<any>{ label: key_last_elem, highlights: searchNode.isStable ? void 0 : [[0, key_last_elem.length]] },
     tooltip: tooltip,
@@ -1137,16 +1151,18 @@ class Eqchecker {
         if (obj.hasOwnProperty(k)) {
           //console.log(`hasOwnProperty true for ${k}`);
           if (k == "trie_key") {
-            for (const str of obj[k][0].string) {
-              curname.push(str);
-            }
+            //console.log(`obj[k] = ${JSON.stringify(obj[k])}`);
+            curname.push(obj[k].string);
+            //for (const str of obj[k].string) {
+            //  curname.push(str);
+            //}
           }
         }
       }
       for (const k in obj) {
         if (obj.hasOwnProperty(k)) {
           if (k == "trie_child_tree") {
-            const trie_child_tree_node = obj[k][0];
+            const trie_child_tree_node = obj[k];
             if (trie_child_tree_node.hasOwnProperty('trie_child')) {
               for (const trie_child of trie_child_tree_node.trie_child) {
                 const {name: child_name, tree: child_tree, treeNodes: child_treeNodes } = Eqchecker.cgs_to_tree_rec(trie_child, curname);
@@ -1158,7 +1174,7 @@ class Eqchecker {
             }
             if (trie_child_tree_node.hasOwnProperty("trie_val")) {
               //console.log(`found trie_val`);
-              const trie_child_val = trie_child_tree_node.trie_val[0];
+              const trie_child_val = trie_child_tree_node.trie_val;
               const is_stable = (trie_child_val.correl_entry_status_is_stable == "true");
               treeNodes[curname.join('.')] = new SearchTreeNode(curname, is_stable, trie_child_val.correl_entry_filename, trie_child_val.correl_entry_status_markdown_tooltip, trie_child_val.correl_entry_status_description);
               //console.log(`curname ${curname.join('.')} cg enum_status ${trie_child_val.cg_enum_status}`);
@@ -1710,6 +1726,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
   {
     const proof_panels = this.proof_panels;
     const proof_response = await Eqchecker.obtainProofFromServer(dirPath, correl_entry_filename);
+    //console.log(`correl_entry_filename = ${correl_entry_filename}\n`);
     //console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     console.log(`proof_response= ${JSON.stringify(proof_response)}\n`);
     //console.log(`proof_response.src_code = ${JSON.stringify(proof_response.src_code)}\n`);
@@ -1721,6 +1738,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_code_filename = proof_response.dst_code_filename.split("/")[1];
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
+    //console.log(`proof_response.proof.correl_entry = ${JSON.stringify(proof_response.proof.correl_entry)}`);
     const src_vir = (proof_response.proof.correl_entry.src_vir_build === undefined) ? undefined : proof_response.proof.correl_entry.src_vir_build;
     const dst_vir = (proof_response.proof.correl_entry.dst_vir_build === undefined) ? undefined : proof_response.proof.correl_entry.dst_vir_build;
     const invars_obj = (proof_response.proof.correl_entry.invariants_build === undefined) ? undefined : proof_response.proof.correl_entry.invariants_build;
@@ -2389,6 +2407,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
         case 'eqcheckViewSearchTree': {
           console.log('viewSearchTree received');
           const cgs_enumerated = await Eqchecker.obtainSearchTreeFromServer(data.eqcheck.dirPath);
+          //console.log(`cgs_enumerated = ${JSON.stringify(cgs_enumerated)}`);
           const { searchTree: searchTree, searchTreeNodes: searchTreeNodes } = Eqchecker.cgs_enumerated_to_search_tree(cgs_enumerated);
           //console.log(`searchTree =\n${searchTree}\n`);
           Eqchecker.searchTree = searchTree;

@@ -507,7 +507,7 @@ let currentlyShowingProofOfEqCheck;
       removeEqcheck(eqcheck);
       vscode.postMessage({ type: 'eqcheckClear', eqcheck: eqcheck});
       displayEqcheckList(eqchecks);
-      if(currentlyShowingProofOfEqcheck.dirPath !== undefined && matchEqCheckMenuEntries(eqcheck,currentlyShowingProofOfEqCheck)){
+      if(currentlyShowingProofOfEqcheck !== undefined && matchEqCheckMenuEntries(eqcheck,currentlyShowingProofOfEqCheck)){
         eqchecks_remove_view_state(viewStateViewProof);
         eqchecks_remove_view_state(viewStateProofPartiallyClosed);
         currentlyShowingProofOfEqCheck = undefined;

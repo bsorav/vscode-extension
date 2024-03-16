@@ -339,7 +339,7 @@ class EqcheckHandler {
       if (cg_name === undefined) {
         return path.join(dirPath, 'eq.proof.json');
       } else {
-        return path.join(dirPath, cg_name);
+        return path.join(dirPath, cg_name + ".json");
       }
     }
 
@@ -1087,7 +1087,7 @@ class EqcheckHandler {
       if (!fs.existsSync(searchTreeFilename)) {
         return "";
       }
-      const searchTree = fs.readFileSync(searchTreeFilename);
+      const searchTree = JSON.parse(fs.readFileSync(searchTreeFilename));
       //const buffer = fs.readFileSync(searchTreeFilename);
       //const searchTreeXML = buffer.toString();
       //var searchTree;

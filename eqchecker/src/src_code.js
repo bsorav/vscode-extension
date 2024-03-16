@@ -7,7 +7,7 @@ const vscode = acquireVsCodeApi();
 
 var global_code = null;
 var ir = null;
-var vir = null;
+var global_vir = null;
 var vir_obj = null;
 var skip_override = null;
 var vir_line_expr_map = null;
@@ -279,35 +279,43 @@ function construct_expr(vir_obj, idx, skip){
   var vst = "t" + idx.toString() + " := ";
   if (vir_obj.exprs[idx].type == "simple") {
     vst += vir_obj.exprs[idx].op;
-    vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], false);
+    //vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], false);
+    vst += construct_expr_args(vir_obj, vir_obj.exprs[idx].expr_args, false);
   } else {
     if (skip[idx] == false) {
-      vst += "t" + vir_obj.expr_args[idx][0].toString() + " := ";
+      vst += "t" + vir_obj.exprs[idx].expr_args[0].toString() + " := ";
     }
     if (vir_obj.exprs[idx].type == "donotsimplify_expr") {
       if (vir_obj.exprs[idx].op == "read_mem") {
-        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+        //vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+        vst += get_expr_id_or_var(vir_obj, vir_obj.exprs[idx].expr_args[1]);
         vst += "[";
-        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+        //vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+        vst += get_expr_id_or_var(vir_obj, vir_obj.exprs[idx].expr_args[2]);
         vst += "]";
       } else if (vir_obj.exprs[idx].op == "write_mem") {
-        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+        //vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][1]);
+        vst += get_expr_id_or_var(vir_obj, vir_obj.exprs[idx].expr_args[1]);
         vst += "[";
-        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+        //vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][2]);
+        vst += get_expr_id_or_var(vir_obj, vir_obj.exprs[idx].expr_args[2]);
         vst += "] = ";
-        vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][3]);
+        //vst += get_expr_id_or_var(vir_obj, vir_obj.expr_args[idx][3]);
+        vst += get_expr_id_or_var(vir_obj, vir_obj.exprs[idx].expr_args[3]);
       } else {
         vst += vir_obj.exprs[idx].op;
-        vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+        //vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+        vst += construct_expr_args(vir_obj, vir_obj.exprs[idx].expr_args, true);
       }
     } else if (vir_obj.exprs[idx].type == "setflags") {
       vst += "setflags(";
       for (let i = 1; i < vir_obj.expr_args[idx].length; i ++) {
         vst += vir_obj.exprs[idx].flags[i];
         vst += " = ";
-        let e = vir_obj.expr_args[idx][i];
+        //let e = vir_obj.expr_args[idx][i];
+        let e = vir_obj.exprs[idx].expr_args[i];
         vst += get_expr_id_or_var(vir_obj, e);
-        if (i != vir_obj.expr_args[idx].length-1) {
+        if (i != vir_obj.exprs[idx].expr_args.length-1) {
           vst += ", ";
         }
       }
@@ -315,22 +323,26 @@ function construct_expr(vir_obj, idx, skip){
     } else if (vir_obj.exprs[idx].type == "donotsimplify_parith_expr") {
       vst += vir_obj.exprs[idx].op;
       vst += "_vec";
-      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      //vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      vst += construct_expr_args(vir_obj, vir_obj.exprs[idx].expr_args, true);
     } else if (vir_obj.exprs[idx].type == "packed_float_vector") {
       vst += vir_obj.exprs[idx].op;
       vst += "_packed_float_vec";
-      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      //vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      vst += construct_expr_args(vir_obj, vir_obj.exprs[idx].expr_args, true);
     } else if (vir_obj.exprs[idx].type == "scalar_float_vector") {
       vst += vir_obj.exprs[idx].op;
       vst += "_scalar_float_vec";
-      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      //vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      vst += construct_expr_args(vir_obj, vir_obj.exprs[idx].expr_args, true);
     } else if (vir_obj.exprs[idx].type == "setflag_op") {
       vst += "set_";
       vst += vir_obj.exprs[idx].flag;
       vst += "_from_";
       vst += vir_obj.exprs[idx].op;
       vst += "_op"
-      vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      //vst += construct_expr_args(vir_obj, vir_obj.expr_args[idx], true);
+      vst += construct_expr_args(vir_obj, vir_obj.exprs[idx].expr_args, true);
     } else {
       console.error("expr type not defined");
     }
@@ -350,8 +362,8 @@ function rec_get_expr_vir(cur_expr, done, strs, expr_nums, vir_obj, skip) {
     return;
   }
   let start = skip[cur_expr] ? 1 : 0;
-  for (let i = start; i < vir_obj.expr_args[cur_expr].length; i ++) {
-    rec_get_expr_vir(vir_obj.expr_args[cur_expr][i], done, strs, expr_nums, vir_obj, skip);
+  for (let i = start; i < vir_obj.exprs[cur_expr].expr_args.length; i ++) {
+    rec_get_expr_vir(vir_obj.exprs[cur_expr].expr_args[i], done, strs, expr_nums, vir_obj, skip);
   }
   strs.push(construct_expr(vir_obj, cur_expr, skip));
   expr_nums.push(cur_expr);
@@ -359,18 +371,22 @@ function rec_get_expr_vir(cur_expr, done, strs, expr_nums, vir_obj, skip) {
 
 function get_vir_from_obj(vir_obj, skip_override){
   
-  var new_skip = vir_obj.can_skip.slice();
-  for (let i = 0; i < new_skip.length; i ++) {
-    new_skip[i] = new_skip[i] & !(skip_override[i]);
+  //var new_skip = vir_obj.can_skip.slice();
+  var new_skip = [];
+  for (let i = 0; i < vir_obj.exprs.length/*new_skip.length*/; i++) {
+    //new_skip[i] = new_skip[i] & !(skip_override[i]);
+    new_skip.push(vir_obj.exprs[i].vir_expr_can_skip & !(skip_override[i]));
   }
 
   var vir = "";
 
   var cline = 0;
 
-  var done = new Array(vir_obj.expr_args.length).fill(false);
+  //var done = new Array(vir_obj.expr_args.length).fill(false);
+  var done = new Array(vir_obj.exprs.length).fill(false);
   
-  vir_expr_line_map = new Array(vir_obj.expr_args.length).fill(-1);
+  //vir_expr_line_map = new Array(vir_obj.expr_args.length).fill(-1);
+  vir_expr_line_map = new Array(vir_obj.exprs.length).fill(-1);
 
   for (let i = 0; i < vir_obj.vir.length; i ++) {
     if (vir_obj.vir[i].type == "expr") {
@@ -437,23 +453,23 @@ function parse_vir_obj(message){
   //vir_obj = JSON.parse(message)
   vir_obj = message
   
-  for (let i = 0; i < vir_obj.expr_args.length; i++) {
-    if (vir_obj.expr_args[i] == "") {
-      vir_obj.expr_args[i] = [];
+  for (let i = 0; i < vir_obj.exprs.length; i++) {
+    if (vir_obj.exprs[i].expr_args == "") {
+      vir_obj.exprs[i].expr_args = [];
     }
     else {
-      for (let j = 0; j < vir_obj.expr_args[i].length; j ++) {
-        vir_obj.expr_args[i][j] = parseInt(vir_obj.expr_args[i][j]);
+      for (let j = 0; j < vir_obj.exprs[i].expr_args.length; j++) {
+        vir_obj.exprs[i].expr_args[j] = parseInt(vir_obj.exprs[i].expr_args[j]);
       }
     }
   }
 
-  for (let i = 0; i < vir_obj.can_skip.length; i++) {
-    if (vir_obj.can_skip[i] == "0") {
-      vir_obj.can_skip[i] = false;
+  for (let i = 0; i < vir_obj.exprs.length; i++) {
+    if (vir_obj.exprs[i].vir_expr_can_skip == "0") {
+      vir_obj.exprs[i].vir_expr_can_skip = false;
     }
     else {
-      vir_obj.can_skip[i] = true;
+      vir_obj.exprs[i].vir_expr_can_skip = true;
     }
   }
 
@@ -1444,8 +1460,8 @@ function redraw()
   } else if (current_codetype == "ir") {
     codeChosen = ir;
   } else if (current_codetype == "vir") {
-    // console.log("VIR:", vir);
-    codeChosen = vir;
+    //console.log("VIR:", global_vir);
+    codeChosen = global_vir;
   }
 
   var codeDisplay;
@@ -1654,8 +1670,9 @@ window.addEventListener('message', async event => {
             [code_line_edge_map,ir_line_edge_map]=constructEdgeLineMap(message.edges,message.eqcheck_info,message.tfg,message.srcdst);
             //console.log(`message.vir = ${JSON.stringify(message.vir)}`);
             vir_obj = parse_vir_obj(message.vir.vir_builder);
-            skip_override = new Array(vir_obj.expr_args.length).fill(false);
-            vir = get_vir_from_obj(vir_obj, skip_override);
+            //skip_override = new Array(vir_obj.expr_args.length).fill(false);
+            skip_override = new Array(vir_obj.exprs.length).fill(false);
+            global_vir = get_vir_from_obj(vir_obj, skip_override);
             // console.log("codeLinesEdgeMap = "+ JSON.stringify(code_line_edge_map));
             // console.log("irLinesEdgeMap = "+ JSON.stringify(ir_line_edge_map));
             break;
@@ -1899,8 +1916,8 @@ function onLeftClick(event){
     var expr_num = vir_line_expr_map[lineNumber];
     if (expr_num != -1) {
       skip_override[expr_num] = !skip_override[expr_num];
-      if (vir_obj.can_skip[expr_num]) {
-        vir = get_vir_from_obj(vir_obj, skip_override);
+      if (vir_obj.exprs[expr_num].vir_expr_can_skip) {
+        global_vir = get_vir_from_obj(vir_obj, skip_override);
         redraw();
         scroll(0, pcsh);
         current_scroll_height = pcsh;

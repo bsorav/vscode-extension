@@ -1721,12 +1721,15 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     const dst_code_filename = proof_response.dst_code_filename.split("/")[1];
     const src_ir = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir;
     const dst_ir = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir;
-    const src_vir = (proof_response.src_vir === undefined) ? undefined : proof_response.src_vir;
-    const dst_vir = (proof_response.dst_vir === undefined) ? undefined : proof_response.dst_vir;
+    const src_vir = (proof_response.proof.correl_entry.src_vir_build === undefined) ? undefined : proof_response.proof.correl_entry.src_vir_build;
+    const dst_vir = (proof_response.proof.correl_entry.dst_vir_build === undefined) ? undefined : proof_response.proof.correl_entry.dst_vir_build;
+    const invars_obj = (proof_response.proof.correl_entry.invariants_build === undefined) ? undefined : proof_response.proof.correl_entry.invariants_build;
+    //console.log(`src_vir = ${JSON.stringify(src_vir)}`);
+    //console.log(`dst_vir = ${JSON.stringify(dst_vir)}`);
+    //console.log(`invars_obj = ${JSON.stringify(invars_obj)}`);
 
     const src_ir_filename = (proof_response.src_ir === undefined) ? undefined : proof_response.src_ir_filename.split("/")[1];
     const dst_ir_filename = (proof_response.dst_ir === undefined) ? undefined : proof_response.dst_ir_filename.split("/")[1];
-    const invars_obj = (proof_response.invars_obj === undefined) ? undefined : proof_response.invars_obj;
     //console.log("eqcheckViewProof src_ir = ", src_ir);
     const correl_entry = proof_response["proof"]["correl_entry"];
     //console.log("eqcheckViewProof correl_entry = ", JSON.stringify(correl_entry));

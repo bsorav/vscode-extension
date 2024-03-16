@@ -72,7 +72,7 @@ window.addEventListener('message', async event => {
       case 'showProof':
         g_prodCfg = message.code;
         //console.log(`invars_obj = ${JSON.stringify(message.invars_obj)}`);
-        g_invars = parse_invars_obj(message.invars_obj.invariants);
+        g_invars = parse_invars_obj(message.invars_obj);
         g_expr_inv_idx_map = new Array(g_invars.exprs_list.length).fill(-1);
         //console.log("RECEIVED showProof. refreshing panel\n");
         refreshPanel();

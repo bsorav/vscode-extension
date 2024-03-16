@@ -339,7 +339,7 @@ class EqcheckHandler {
       if (cg_name === undefined) {
         return path.join(dirPath, 'eq.proof.json');
       } else {
-        return path.join(dirPath, cg_name);
+        return path.join(dirPath, cg_name + ".json");
       }
     }
 
@@ -1087,7 +1087,7 @@ class EqcheckHandler {
       if (!fs.existsSync(searchTreeFilename)) {
         return "";
       }
-      const searchTree = fs.readFileSync(searchTreeFilename);
+      const searchTree = JSON.parse(fs.readFileSync(searchTreeFilename));
       //const buffer = fs.readFileSync(searchTreeFilename);
       //const searchTreeXML = buffer.toString();
       //var searchTree;
@@ -1564,27 +1564,27 @@ class EqcheckHandler {
         const dst_ir = (dst_files.ir === undefined) ? undefined : (await this.readBuffer(dst_files.ir)).toString();
         
         // const tfg_file = src_files.etfg;
-        var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
-        var invariants_json = await this.getInvarJson(this.getInvariantsFileForProof(dirPathIn));
+        //var vir_file_paths = this.get_vir_file_for_proof(dirPathIn);
+        //var invariants_json = await this.getInvarJson(this.getInvariantsFileForProof(dirPathIn));
         
-        var invars_obj;
+        //var invars_obj;
 
-        invars_obj = JSON.parse(invariants_json);
+        //invars_obj = JSON.parse(invariants_json);
 
-        const src_vir_file = vir_file_paths.src_vir;
-        const dst_vir_file = vir_file_paths.dst_vir;
+        //const src_vir_file = vir_file_paths.src_vir;
+        //const dst_vir_file = vir_file_paths.dst_vir;
         
-        const src_vir_buf = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file));
-        const src_vir = (src_vir_buf === undefined) ? undefined : JSON.parse(src_vir_buf);
-        const dst_vir_buf = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file));
-        const dst_vir = (dst_vir_buf === undefined) ? undefined : JSON.parse(dst_vir_buf);
+        //const src_vir_buf = (src_vir_file === undefined) ? undefined : (await this.readBuffer(src_vir_file));
+        //const src_vir = (src_vir_buf === undefined) ? undefined : JSON.parse(src_vir_buf);
+        //const dst_vir_buf = (dst_vir_file === undefined) ? undefined : (await this.readBuffer(dst_vir_file));
+        //const dst_vir = (dst_vir_buf === undefined) ? undefined : JSON.parse(dst_vir_buf);
 
         // const invars = undefined;
         // const invars = (invariants_file === undefined) ? undefined : (await this.readBuffer(invariants_file)).toString();
 
         //console.log(`src_code = ${src_files.src}\n`);
         //console.log(`dst_code = ${dst_code}\n`);
-        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename, src_vir: src_vir, dst_vir: dst_vir, invars_obj:invars_obj});
+        const proofStr = JSON.stringify({dirPath: dirPathIn, proof: proofObj, src_code: src_code,src_code_filename: src_code_filename, src_ir: src_ir,src_ir_filename: src_ir_filename ,dst_code: dst_code,dst_code_filename: dst_code_filename ,dst_ir: dst_ir,dst_ir_filename: dst_ir_filename/*, src_vir: src_vir, dst_vir: dst_vir, invars_obj:invars_obj*/});
         //console.log("proofStr:\n" + proofStr);
         res.end(proofStr);
         return;

@@ -10,8 +10,8 @@ import * as fs from 'fs'
 
 //const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
 //const defaultServerURL = 'http://jal.cse.iitd.ac.in:8080';
-//const defaultServerURL = 'http://localhost:80';
-const defaultServerURL = 'http://hal.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://localhost:8080';
+//const defaultServerURL = 'http://hal.cse.iitd.ac.in:80';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';

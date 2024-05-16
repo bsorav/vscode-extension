@@ -250,6 +250,9 @@ function getEdgesFromEC_recursive(ec)
     case 'series':
     case 'parallel':
       const children = ec.serpar_child;
+      if (typeof children.forEach === "undefined") {
+        console.log(`ec = ${JSON.stringify(ec)}`);
+      }
       children.forEach(function (child_ec) {
         const child_ret = getEdgesFromEC_recursive(child_ec);
         ret = arrayUnique(ret.concat(child_ret));

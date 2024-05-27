@@ -15,6 +15,8 @@ const temp = require('temp'),
     textEncoding = require('text-encoding'),
     tar = require('tar'),
 
+
+    os = require('os');
     Mutex = require('async-mutex').Mutex // added
 ;
 
@@ -156,6 +158,15 @@ class EqcheckHandler {
             }
         });
         //console.log("EqcheckHandler object constructed\n");
+    }
+
+    get_server_load(){
+        return (req, res, next) => {
+                // Get the number of free processors
+                const freeProcessor = Math.max(os.cpus().length - os.loadavg()[0],0);
+                // Send the response as JSON
+                res.json({ "freeProcessors":freeProcessor });
+        };
     }
 
     parseRequest(req/*, compiler*/) {
@@ -1329,6 +1340,7 @@ class EqcheckHandler {
       //    return next();
       //}
       //console.log('parseRequest called');
+
       var {
           commandIn, dirPathIn, prepareDirpath, offsetIn, source, sourceTxt, src_bc, src_ir, src_etfg, optimized, optimizedTxt, dst_bc, dst_ir, dst_etfg, object, compile_log, harvest, unrollFactor, srcName, optName, dstFilenameIsObject, functionName, sessionName, eqchecks, cg_name, extra_args, loginName, filenameOnServer, eqcheckDirBundleName
       } = this.parseRequest(req/*, compiler*/);

@@ -34,6 +34,18 @@
         "title": "Check Equivalence"
       },
       {
+        "command": "eqchecker.checkEqFolder",
+        "title": "Check Equivalence using Folder"
+      },
+      {
+        "command": "eqchecker.checkEqMakefile",
+        "title": "Check Equivalence using Makefile"
+      },
+      {
+        "command": "eqchecker.checkEqFile",
+        "title": "Check Equivalence using File"
+      },
+      {
         "command": "eqchecker.setServer",
         "title": "Configure Equivalence Server"
       },
@@ -55,6 +67,7 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.1",
+    "@types/node": "^20.14.10",
     "@types/vscode": "^1.54.0",
     "@types/webpack-env": "^1.18.0",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
@@ -71,12 +84,12 @@
   },
   "dependencies": {
     "@hpcc-js/wasm": "^0.3.11",
+    "@vscode/vsce": "^2.19.0",
     "d3": "^7.8.4",
     "d3-graphviz": "^5.0.2",
     "highlight.js": "^11.7.0",
     "p5": "^1.4.1",
     "prismjs": "^1.29.0",
-    "@vscode/vsce": "^2.19.0",
     "vis-network": "^9.1.2",
     "vscode-tas-client": "^0.1.63"
   },

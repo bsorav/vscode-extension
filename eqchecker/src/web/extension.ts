@@ -2,15 +2,20 @@
 // Import the module and reference it with the alias vscode in your code below
 
 import * as vscode from 'vscode';
-import * as fs from 'fs'
+import * as fs from 'fs';
+import * as path from 'path';
+import { TextDecoder } from 'util';
+import { exec } from 'child_process';
+
+
 //var $ = require('jquery');
 //var _ = require('underscore');
 //var Promise = require('es6-promise').Promise;
 //import * as path from 'path';
 
-const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
+// const defaultServerURL = 'https://vayu.cse.iitd.ac.in:80';
 //const defaultServerURL = 'http://localhost:80';
-//const defaultServerURL = 'http://proton.cse.iitd.ac.in:80';
+const defaultServerURL = 'http://proton.cse.iitd.ac.in:8081';
 const EqcheckDoneMessage = 'Eqcheck DONE';
 const NUM_LAST_MESSAGES = 3;
 const EQCHECK_STATUS_MESSAGE_START = 'Eqcheck started';
@@ -76,11 +81,30 @@ export async function activate(context: vscode.ExtensionContext) {
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  //let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
-  //  Eqchecker.checkEq();
-  //});
-  //context.subscriptions.push(disposable);
-  let disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
+  let disposable = vscode.commands.registerCommand('eqchecker.checkEq', () => {
+   Eqchecker.checkEq();
+  });
+  context.subscriptions.push(disposable);
+  
+  // // new command to check equivalence for multiple c files inside a folder
+  // disposable = vscode.commands.registerCommand('eqchecker.checkEqFolder', () => {
+  //   Eqchecker.checkEqFolder();
+  // });
+  // context.subscriptions.push(disposable);
+  // // new command to extract the multiple c files from the Makefile and the check equivalence for all the c files
+  // disposable = vscode.commands.registerCommand('eqchecker.checkEqMakefile', () => {
+  //   Eqchecker.checkEqMakefile();
+  // });
+  // context.subscriptions.push(disposable);
+  
+  // new command to extract the multiple c files from the text file and the check equivalence for all the c files
+  disposable = vscode.commands.registerCommand('eqchecker.checkEqFile', () => {
+    Eqchecker.checkEqFile();
+  });
+  context.subscriptions.push(disposable);
+  // new commands ends here
+
+  disposable = vscode.commands.registerCommand('eqchecker.setServer', () => {
     Eqchecker.setServer();
   });
   context.subscriptions.push(disposable);
@@ -95,6 +119,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
+
+
 
 function aNodeWithIdTreeDataProvider(webview, dirPath): vscode.TreeDataProvider<{ key: string[] }> {
   return {
@@ -920,6 +946,216 @@ class Eqchecker {
       // Display a message box to the user
       //vscode.window.showInformationMessage("hello");
   }
+
+  // new command to check equivalence for multiple c files inside a folder  
+  public static async checkEqFolder() {
+    // Select multiple .c files
+    const files = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: true,
+      openLabel: 'Select C files',
+      filters: {
+        'C files': ['c']
+      }
+    });
+  
+    if (!files || files.length === 0) {
+      vscode.window.showErrorMessage('No files selected');
+      return;
+    }
+  
+    const cSources: { Uri: string; Text: string }[] = [];
+  
+    // Extract content from each selected C file
+    for (const file of files) {
+      const document = await vscode.workspace.openTextDocument(file);
+      cSources.push({ Uri: file.fsPath, Text: document.getText() });
+    }
+  
+    // Ensure there are C files found
+    if (cSources.length === 0) {
+      vscode.window.showErrorMessage('No C files found in the selected files');
+      return;
+    }
+  
+    // Generate likely equivalence check pairs
+    const asmSources = []; // No ASM files to select
+    const eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
+  
+    let recentPairs = [...recentlyUsedEntries];
+    for (const newPair of eqcheckPairs) {
+      let matched = false;
+      for (const existingPair of recentlyUsedEntries) {
+        if (matchEqCheckMenuEntries(newPair, existingPair)) {
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        recentPairs.push(newPair);
+      }
+    }
+  
+    for (const eqcheckPair of recentPairs) {
+      if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
+        vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPair.source1Uri} -> ${eqcheckPair.source2Uri}`);
+      }
+    }
+  }
+
+  // new command to extract the multiple c files from the Makefile and the check equivalence for all the c files
+
+  public static async checkEqMakefile() {
+    // Select the Makefile
+    const makefile = await vscode.window.showOpenDialog({
+      canSelectMany: false,
+      openLabel: 'Select Makefile',
+      filters: {
+        'Makefile': ['*']
+      }
+    });
+  
+    if (!makefile || makefile.length === 0) {
+      vscode.window.showErrorMessage('No Makefile selected');
+      return;
+    }
+  
+    // Read the Makefile content
+    const makefileUri = makefile[0];
+    const makefileDocument = await vscode.workspace.openTextDocument(makefileUri);
+    const makefileContent = makefileDocument.getText();
+  
+    // Extract C files from the Makefile
+    const cFiles: string[] = [];
+    const srcRegex = /^SRC\s*=\s*(.*)$/m;
+    const match = srcRegex.exec(makefileContent);
+    if (match) {
+      const srcLine = match[1];
+      const files = srcLine.split(/\s+/).filter(file => file.endsWith('.c'));
+      cFiles.push(...files.map(file => vscode.Uri.joinPath(makefileUri, '..', file).fsPath));
+    }
+  
+    if (cFiles.length === 0) {
+      vscode.window.showErrorMessage('No C files found in the Makefile');
+      return;
+    }
+  
+    // Extract content from each C file
+    const cSources = await Promise.all(cFiles.map(async file => ({
+      Uri: file,
+      Text: (await vscode.workspace.openTextDocument(vscode.Uri.file(file))).getText()
+    })));
+  
+    // Ensure there are C files found
+    if (cSources.length === 0) {
+      vscode.window.showErrorMessage('No C files found in the selected files');
+      return;
+    }
+  
+    // Generate likely equivalence check pairs
+    const asmSources = []; // No ASM files to select
+    const eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
+  
+    let recentPairs = [...recentlyUsedEntries];
+    for (const newPair of eqcheckPairs) {
+      let matched = false;
+      for (const existingPair of recentlyUsedEntries) {
+        if (matchEqCheckMenuEntries(newPair, existingPair)) {
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        recentPairs.push(newPair);
+      }
+    }
+  
+    for (const eqcheckPair of recentPairs) {
+      if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
+        vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPair.source1Uri} -> ${eqcheckPair.source2Uri}`);
+      }
+    }
+  }
+
+  public static async checkEqFile() {
+    // Open file dialog to select the text file listing C files
+    const textFile = await vscode.window.showOpenDialog({
+      canSelectMany: false,
+      openLabel: 'Select Text File',
+      filters: {
+          'Text files': ['txt']
+      }
+    });
+
+    if (!textFile || textFile.length === 0) {
+      vscode.window.showErrorMessage('No file selected');
+      return;
+    }
+
+    const listUri = textFile[0];
+    const document = await vscode.workspace.openTextDocument(listUri);
+    const lines = document.getText().split(/\r?\n/);
+
+    const cFiles = [];
+    const fileDetails = {}; // Store compiler and optimization info
+
+    // Parse each line for file name, compiler, and optimization flag
+    for (const line of lines) {
+      let parts = line.trim().split(/\s+/);
+      if (parts.length === 3 && parts[0].endsWith('.c')) {
+          let filePath = vscode.Uri.joinPath(listUri, '..', parts[0]).fsPath;
+          cFiles.push(filePath);
+          fileDetails[filePath] = {
+              compiler: parts[1],
+              optimization: parts[2]
+          };
+      }
+    }
+
+    if (cFiles.length === 0) {
+      vscode.window.showErrorMessage('No C files found in the text file');
+      return;
+    }
+
+    // Extract content from each C file and apply compiler and optimization
+    const cSources = await Promise.all(cFiles.map(async filePath => ({
+      Uri: filePath,
+      Compiler: fileDetails[filePath].compiler,
+      Optimization: fileDetails[filePath].optimization,
+      Text: (await vscode.workspace.openTextDocument(vscode.Uri.file(filePath))).getText()
+    })));
+
+    if (cSources.length === 0) {
+      vscode.window.showErrorMessage('No C files found in the selected files');
+      return;
+    }
+
+    // Generate likely equivalence check pairs
+    const asmSources = []; // No ASM files to select
+    const eqcheckPairs = Eqchecker.genLikelyEqcheckPairs(cSources, asmSources);
+
+    let recentPairs = [...recentlyUsedEntries];
+    for (const newPair of eqcheckPairs) {
+      let matched = false;
+      for (const existingPair of recentlyUsedEntries) {
+          if (matchEqCheckMenuEntries(newPair, existingPair)) {
+            matched = true;
+            break;
+          }
+      }
+      if (!matched) {
+        recentPairs.push(newPair);
+      }
+    }
+
+    for (const eqcheckPair of recentPairs) {
+      if (await Eqchecker.addEqcheck(eqcheckPair) === true) {
+        vscode.window.showInformationMessage(`Checking equivalence for: ${eqcheckPair.source1Uri} -> ${eqcheckPair.source2Uri}`);
+      }
+    }
+  }
+  
 
   public static async setServer()
   {
@@ -2073,7 +2309,7 @@ class EqcheckViewProvider implements vscode.WebviewViewProvider {
     //return new_panels;
   }
 
-  async viewScanReport(webview: vscode.Webview, dirPath: string, filename: string) {
+     async viewScanReport(webview: vscode.Webview, dirPath: string, filename: string) {
     if (this.scanview_panel !== undefined) {
       this.scanview_panel.dispose();
     }

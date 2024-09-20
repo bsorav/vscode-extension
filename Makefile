@@ -12,7 +12,13 @@ client_install_modules:
 	cd eqchecker && npm i && cd ..
 
 .PHONY: client_package
+client_package:
 	cd eqchecker && vsce package && cd ..
+
+.PHONY: client_publish
+client_publish:  #should be done on glados
+	cd eqchecker && vsce publish && cd ..
+
 
 .PHONY: node_install
 node_install:
